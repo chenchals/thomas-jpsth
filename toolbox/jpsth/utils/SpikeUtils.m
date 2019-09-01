@@ -16,7 +16,7 @@ classdef SpikeUtils
                 -abs(lagBins):abs(lagBins))]';
             % Coincidence Histogram
             fx_coinh = @getCoincidence;
-           
+
             % JPSTH Equations from Aertsen et al. 1989
             % Note bins [1,1] is top-left and [n,n] is bottom-right
             % Eq. 3
@@ -35,8 +35,7 @@ classdef SpikeUtils
             % Coincidence Hist
             coinHist = fx_coinh(normJpsth,coincidenceBins);
             
-            % Create output structure
-            
+            %% Create output structure
             temp = SpikeUtils.rasters(alignedSpikesX,timeWin);
             outArg.rasterBins = {temp.rasterBins};
             outArg.xRasters = {temp.rasters};
@@ -49,6 +48,8 @@ classdef SpikeUtils
             outArg.yPsth = {yPsth.psth};
             outArg.yPsthStd = {yPsth.psthStd};
             outArg.normalizedJpsth = normJpsth;
+            outArg.unNormalizedJpsth = unnormalizedJpsth;
+            
             outArg.xCorrHist = xCorrHist;
             outArg.coincidenceHist = coinHist;
             outArg.xSpikeCounts = {xPsth.spikeCounts};

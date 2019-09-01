@@ -28,7 +28,7 @@ function [thisSpikeCount] = spikeCounts(timeStamps, timeWindow, binWidth)
 	if nargin < 2, timeWindow = [-100 500]; end
 	if nargin < 3, binWidth = 1; end
 		
-	binCenters = timeWindow(1)+(binWidth/2):binWidth:timeWindow(2)-(binWidth/2);
+	binCenters = timeWindow(1):binWidth:timeWindow(2);
 	
 	thisSpikeCount = hist(timeStamps',binCenters)';
 end
