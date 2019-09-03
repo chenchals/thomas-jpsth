@@ -33,7 +33,7 @@ classdef SpikeUtils
             % lagBins for xCorr
             xCorrHist = fx_xcorrh(normJpsth,floor(numel(timeBins)/2));
             % Coincidence Hist
-            coinHist = fx_coinh(normJpsth,coincidenceBins);
+            coinHist = fx_coinh(normJpsth,coincidenceBins);           
             
             %% Create output structure
             temp = SpikeUtils.rasters(alignedSpikesX,timeWin);
@@ -64,6 +64,13 @@ classdef SpikeUtils
             if numel(normalizer)==1
                 outArg.normalizer = {normalizer};
             end
+            %% Also do Brody covariogram myVersion
+            [outArg.brodyCovariogram, outArg.rawCrossCorr, outArg.shuffleCorrector,...
+                outArg.sigma, outArg.sigHigh, outArg.sigLow, ~] = getCovariogram(...
+                outArg.xRasters{1}, outArg.yRasters{1},...
+                outArg.xPsth{1}, outArg.yPsth{1}, outArg.xPsthStd{1}, outArg.yPsthStd{1},...
+                floor(range(outArg.xPsthBins{1})/2));
+            
         end
         
         function outArg = jeromiahJpsth(alignedSpikesX, alignedSpikesY, timeWin, binWidth, coincidenceBinWidth)

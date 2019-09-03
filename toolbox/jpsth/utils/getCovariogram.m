@@ -27,25 +27,25 @@
 % You should have received a copy of the GNU General Public License
 % along with JPSTH Toolbox.  If not, see <http://www.gnu.org/licenses/>.
 
-function [thisCovariogram, sigHigh, sigLow, parts] = covariogramBrody(spike_1, spike_2, p1, p2, s1, s2, lag)
+function [brodyCovariogram, rawCrossCorr, shuffleCorrector, sigma, sigHigh, sigLow, parts] = getCovariogram(spike1_rast, spike2_rast, psth1, psth2, psth1Sd, psth2Sd, maxLag)
     % warn user that they should use compiled version
     warning('JPSTH:compileMex', ...
     		['You are using the MATLAB version of covariogramBrody()\n' ...
 				'For better performance please compile covariogramBrody.c with this command: mex(\''covariogramBrody.c\'')']);
 
-	if nargin < 7 lag = 50; end
+	if nargin < 7 maxLag = 50; end
 	
-	trials = size(spike_1,1);
-	trialLength =  size(spike_1,2);
+	trials = size(spike1_rast,1);
+	trialLength =  size(spike1_rast,2);
 		
-	s1s2 = zeros(1,2*lag+1);
-	p1s2 = zeros(1,2*lag+1);
-	s1p2 = zeros(1,2*lag+1);
-	crossCorr =  zeros(1, 2*lag+1);
-	shuffleCorrector = zeros(1,2*lag+1);
-	ij = zeros(4,2*lag+1);
-	for i = 1:2*lag+1
-		currentLag = i - lag - 1;
+	s1s2 = zeros(2*maxLag+1,1);
+	p1s2 = zeros(2*maxLag+1,1);
+	s1p2 = zeros(2*maxLag+1,1);
+	rawCrossCorr =  zeros(2*maxLag+1,1);
+	shuffleCorrector = zeros(2*maxLag+1,1);
+	%ij = zeros(4,2*maxLag+1);
+	for ii = 1:2*maxLag+1
+		currentLag = ii - maxLag - 1;
 		
 		if currentLag < 0 
 			jVector = 1-currentLag:trialLength;
@@ -53,28 +53,27 @@ function [thisCovariogram, sigHigh, sigLow, parts] = covariogramBrody(spike_1, s
 			jVector = 1:trialLength-currentLag; 
 		end
 		
-		for j = jVector
-			crossCorr(i) = crossCorr(i) + mean(spike_1(:,j) .* spike_2(:,j+currentLag));
-			shuffleCorrector(i) = shuffleCorrector(i) + p1(j) * p2(j+currentLag);
-			s1s2(i) = s1s2(i) + s1(j).^2 * s2(j+currentLag).^2;
-			p1s2(i) = p1s2(i) + p1(j).^2 * s2(j+currentLag).^2;
-			s1p2(i) = s1p2(i) + s1(j).^2 * p2(j+currentLag).^2;
-            ij(:,i) =[currentLag;i;j;j+currentLag];
+		for jj = jVector
+			rawCrossCorr(ii) = rawCrossCorr(ii) + mean(spike1_rast(:,jj) .* spike2_rast(:,jj+currentLag));
+			shuffleCorrector(ii) = shuffleCorrector(ii) + psth1(jj) * psth2(jj+currentLag);
+			s1s2(ii) = s1s2(ii) + psth1Sd(jj).^2 * psth2Sd(jj+currentLag).^2;
+			p1s2(ii) = p1s2(ii) + psth1(jj).^2 * psth2Sd(jj+currentLag).^2;
+			s1p2(ii) = s1p2(ii) + psth1Sd(jj).^2 * psth2(jj+currentLag).^2;
+            %ij(:,i) =[currentLag;i;j;j+currentLag];
 		end
 	end
 	
-	thisCovariogram = crossCorr - shuffleCorrector;
+	brodyCovariogram = rawCrossCorr - shuffleCorrector;
 	
 	sigma = sqrt((s1s2 + p1s2 + s1p2)/trials);
 	sigHigh = 2 * sigma;
 	sigLow = -2 * sigma;
     
-    parts.rawCrossCorr = crossCorr;
+    parts.rawCrossCorr = rawCrossCorr;
     parts.shuffleCorrector = shuffleCorrector;
     parts.s1s2 = s1s2;
     parts.p1s2 = p1s2;
     parts.s1p2 = s1p2;
     parts.sigma = sigma;
-    parts.ij = ij;
-    ij
+    %parts.ij = ij;
 end

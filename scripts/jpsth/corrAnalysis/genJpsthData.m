@@ -1,4 +1,6 @@
-function [] = sefFefPairs(area1,area2)
+function [] = genJpsthData(area1,area2)
+% use tic;genJpsthData('SEF','FEF');toc;tic;genJpsthData('SEF','SC');toc 
+% to generate all pairs
 %% Cross-area JPSTH analysis of cell pairs
 % SEF_FEF 
 % [includes V,VM]
@@ -17,6 +19,9 @@ function [] = sefFefPairs(area1,area2)
 % Targ. NOT in X & NOT in Y |   NOT(X|Y)
 %-----------------------------------
 %    
+%%
+warning('off');
+
 %% Options for JPSTH computation
 binWidth = 1;% use 1 ms for JPSTH computation
 % -25 to +25 ms
@@ -83,6 +88,7 @@ trialEventTimes = trialEventTimes(contains(trialEventTimes.session,sessions),:);
 
 %% For each JPSH cell pair do JPSTH
 for s = 1:size(jpsthCellPairs,1)
+    units = struct();
     jpsthPair = jpsthCellPairs(s,:);
     sessionTrialEventTimes = trialEventTimes(contains(trialEventTimes.session,jpsthPair.X_sess),:);
     sessionTrialTypes = trialTypes(contains(trialTypes.session,jpsthPair.X_sess),:);
@@ -91,7 +97,7 @@ for s = 1:size(jpsthCellPairs,1)
     pairUid = jpsthPair.Pair_UID{1};
     XCellId = ['DSP' jpsthPair.X_unit{1}];
     YCellId = ['DSP' jpsthPair.Y_unit{1}];
-    pairFilename = ['JPSH-' pairUid];
+    pairFilename = ['JPSTH-' pairUid];
     units.(XCellId) = spikeTimes(jpsthPair.X_unitNum).SAT';
     units.(YCellId) = spikeTimes(jpsthPair.Y_unitNum).SAT';
     
@@ -141,8 +147,8 @@ for s = 1:size(jpsthCellPairs,1)
             alignedTimeWin = alignTimeWin{evId};
             alignedName = alignNames{evId};
             alignTime = sessionTrialEventTimes.CueOn{1};
-            if isempty(strcmpi(alignedEvent,'CueOn'))
-                alignTime = alignTime + sessionTrialEventTimes.(alignedEvent){1};
+            if ~strcmp(alignedEvent,'CueOn')
+                alignTime = alignTime + sessionTrialEventTimes.(alignedEvent){1}(:);
             end
             alignTime = alignTime(selTrials);
             XAligned = SpikeUtils.alignSpikeTimes(units.(XCellId)(selTrials,:),alignTime, alignedTimeWin);

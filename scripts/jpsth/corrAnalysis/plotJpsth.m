@@ -2,10 +2,10 @@
 %PLOTJPSTH Summary of this function goes here
 
 pairDir = 'dataProcessed/analysis/JPSTH/jpsth_SEF-FEF';
-jpsthPairFile = fullfile(pairDir,'JPSH-PAIR_0027.mat');
+jpsthPairFile = fullfile(pairDir,'JPSTH-PAIR_0027.mat');
 jpsthData = load(jpsthPairFile);
 %%
-conditions = {'Fast','Accurate'};
+conditions = {'FastErrorTiming','AccurateErrorTiming'};
 fx_gSmoothW = @(x,w) smoothdata(x,'gaussian',w,'omitnan');
 fx_gSmooth = @(x) fx_gSmoothW(x,20);
 parentFig = getFigHandle();
@@ -14,11 +14,11 @@ ss = get(0,'ScreenSize');
 aspectRatio = ss(3)/ss(4);
 maxRows = 2; % max rows of jpsths
 maxCols = 3;% max jpsths in a row
-offsetsX = [0.01 0.34 0.67]; % for 3 columns
+offsetsX = [0.005 0.34 0.67]; % for 3 columns
 offsetsY = [0.94 0.48]; % for 2 rows
 startPos = 0.015; % top position of yPsth
 psthH = 0.05; psthW = psthH*3.5;
-gutter = 0.003; % space between plots
+gutter = 0.005; % space between plots
 %% compute the min-max for axis scaling
 %#ok<*SAGROW>
 for ii = 1:numel(conditions)
@@ -108,18 +108,17 @@ for rowNum = 1:2
         annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0);
 
         %% H_jpsth
-        jpsthPos(1) = yPsthPos(1) + yPsthPos(3) + gutter;
+        jpsthPos(1) = yPsthPos(1) + yPsthPos(3) + 2*gutter;
         jpsthPos(2) = yPsthPos(2);
         jpsthPos(3:4) = [psthW/aspectRatio, psthW];
         %% H_coins1
-        coinsPos(1) = jpsthPos(1) + jpsthPos(3) + 4*gutter;
+        coinsPos(1) = jpsthPos(1) + jpsthPos(3) + 3*gutter;
         coinsPos(2) = jpsthPos(2) + jpsthPos(4) - (psthH + psthH/4)*aspectRatio ;
         coinsPos(3:4) = [psthW/aspectRatio, psthH*aspectRatio]; % jpsthPos(3:4);       
         H_out.H_coins1=axes('parent',parentFig,'position',coinsPos,'box','on','layer','bottom','Tag','H_coins1');
         area(coinsHist(:,1),fx_gSmooth(coinsHist(:,2)));        
         annotateAxis(gca,'y',coinsLims,coinsTicks,coinsTicksLabel,0);
         annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0);
-        set(gca,'YAxisLocation','right')
 
         % camzoom(sqrt(2));
         % camorbit(-45,0);
@@ -132,7 +131,7 @@ for rowNum = 1:2
         
         %% H_xPsth
         xPsthPos(1) = jpsthPos(1);
-        xPsthPos(2) = jpsthPos(2) - gutter - psthH*aspectRatio;
+        xPsthPos(2) = jpsthPos(2) - 2*gutter - psthH*aspectRatio;
         xPsthPos(3) = psthW/aspectRatio;
         xPsthPos(4) = psthH*aspectRatio;
         H_out.H_xPsth=axes('parent',parentFig,'position',xPsthPos,'box','on','layer','top','Tag','H_xPsth');
@@ -174,11 +173,11 @@ end
 function [H_Figure] = getFigHandle()
     scale = 0.7;
     set(0,'units','pixels');
-    set(0,'defaulttextfontsize',6*scale,...
+    set(0,'defaulttextfontsize',5*scale,...
         'defaulttextfontname','Arial',...
-        'defaultaxesfontsize',6*scale,...
+        'defaultaxesfontsize',5*scale,...
         'defaultaxeslinewidth',0.05);
-    margin = 20; %pixels
+    margin = 10; %pixels
     ss=get(0,'ScreenSize');
     FigPos=[margin margin ss(3)-(2*margin) ss(4)-(2*margin)];
     %Main figure window
