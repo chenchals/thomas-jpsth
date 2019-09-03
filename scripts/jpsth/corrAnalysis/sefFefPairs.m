@@ -1,4 +1,4 @@
-function [] = sefFefPairs()
+function [] = sefFefPairs(area1,area2)
 %% Cross-area JPSTH analysis of cell pairs
 % SEF_FEF 
 % [includes V,VM]
@@ -21,9 +21,9 @@ function [] = sefFefPairs()
 binWidth = 1;% use 1 ms for JPSTH computation
 % -25 to +25 ms
 coincidenceBins = 25;
-area1 = 'SEF';
-%area2 = 'FEF';
-area2 = 'SC';
+% area1 = 'SEF';
+% area2 = 'FEF';
+% area2 = 'SC';
 
 rootAnalysisDir = 'dataProcessed/analysis/JPSTH';
 datasetDir = 'dataProcessed/dataset';

@@ -24,14 +24,20 @@ zvals = ones(1,10);
 transOrig = @(x,y,z) repmat([x;y;z;],[1,numel(x)]);
 rotOrig =  @(x, y, theta) [
     cosd(theta), -sind(theta), x;
-    sind(theta), cosd(theta), y;];
+    sind(theta), cosd(theta), y;
+    0,            0,           1];
 
-rotMat = rotOrig(0,0,45) * ([xvals;yvals;zvals] - transOrig(floor(numel(xvals)/2),0,0) ) + transOrig(floor(numel(xvals)/2),0,0);
+rotMat = rotOrig(0,0,45) * ...
+    ([xvals;yvals;zvals] - transOrig(floor(numel(xvals)/2),0,0) ) + transOrig(floor(numel(xvals)/2),0,0);
 
 
 hold off
 
 figure
+plot(rotMat(1,:),rotMat(2,:),'b')
+
+
+
 rotOrig(0,0,45)*[xvals;yvals;zvals]
 
 
