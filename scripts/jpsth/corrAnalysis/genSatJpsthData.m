@@ -1,4 +1,4 @@
-function [] = genJpsthData(area1,area2)
+function [] = genSatJpsthData(area1,area2)
 % use tic;genJpsthData('SEF','FEF');toc;tic;genJpsthData('SEF','SC');toc 
 % to generate all pairs
 %% Cross-area JPSTH analysis of cell pairs
