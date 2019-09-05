@@ -1,6 +1,7 @@
-function [] = plotSatJpsth(jpsthPairFile,pdfOutputDir,savePdfFlag)
+%function [] = plotSatJpsth(jpsthPairFile,pdfOutputDir,savePdfFlag)
 %PLOTJPSTH Summary of this function goes here
 
+        %plotSatJpsth(jpsthPairFile,pdfOutputDir,saveFigFlag);
 
 %% Put this in the function....
 fx_gSmoothW = @(x,w) smoothdata(x,'gaussian',w,'omitnan');
@@ -17,9 +18,14 @@ pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_CORRECT_';
 pdfPrefixMap(conditionPairs{3}{1}) = 'SAT_ERROR_CHOICE_';
 pdfPrefixMap(conditionPairs{4}{1}) = 'SAT_ERROR_TIMING_';
 
+
+conditionParis = {conditionPairs(1)};
+
+
 %%
 [~,pdfBaseFile] = fileparts(jpsthPairFile);
-for cc = 1:numel(conditionPairs)
+colormap('jet');
+for cc = 1:1 %numel(conditionPairs)
     
     conditions = conditionPairs{cc};
     outPdfFile = fullfile(pdfOutputDir, [pdfPrefixMap(conditions{1}) pdfBaseFile '.pdf']);
@@ -61,29 +67,36 @@ for cc = 1:numel(conditionPairs)
     psthYLims = [0 maxSpkPerSec];
     psthYTicks = [0 maxSpkPerSec];
     psthYTickLabel =  arrayfun(@(x) num2str(x,'%.1f'),psthYTicks','UniformOutput',false);
+    psthYTickLabel(psthYTicks==0) = {'0'};
+    psthYaxisLabel = 'Spk/s';
     
     coinsLims = [-maxCoins maxCoins];
     coinsTicks = [-maxCoins maxCoins];
     coinsTicksLabel =  arrayfun(@(x) num2str(x,'%.1f'),coinsTicks','UniformOutput',false);
+    coinsYAxisLabel = ['Coincidences \\pm' num2str(currJpsths.coincidenceBins(1),'%i') ' ms'];
     
     normJpsthScale = [minJpsth maxJpsth];
     
     xcorrYLims = [minXcorr maxXcorr];
     xcorrYTicks = [minXcorr maxXcorr];
     xcorrYTickLabel =  arrayfun(@(x) num2str(x,'%.2f'),xcorrYTicks','UniformOutput',false);
+    xcorrYaxisLabel = 'r^2';
+    xcorrXaxisLabel = 'Lag (s)';
     
     brodyYLims = [minBrody maxBrody];
     brodyYTicks = [minBrody maxBrody];
     brodyYTickLabel =  arrayfun(@(x) num2str(x,'%.2f'),brodyYTicks','UniformOutput',false);
     brodySigmaTxtY = range(brodyYLims)/4;
+    brodyYaxisLabel = 'Average counts';
+    brodyXaxisLabel = 'Lag (s)';
     
     %% plot each condition in a row
     for rowNum = 1:2
         condition = conditions{rowNum};
         axColor = [0.5 0.5 0.5];
         currJpsths = jpsthData.(condition);
+        alignWinNames = currJpsths.Properties.RowNames;
         for colNum = 1:3
-            alignWinNames = currJpsths.Properties.RowNames;
             % bins for xUnit , yUnit
             psthBins = currJpsths.yPsthBins{colNum};
             psthXLims = [min(psthBins) max(psthBins)];
@@ -91,6 +104,8 @@ for cc = 1:numel(conditionPairs)
             psthXTickLabel =  arrayfun(@(x) num2str(x/1000,'%.1f'),psthXTicks','UniformOutput',false);
             psthXTickLabel(2:end-1) = {''};
             psthXTickLabel(psthXTicks==0) = {'0'};
+            psthXaxisLabel = ['Time from ', currJpsths.alignedEvent{colNum},' (s)'];
+            psthXaxisLabel = strrep(psthXaxisLabel,'SaccadePrimaryTempo','Saccade');
             % Coincidence Hist
             coinsHist = currJpsths.coincidenceHist{colNum};
             coinsHist(:,1) = psthBins;
@@ -98,16 +113,18 @@ for cc = 1:numel(conditionPairs)
             xcorrHist = currJpsths.xCorrHist{colNum};
             xcorrBins = xcorrHist(:,1);
             xcorrXLims = [min(xcorrBins) max(xcorrBins)];
-            xcorrXTicks = min(xcorrBins):100:max(xcorrBins);
+            xcorrXTicks = sort(unique([0:-100:xcorrXLims(1) 0:100:xcorrXLims(2)]));
             xcorrXTickLabel =  arrayfun(@(x) num2str(x/1000,'%.1f'),xcorrXTicks','UniformOutput',false);
+            xcorrXTickLabel(xcorrXTicks==0)={''};
             
             % brodyCovariogram (we compute the full lag)
             brodySig = currJpsths.sigma{colNum};
             brodyHist = [xcorrBins currJpsths.brodyCovariogram{colNum}];
             brodyBins = brodyHist(:,1);
             brodyXLims = [min(brodyBins) max(brodyBins)];
-            brodyXTicks = min(brodyBins):100:max(brodyBins);
+            brodyXTicks = sort(unique([0:-100:brodyXLims(1) 0:100:brodyXLims(2)]));
             brodyXTickLabel = arrayfun(@(x) num2str(x/1000,'%.1f'),brodyXTicks','UniformOutput',false);
+            brodyXTickLabel(brodyXTicks==0)={''};       
             brodySigmaTxtX = range(brodyXLims)/4;
             
             %% H_yPsth
@@ -115,24 +132,28 @@ for cc = 1:numel(conditionPairs)
             yPsthPos(2) = offsetsY(rowNum) - startPos - psthW;
             yPsthPos(3:4) = [psthH psthW];
             H_out.H_yPsth=axes('parent',parentFig,'position',yPsthPos,'box','on', 'layer','top','Tag','H_yPsth');
-            plot(psthBins,fx_gSmooth(currJpsths.yPsth{colNum}));
-            view([-90 90])
+            plot(psthBins,fx_gSmooth(currJpsths.yPsth{colNum}));            
             annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,90,axColor);
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
-            
+            %set(gca,'YAxisLocation','right')
+            doYLabel(gca,psthYaxisLabel)
+            view([-90 90])
+                       
             %% H_jpsth
-            jpsthPos(1) = yPsthPos(1) + yPsthPos(3) + 3*gutter/aspectRatio;
+            jpsthPos(1) = yPsthPos(1) + yPsthPos(3) + 2*gutter/aspectRatio;
             jpsthPos(2) = yPsthPos(2);
             jpsthPos(3:4) = [psthW/aspectRatio, psthW];
             %% H_coins1
-            coinsPos(1) = jpsthPos(1) + jpsthPos(3) + 3*gutter;
+            coinsPos(1) = jpsthPos(1) + jpsthPos(3) + 2*gutter;
             coinsPos(2) = jpsthPos(2) + jpsthPos(4) - (psthH)*aspectRatio ;
             coinsPos(3:4) = [psthW/aspectRatio, psthH*aspectRatio]; % jpsthPos(3:4);
             H_out.H_coins1=axes('parent',parentFig,'position',coinsPos,'box','on','layer','bottom','Tag','H_coins1');
             area(coinsHist(:,1),fx_gSmooth(coinsHist(:,2)));
             annotateAxis(gca,'y',coinsLims,coinsTicks,coinsTicksLabel,0,axColor);
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
-            
+            set(gca,'YAxisLocation','right')
+            doXLabel(gca,psthXaxisLabel);
+            doYLabel(gca,psthYaxisLabel);
             % camzoom(sqrt(2));
             % camorbit(-45,0);
             %% H_jpsth
@@ -155,7 +176,10 @@ for cc = 1:numel(conditionPairs)
             plot(psthBins,fx_gSmooth(currJpsths.xPsth{colNum}));
             annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,0,axColor);
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
-            
+            set(gca,'YDir','reverse')
+            doXLabel(gca,psthXaxisLabel);
+            doYLabel(gca,psthYaxisLabel);
+
             %% H_xCorr
             xCorrPos(1) = coinsPos(1);
             xCorrPos(2) = coinsPos(2) - (psthH)*aspectRatio - 5*gutter;
@@ -166,7 +190,9 @@ for cc = 1:numel(conditionPairs)
             annotateAxis(gca,'y',xcorrYLims,xcorrYTicks,xcorrYTickLabel,0,axColor);
             annotateAxis(gca,'x',xcorrXLims,xcorrXTicks,xcorrXTickLabel,0,axColor);
             set(gca,'YAxisLocation','right')
-            
+            doXLabel(gca,xcorrYaxisLabel);
+            doYLabel(gca,xcorrXaxisLabel);
+ 
             % H_brodyCovariogram (shuffle corrcted cross correlogram)
             xBrodyPos(1) = xCorrPos(1);
             xBrodyPos(2) = xCorrPos(2) - (psthH)*aspectRatio - 5*gutter;
@@ -186,18 +212,65 @@ for cc = 1:numel(conditionPairs)
             annotateAxis(gca,'y',brodyYLims,brodyYTicks,brodyYTickLabel,0,axColor);
             annotateAxis(gca,'x',brodyXLims,brodyXTicks,brodyXTickLabel,0,axColor);
             set(gca,'YAxisLocation','right')
+            doXLabel(gca,brodyXaxisLabel);
+            doYLabel(gca,brodyYaxisLabel);
+           
         end
     end
+    addAnnotations(conditions,alignWinNames);
     drawnow;
-    if savePdfFlag
-        saveFigAs(outPdfFile);
-        delete(parentFig);
-    end
+    %if savePdfFlag
+        %saveFigAs(outPdfFile);
+        %delete(parentFig);
+    %end
 end
 
+%end
+
+function addAnnotations(rowNames,colNames)
+
+annotation('textbox',[0.01 0.92 0.05 0.05],'String',upper(rowNames{1}),'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
+annotation('textbox',[0.10 0.90 0.05 0.05],'String',colNames{1},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+annotation('textbox',[0.45 0.90 0.05 0.05],'String',colNames{2},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+annotation('textbox',[0.75 0.90 0.05 0.05],'String',colNames{3},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+
+
+
+annotation('textbox',[0.01 0.50 0.05 0.05],'String',upper(rowNames{2}),'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
+
+end
+function doXLabel(H_axis,xLabel)
+ yLim= get(H_axis,'Ylim');
+ xPos = mean(get(H_axis,'Xlim')); % center in x
+ if strcmp(get(H_axis,'YDir'),'reverse')
+    yPos = yLim(2) + range(yLim)*0.05;
+ else
+    yPos = yLim(1) - range(yLim)*0.05; % 5% below the x-axis
+ end
+ 
+ xlabel(xLabel,'Position',[xPos yPos],'VerticalAlignment','top',...
+     'HorizontalAlignment','center','FontSize',8,'FontWeight','bold',...
+     'FontAngle', 'italic','Color','black'); 
 end
 
-% 1st jpsth plot
+function doYLabel(H_axis,yLabel)
+ xLim= get(H_axis,'Xlim');
+ yPos = mean(get(H_axis,'Ylim')); % center in y
+ if strcmp(get(H_axis,'YAxisLocation'),'right')
+     xPos = xLim(2) + range(xLim)*0.02; % 10% to right
+ else
+     v = get(H_axis,'View');
+     if (v(1) == 0) % normal view
+         xPos = xLim(1) - range(xLim)*0.08; % left
+     else
+         xPos = xLim(1) - range(xLim)*0.01; % down
+     end
+ end
+ ylabel(yLabel,'Position',[xPos yPos],'VerticalAlignment','top',...
+     'HorizontalAlignment','center','FontSize',8,'FontWeight','bold',...
+     'FontAngle', 'italic','Color','black'); 
+end
+
 
 function annotateAxis(H_axis,xOry,lims_,ticks_,labels_,rotDeg,axColor)
 if xOry=='y'
@@ -213,10 +286,11 @@ end
 
 %%
 function [H_Figure] = getFigHandle()
+set(0, 'DefaultFigureColormap', jet(64));
 set(0,'units','pixels');
-set(0,'defaulttextfontsize',8,...
+set(0,'defaulttextfontsize',6,...
     'defaulttextfontname','Arial',...
-    'defaultaxesfontsize',8,...
+    'defaultaxesfontsize',6,...
     'defaultaxeslinewidth',0.05);
 margin = 10; %pixels
 ss=get(0,'ScreenSize');
@@ -269,5 +343,7 @@ function [tempScale] = scaleValue(temp)
         tempScale = 1.0;
     end
 end
+
+
 
 
