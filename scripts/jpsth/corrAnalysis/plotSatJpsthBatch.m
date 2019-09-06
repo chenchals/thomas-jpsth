@@ -12,14 +12,16 @@ for pd = 1:numel(pairDirs)
       mkdir(pdfOutputDir);
     end
     
-    jpsthPairFiles = dir(fullfile(pairDir,'JPSTH-PAIR_*.mat'));
+    jpsthPairFiles = dir(fullfile(pairDir,'mat/JPSTH-PAIR_*.mat'));
     jpsthPairFiles = strcat({jpsthPairFiles.folder}',filesep,{jpsthPairFiles.name}');
     % cant do parfor as plot gets clipped
     for pf = 1:numel(jpsthPairFiles)
         jpsthPairFile = jpsthPairFiles{pf};
         [~,temp] = fileparts(jpsthPairFile);
-        fprintf('Plotting JPSTH data for file : %s ...',temp);
-        plotSatJpsth(jpsthPairFile,pdfOutputDir,saveFigFlag);
+  
+            fprintf('Plotting JPSTH data for file : %s ...',temp);
+            plotSatJpsth(jpsthPairFile,pdfOutputDir,saveFigFlag);
+
         fprintf('done!\n');
     end
 end

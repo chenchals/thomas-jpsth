@@ -5,7 +5,7 @@ function [] = plotSatJpsth(jpsthPairFile,pdfOutputDir,savePdfFlag)
 
 %% Put this in the function....
 fx_gSmoothW = @(x,w) smoothdata(x,'gaussian',w,'omitnan');
-fx_gSmooth = @(x) fx_gSmoothW(x,20);
+fx_gSmooth = @(x) fx_gSmoothW(x,10);
 conditionPairs = {
     {'Fast','Accurate'};
     {'FastCorrect','AccurateCorrect'};
@@ -26,9 +26,11 @@ colormap('jet');
 for cc = 1:numel(conditionPairs)
     
     conditions = conditionPairs{cc};
-    outPdfFile = fullfile(pdfOutputDir, [pdfPrefixMap(conditions{1}) pdfBaseFile '.pdf']);
     jpsthData = load(jpsthPairFile,conditions{:});
-    
+    if ~isequal(sortrows(conditions(:)),sortrows(fieldnames(jpsthData)))
+        continue;
+    end    
+    outPdfFile = fullfile(pdfOutputDir, [pdfPrefixMap(conditions{1}) pdfBaseFile '.pdf']);    
     %% plot each pair of conditions
     parentFig = getFigHandle();
     H_out = struct();
@@ -98,6 +100,7 @@ for cc = 1:numel(conditionPairs)
         for colNum = 1:3
             unitSumm ={
                 sprintf('   Unit : %6s %6s','X-Unit','Y-Unit')
+                sprintf('   Area : %6s %6s',cellPairInfo.X_area{1},cellPairInfo.Y_area{1})
                 sprintf(' UnitId : %6s %6s',cellPairInfo.X_unit{1},cellPairInfo.Y_unit{1})
                 sprintf('nTrials : %6d %6d',size(currJpsths.xRasters{colNum},1),size(currJpsths.yRasters{colNum},1))
                 sprintf('nSpikes : %6d %6d',sum(currJpsths.xRasters{colNum}(:)),sum(currJpsths.yRasters{colNum}(:)))
@@ -137,7 +140,7 @@ for cc = 1:numel(conditionPairs)
             yPsthPos(2) = offsetsY(rowNum) - startPos - psthW;
             yPsthPos(3:4) = [psthH psthW];
             H_out.H_yPsth=axes('parent',parentFig,'position',yPsthPos,'box','on', 'layer','top','Tag','H_yPsth');
-            plot(psthBins,fx_gSmooth(currJpsths.yPsth{colNum}));
+            plot(psthBins,fx_gSmooth(currJpsths.yPsth{colNum}),'LineWidth',1);
             annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,90,axColor);
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
             %set(gca,'YAxisLocation','right')
@@ -196,7 +199,7 @@ for cc = 1:numel(conditionPairs)
 
             %% H_xCorr
             xCorrPos(1) = coinsPos(1);
-            xCorrPos(2) = coinsPos(2) - (psthH)*aspectRatio - 10*gutter;
+            xCorrPos(2) = coinsPos(2) - (psthH)*aspectRatio - 6*gutter;
             xCorrPos(3:4) = [psthW/aspectRatio, psthH*aspectRatio];
             H_out.H_xCorrHist=axes('parent',parentFig,'position',xCorrPos,'box','on','layer','top','Tag','H_xCorrHist');
             
@@ -210,7 +213,7 @@ for cc = 1:numel(conditionPairs)
      
             %% H_brodyCovariogram (shuffle corrcted cross correlogram)
             xBrodyPos(1) = xCorrPos(1);
-            xBrodyPos(2) = xCorrPos(2) - (psthH)*aspectRatio - 10*gutter;
+            xBrodyPos(2) = xCorrPos(2) - (psthH)*aspectRatio - 6*gutter;
             xBrodyPos(3:4) = [psthW/aspectRatio, psthH*aspectRatio];
             H_out.H_xBrodyHist=axes('parent',parentFig,'position',xBrodyPos,'box','on','layer','top','Tag','H_xBrodyHist');
             
@@ -234,7 +237,8 @@ for cc = 1:numel(conditionPairs)
             %addPlotTitles(H_out);
         end
     end
-    addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile,conditions,alignWinNames);
+    addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile, [cellPairInfo.X_area{1} ' vs ' cellPairInfo.Y_area{1}],...
+                   conditions,alignWinNames);
     H_jpsthInfo = axes('parent',parentFig,'position',[0.01 0.01 0.98 0.06],...
         'box','on','XTick',[],'YTick',[],'layer','top','Tag','H_jpsthInfo');
     addJpsthInfo(H_jpsthInfo, cellPairInfo);
@@ -254,17 +258,18 @@ function addJpsthInfo(H_axes,cellPairInfo)
   plotAddPairInfo(H_axes,cellInfo);
 end
 
-function addAnnotations(pairUid,pdfFile,rowNames,colNames)
+function addAnnotations(pairUid,pdfFile,xyAreas,rowNames,colNames)
 % 
 annotation('textbox',[0.10 0.95 0.05 0.05],'String',pairUid,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
 [~,fn,ext] = fileparts(pdfFile);
 annotation('textbox',[0.35 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+annotation('textbox',[0.75 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
 % conditions / alignNames
-annotation('textbox',[0.01 0.92 0.05 0.05],'String',upper(rowNames{1}),'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
+annotation('textbox',[0.01 0.92 0.05 0.05],'String',rowNames{1},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
 annotation('textbox',[0.10 0.90 0.05 0.05],'String',colNames{1},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
 annotation('textbox',[0.45 0.90 0.05 0.05],'String',colNames{2},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
 annotation('textbox',[0.75 0.90 0.05 0.05],'String',colNames{3},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
-annotation('textbox',[0.01 0.46 0.05 0.05],'String',upper(rowNames{2}),'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
+annotation('textbox',[0.01 0.46 0.05 0.05],'String',rowNames{2},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
 
 end
 function doXLabel(H_axis,xLabel)
