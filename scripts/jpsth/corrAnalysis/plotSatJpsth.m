@@ -1,4 +1,4 @@
-%function [] = plotSatJpsth(jpsthPairFile,pdfOutputDir,savePdfFlag)
+function [] = plotSatJpsth(jpsthPairFile,pdfOutputDir,savePdfFlag)
 %PLOTJPSTH Summary of this function goes here
 
         %plotSatJpsth(jpsthPairFile,pdfOutputDir,saveFigFlag);
@@ -18,14 +18,12 @@ pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_CORRECT_';
 pdfPrefixMap(conditionPairs{3}{1}) = 'SAT_ERROR_CHOICE_';
 pdfPrefixMap(conditionPairs{4}{1}) = 'SAT_ERROR_TIMING_';
 
-
-conditionParis = {conditionPairs(1)};
-
+load(jpsthPairFile,'cellPairInfo');
 
 %%
 [~,pdfBaseFile] = fileparts(jpsthPairFile);
 colormap('jet');
-for cc = 1:1 %numel(conditionPairs)
+for cc = 1:numel(conditionPairs)
     
     conditions = conditionPairs{cc};
     outPdfFile = fullfile(pdfOutputDir, [pdfPrefixMap(conditions{1}) pdfBaseFile '.pdf']);
@@ -73,14 +71,14 @@ for cc = 1:1 %numel(conditionPairs)
     coinsLims = [-maxCoins maxCoins];
     coinsTicks = [-maxCoins maxCoins];
     coinsTicksLabel =  arrayfun(@(x) num2str(x,'%.1f'),coinsTicks','UniformOutput',false);
-    coinsYAxisLabel = ['Coincidences \\pm' num2str(currJpsths.coincidenceBins(1),'%i') ' ms'];
+    coinsYAxisLabel = {['Coincidence']; ['(\pm' num2str(currJpsths.coincidenceBins(1),'%i') ' ms)']};
     
     normJpsthScale = [minJpsth maxJpsth];
     
     xcorrYLims = [minXcorr maxXcorr];
     xcorrYTicks = [minXcorr maxXcorr];
     xcorrYTickLabel =  arrayfun(@(x) num2str(x,'%.2f'),xcorrYTicks','UniformOutput',false);
-    xcorrYaxisLabel = 'r^2';
+    xcorrYaxisLabel = 'r';
     xcorrXaxisLabel = 'Lag (s)';
     
     brodyYLims = [minBrody maxBrody];
@@ -91,12 +89,19 @@ for cc = 1:1 %numel(conditionPairs)
     brodyXaxisLabel = 'Lag (s)';
     
     %% plot each condition in a row
+    %H_out = table();
     for rowNum = 1:2
         condition = conditions{rowNum};
         axColor = [0.5 0.5 0.5];
         currJpsths = jpsthData.(condition);
-        alignWinNames = currJpsths.Properties.RowNames;
+        alignWinNames = currJpsths.Properties.RowNames;       
         for colNum = 1:3
+            unitSumm ={
+                sprintf('   Unit : %6s %6s','X-Unit','Y-Unit')
+                sprintf(' UnitId : %6s %6s',cellPairInfo.X_unit{1},cellPairInfo.Y_unit{1})
+                sprintf('nTrials : %6d %6d',size(currJpsths.xRasters{colNum},1),size(currJpsths.yRasters{colNum},1))
+                sprintf('nSpikes : %6d %6d',sum(currJpsths.xRasters{colNum}(:)),sum(currJpsths.yRasters{colNum}(:)))
+                };
             % bins for xUnit , yUnit
             psthBins = currJpsths.yPsthBins{colNum};
             psthXLims = [min(psthBins) max(psthBins)];
@@ -132,13 +137,16 @@ for cc = 1:1 %numel(conditionPairs)
             yPsthPos(2) = offsetsY(rowNum) - startPos - psthW;
             yPsthPos(3:4) = [psthH psthW];
             H_out.H_yPsth=axes('parent',parentFig,'position',yPsthPos,'box','on', 'layer','top','Tag','H_yPsth');
-            plot(psthBins,fx_gSmooth(currJpsths.yPsth{colNum}));            
+            plot(psthBins,fx_gSmooth(currJpsths.yPsth{colNum}));
             annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,90,axColor);
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
             %set(gca,'YAxisLocation','right')
-            doYLabel(gca,psthYaxisLabel)
+            doYLabel(gca,['Y-Unit - ' psthYaxisLabel])
             view([-90 90])
-                       
+            hold on
+            PlotUtils.plotRasters(currJpsths.yRasters{colNum}, currJpsths.rasterBins{colNum});
+
+                      
             %% H_jpsth
             jpsthPos(1) = yPsthPos(1) + yPsthPos(3) + 2*gutter/aspectRatio;
             jpsthPos(2) = yPsthPos(2);
@@ -153,7 +161,8 @@ for cc = 1:1 %numel(conditionPairs)
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
             set(gca,'YAxisLocation','right')
             doXLabel(gca,psthXaxisLabel);
-            doYLabel(gca,psthYaxisLabel);
+            doYLabel(gca,coinsYAxisLabel);
+            title('Normalized Coincidence Histogram','FontSize',7)
             % camzoom(sqrt(2));
             % camorbit(-45,0);
             %% H_jpsth
@@ -173,16 +182,21 @@ for cc = 1:1 %numel(conditionPairs)
             xPsthPos(3) = psthW/aspectRatio;
             xPsthPos(4) = psthH*aspectRatio;
             H_out.H_xPsth=axes('parent',parentFig,'position',xPsthPos,'box','on','layer','top','Tag','H_xPsth');
-            plot(psthBins,fx_gSmooth(currJpsths.xPsth{colNum}));
+            plot(psthBins,fx_gSmooth(currJpsths.xPsth{colNum}));            
             annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,0,axColor);
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
             set(gca,'YDir','reverse')
             doXLabel(gca,psthXaxisLabel);
-            doYLabel(gca,psthYaxisLabel);
+            doYLabel(gca,['X-Unit - ' psthYaxisLabel]);
+            hold on
+            PlotUtils.plotRasters(currJpsths.xRasters{colNum}, currJpsths.rasterBins{colNum});
+            % Add unit summary annotation here
+            annotation('textbox','Position',[xPsthPos(1)-psthH-0.02 xPsthPos(2) 0.02 0.05],'String',char(unitSumm),...
+                'FontSize',8,'FontWeight','bold','FitBoxToText','on','Interpreter','none','EdgeColor','none');
 
             %% H_xCorr
             xCorrPos(1) = coinsPos(1);
-            xCorrPos(2) = coinsPos(2) - (psthH)*aspectRatio - 5*gutter;
+            xCorrPos(2) = coinsPos(2) - (psthH)*aspectRatio - 10*gutter;
             xCorrPos(3:4) = [psthW/aspectRatio, psthH*aspectRatio];
             H_out.H_xCorrHist=axes('parent',parentFig,'position',xCorrPos,'box','on','layer','top','Tag','H_xCorrHist');
             
@@ -190,12 +204,13 @@ for cc = 1:1 %numel(conditionPairs)
             annotateAxis(gca,'y',xcorrYLims,xcorrYTicks,xcorrYTickLabel,0,axColor);
             annotateAxis(gca,'x',xcorrXLims,xcorrXTicks,xcorrXTickLabel,0,axColor);
             set(gca,'YAxisLocation','right')
-            doXLabel(gca,xcorrYaxisLabel);
-            doYLabel(gca,xcorrXaxisLabel);
- 
-            % H_brodyCovariogram (shuffle corrcted cross correlogram)
+            doXLabel(gca,xcorrXaxisLabel);
+            doYLabel(gca,xcorrYaxisLabel);
+            title('Normalized Cross Corrletation','FontSize',7)
+     
+            %% H_brodyCovariogram (shuffle corrcted cross correlogram)
             xBrodyPos(1) = xCorrPos(1);
-            xBrodyPos(2) = xCorrPos(2) - (psthH)*aspectRatio - 5*gutter;
+            xBrodyPos(2) = xCorrPos(2) - (psthH)*aspectRatio - 10*gutter;
             xBrodyPos(3:4) = [psthW/aspectRatio, psthH*aspectRatio];
             H_out.H_xBrodyHist=axes('parent',parentFig,'position',xBrodyPos,'box','on','layer','top','Tag','H_xBrodyHist');
             
@@ -207,36 +222,49 @@ for cc = 1:1 %numel(conditionPairs)
             plot(brodyHist(:,1),-2*brodySig,'--b')
             plot(brodyHist(:,1),3*brodySig,'--r')
             plot(brodyHist(:,1),-3*brodySig,'--r')
-            text(brodySigmaTxtX,brodySigmaTxtY,num2str(max(brodySig),'\\sigma = %.4f'),'Interpreter','tex');
+            text(brodySigmaTxtX,brodySigmaTxtY,num2str(max(brodySig),'\\sigma = %.4f'),'Interpreter','tex','FontSize',8);
             
             annotateAxis(gca,'y',brodyYLims,brodyYTicks,brodyYTickLabel,0,axColor);
             annotateAxis(gca,'x',brodyXLims,brodyXTicks,brodyXTickLabel,0,axColor);
             set(gca,'YAxisLocation','right')
             doXLabel(gca,brodyXaxisLabel);
             doYLabel(gca,brodyYaxisLabel);
-           
+            title('Cross Corrletation - Brody','FontSize',7)
+            
+            %addPlotTitles(H_out);
         end
     end
-    addAnnotations(conditions,alignWinNames);
+    addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile,conditions,alignWinNames);
+    H_jpsthInfo = axes('parent',parentFig,'position',[0.01 0.01 0.98 0.06],...
+        'box','on','XTick',[],'YTick',[],'layer','top','Tag','H_jpsthInfo');
+    addJpsthInfo(H_jpsthInfo, cellPairInfo);
     drawnow;
-    %if savePdfFlag
-        %saveFigAs(outPdfFile);
-        %delete(parentFig);
-    %end
+    if savePdfFlag
+        saveFigAs(outPdfFile);
+        delete(parentFig);
+    end
 end
 
-%end
+end
 
-function addAnnotations(rowNames,colNames)
+function addJpsthInfo(H_axes,cellPairInfo)
+  cellInfo = cellPairInfo(1,contains(cellPairInfo.Properties.VariableNames,'X_'));
+  cellInfo.Properties.VariableNames = strrep(cellInfo.Properties.VariableNames,'X_','');
+  cellInfo(2,:) = cellPairInfo(1,contains(cellPairInfo.Properties.VariableNames,'Y_'));
+  plotAddPairInfo(H_axes,cellInfo);
+end
 
+function addAnnotations(pairUid,pdfFile,rowNames,colNames)
+% 
+annotation('textbox',[0.10 0.95 0.05 0.05],'String',pairUid,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+[~,fn,ext] = fileparts(pdfFile);
+annotation('textbox',[0.35 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+% conditions / alignNames
 annotation('textbox',[0.01 0.92 0.05 0.05],'String',upper(rowNames{1}),'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
 annotation('textbox',[0.10 0.90 0.05 0.05],'String',colNames{1},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
 annotation('textbox',[0.45 0.90 0.05 0.05],'String',colNames{2},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
 annotation('textbox',[0.75 0.90 0.05 0.05],'String',colNames{3},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
-
-
-
-annotation('textbox',[0.01 0.50 0.05 0.05],'String',upper(rowNames{2}),'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
+annotation('textbox',[0.01 0.46 0.05 0.05],'String',upper(rowNames{2}),'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
 
 end
 function doXLabel(H_axis,xLabel)
