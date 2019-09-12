@@ -65,11 +65,14 @@ classdef SpikeUtils
                 outArg.normalizer = {normalizer};
             end
             %% Also do Brody covariogram myVersion
+            xPsth1 = SpikeUtils.psth(alignedSpikesX,1,timeWin);
+            yPsth1 = SpikeUtils.psth(alignedSpikesY,1,timeWin);
+
             [outArg.brodyCovariogram, outArg.rawCrossCorr, outArg.shuffleCorrector,...
                 outArg.sigma, outArg.sigHigh, outArg.sigLow, ~] = getCovariogram(...
                 outArg.xRasters{1}, outArg.yRasters{1},...
-                outArg.xPsth{1}, outArg.yPsth{1}, outArg.xPsthStd{1}, outArg.yPsthStd{1},...
-                floor(range(outArg.xPsthBins{1})/2));
+                xPsth1.psth, yPsth1.psth, xPsth1.psthStd, xPsth1.psthStd,...
+                floor(range(xPsth1.psthBins)/2));
             
         end
         
