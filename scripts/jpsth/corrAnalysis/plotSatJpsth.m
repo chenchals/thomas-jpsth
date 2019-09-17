@@ -4,8 +4,10 @@ function [] = plotSatJpsth(jpsthPairFile,pdfOutputDir,savePdfFlag)
         %plotSatJpsth(jpsthPairFile,pdfOutputDir,saveFigFlag);
 
 %% Put this in the function....
-fx_gSmoothW = @(x,w) smoothdata(x,'gaussian',w,'omitnan');
-fx_gSmooth = @(x) fx_gSmoothW(x,20);
+smoothBinWidth = 10;
+fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
+fx_imgSmooth = @(img,w) conv2(img,ones(w)./(w^2),'same');
+
 conditionPairs = {
     {'Fast','Accurate'};
     {'FastCorrect','AccurateCorrect'};
@@ -47,19 +49,21 @@ for cc = 1:numel(conditionPairs)
     for ii = 1:numel(conditions)
         condition = conditions{ii};
         currJpsths = jpsthData.(condition);
-        maxSpkPerSecAll(:,ii) = cellfun(@(x) max(fx_gSmooth(x)),[currJpsths.xPsth;currJpsths.yPsth]);
-        maxCoinsAll(:,ii) = cellfun(@(x) max(fx_gSmooth(x(:,2))), currJpsths.coincidenceHist);
-        minJpsthAll(:,ii) = cellfun(@(x) min(x(:)),currJpsths.normalizedJpsth);
-        maxJpsthAll(:,ii) = cellfun(@(x) max(x(:)),currJpsths.normalizedJpsth);
-        minXcorrAll(:,ii) =  cellfun(@(x) min(fx_gSmooth(x(:,2))), currJpsths.xCorrHist);
-        maxXcorrAll(:,ii) =  cellfun(@(x) max(fx_gSmooth(x(:,2))), currJpsths.xCorrHist);
-        minBrodyAll(:,ii) =  cellfun(@(x) min(fx_gSmooth(x)), currJpsths.brodyCovariogram);
-        maxBrodyAll(:,ii) =  cellfun(@(x) max(fx_gSmooth(x)), currJpsths.brodyCovariogram);
+        maxSpkPerSecAll(:,ii) = cellfun(@(x) max(fx_vecSmooth(x,smoothBinWidth)),[currJpsths.xPsth;currJpsths.yPsth]);
+        maxCoinsAll(:,ii) = cellfun(@(x) max(fx_vecSmooth(x(:,2),smoothBinWidth)), currJpsths.coincidenceHist);
+        minJpsthAll(:,ii) = cellfun(@(x) min(min(fx_imgSmooth(x,smoothBinWidth))),currJpsths.normalizedJpsth);
+        maxJpsthAll(:,ii) = cellfun(@(x) max(max(fx_imgSmooth(x,smoothBinWidth))),currJpsths.normalizedJpsth);
+        minXcorrAll(:,ii) =  cellfun(@(x) min(fx_vecSmooth(x(:,2),smoothBinWidth)), currJpsths.xCorrHist);
+        maxXcorrAll(:,ii) =  cellfun(@(x) max(fx_vecSmooth(x(:,2),smoothBinWidth)), currJpsths.xCorrHist);
+        minBrodyAll(:,ii) =  cellfun(@(x) min(fx_vecSmooth(x,smoothBinWidth)), currJpsths.brodyCovariogram);
+        maxBrodyAll(:,ii) =  cellfun(@(x) max(fx_vecSmooth(x,smoothBinWidth)), currJpsths.brodyCovariogram);
     end
-    maxSpkPerSec = ceil(max(maxSpkPerSecAll(:))*10)/10;
-    maxCoins = ceil(max(maxCoinsAll(:))*10)/10;
-    minJpsth = floor(min(minJpsthAll(:))*10)/10;
-    maxJpsth = ceil(max(maxJpsthAll(:))*10)/10;
+    maxSpkPerSec = round(max(maxSpkPerSecAll(:))+0.005,2);
+    maxCoins = round(max(maxCoinsAll(:)+0.005),2);
+
+    minJpsth = round(min(minJpsthAll(:))-0.005,2);
+    maxJpsth = round(max(maxJpsthAll(:))+0.005,2);
+    
     [minXcorr, maxXcorr] = getMinMaxScale(minXcorrAll(:),maxXcorrAll(:));
     [minBrody, maxBrody] = getMinMaxScale(minBrodyAll(:),maxBrodyAll(:));
     
@@ -76,6 +80,7 @@ for cc = 1:numel(conditionPairs)
     coinsYAxisLabel = {['Coincidence']; ['(\pm' num2str(currJpsths.coincidenceBins(1),'%i') ' ms)']};
     
     normJpsthScale = [minJpsth maxJpsth];
+    jpsthColorMap = jpsthColormap(65,normJpsthScale);
     
     xcorrYLims = [minXcorr maxXcorr];
     xcorrYTicks = [minXcorr maxXcorr];
@@ -140,7 +145,7 @@ for cc = 1:numel(conditionPairs)
             yPsthPos(2) = offsetsY(rowNum) - startPos - psthW;
             yPsthPos(3:4) = [psthH psthW];
             H_out.H_yPsth=axes('parent',parentFig,'position',yPsthPos,'box','on', 'layer','top','Tag','H_yPsth');
-            plot(psthBins,fx_gSmooth(currJpsths.yPsth{colNum}),'LineWidth',1.5);
+            plot(psthBins,fx_vecSmooth(currJpsths.yPsth{colNum},smoothBinWidth),'LineWidth',1.5);
             annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,90,axColor);
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
             %set(gca,'YAxisLocation','right')
@@ -159,7 +164,7 @@ for cc = 1:numel(conditionPairs)
             coinsPos(2) = jpsthPos(2) + jpsthPos(4) - (psthH)*aspectRatio ;
             coinsPos(3:4) = [psthW/aspectRatio, psthH*aspectRatio]; % jpsthPos(3:4);
             H_out.H_coins1=axes('parent',parentFig,'position',coinsPos,'box','on','layer','bottom','Tag','H_coins1');
-            area(coinsHist(:,1),fx_gSmooth(coinsHist(:,2)),'EdgeColor','none');
+            area(coinsHist(:,1),fx_vecSmooth(coinsHist(:,2),smoothBinWidth),'EdgeColor','none');
             annotateAxis(gca,'y',coinsLims,coinsTicks,coinsTicksLabel,0,axColor);
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
             set(gca,'YAxisLocation','right')
@@ -170,7 +175,8 @@ for cc = 1:numel(conditionPairs)
             % camorbit(-45,0);
             %% H_jpsth
             H_out.H_jpsth=axes('parent',parentFig,'position',jpsthPos,'box','on','layer','top','Tag','H_jpsth');
-            imagesc(currJpsths.normalizedJpsth{colNum},normJpsthScale);
+            imagesc(fx_imgSmooth(currJpsths.normalizedJpsth{colNum},smoothBinWidth),normJpsthScale);
+            colormap(jpsthColorMap);
             set(gca,'xtick',[],'ytick',[],'xcolor',[0.5 0.5 0.5],'ycolor',[0.5 0.5 0.5]);
             set(gca,'YDir','normal');
             %% H_colrbar..
@@ -185,7 +191,7 @@ for cc = 1:numel(conditionPairs)
             xPsthPos(3) = psthW/aspectRatio;
             xPsthPos(4) = psthH*aspectRatio;
             H_out.H_xPsth=axes('parent',parentFig,'position',xPsthPos,'box','on','layer','top','Tag','H_xPsth');
-            plot(psthBins,fx_gSmooth(currJpsths.xPsth{colNum}),'LineWidth',1.5);          
+            plot(psthBins,fx_vecSmooth(currJpsths.xPsth{colNum},smoothBinWidth),'LineWidth',1.5);          
             annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,0,axColor);
             annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
             set(gca,'YDir','reverse')
@@ -203,7 +209,7 @@ for cc = 1:numel(conditionPairs)
             xCorrPos(3:4) = [psthW/aspectRatio, psthH*aspectRatio];
             H_out.H_xCorrHist=axes('parent',parentFig,'position',xCorrPos,'box','on','layer','top','Tag','H_xCorrHist');
             
-            area(xcorrHist(:,1),fx_gSmooth(xcorrHist(:,2)),'EdgeColor','none');
+            area(xcorrHist(:,1),fx_vecSmooth(xcorrHist(:,2),smoothBinWidth),'EdgeColor','none');
             annotateAxis(gca,'y',xcorrYLims,xcorrYTicks,xcorrYTickLabel,0,axColor);
             annotateAxis(gca,'x',xcorrXLims,xcorrXTicks,xcorrXTickLabel,0,axColor);
             set(gca,'YAxisLocation','right')
@@ -217,7 +223,7 @@ for cc = 1:numel(conditionPairs)
             xBrodyPos(3:4) = [psthW/aspectRatio, psthH*aspectRatio];
             H_out.H_xBrodyHist=axes('parent',parentFig,'position',xBrodyPos,'box','on','layer','top','Tag','H_xBrodyHist');
             
-            area(brodyHist(:,1),fx_gSmooth(brodyHist(:,2)),'EdgeColor','none');
+            area(brodyHist(:,1),fx_vecSmooth(brodyHist(:,2),smoothBinWidth),'EdgeColor','none');
             hold on
             plot(brodyHist(:,1),1*brodySig,'--c')
             plot(brodyHist(:,1),-1*brodySig,'--c')
@@ -353,31 +359,10 @@ drawnow
 end
 
 function [minVal, maxVal] = getMinMaxScale(minValues, maxValues)
-    result(1) = min(minValues(:));
-    result(2) = max(maxValues(:));
-    if sum(sign(result)) == 0 % negative and positive
-        minVal = -scaleValue(abs(result(1)));
-        maxVal = scaleValue(result(2));
-    elseif sum(sign(result)) > 0 % only positive
-        minVal = 0;
-        maxVal = scaleValue(result(2));
-    elseif sum(sign(result)) < 0 % only negative
-        minVal = -scaleValue(abs(result(1)));
-        maxVal = 0;
-    end
+    minVal = round(min(minValues(:))-0.005,2);
+    maxVal = round(max(maxValues(:))+0.005,2);
 end
 
-function [tempScale] = scaleValue(temp)
-    if temp<0.01
-        tempScale = 0.01;
-    elseif temp<0.1
-        tempScale = 0.1;
-    elseif temp<0.5
-        tempScale = 0.5;
-    else
-        tempScale = 1.0;
-    end
-end
 
 
 
