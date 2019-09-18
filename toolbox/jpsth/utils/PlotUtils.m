@@ -60,7 +60,7 @@ classdef PlotUtils
                 timebins = timebins';
                 x = [ rasterBins(timebins);rasterBins(timebins);NaN(size(timebins)) ];
                 y = [ trialNos - tickHeight/2;trialNos + tickHeight/2;NaN(size(trialNos)) ];
-                plot(x(:),y(:)+rasterOffset,'k') %,'color',[0.1 0.1 0.1 0.4]);
+                plot(x(:),y(:)+rasterOffset,'color',[0.3 0.3 0.3]);
                 xlim([min(rasterBins) max(rasterBins)])
             end
             % Plot bursts

@@ -10,6 +10,8 @@ pairDirs = {
     'jpsth_SC-SC/mat'
     };
 
+pairDirs = strcat(jpsthDataBaseDir,filesep,pairDirs);
+
 tic
 saveFigFlag = 1;
 for pd = 1:numel(pairDirs)
@@ -23,6 +25,7 @@ for pd = 1:numel(pairDirs)
     jpsthPairFiles = strcat({jpsthPairFiles.folder}',filesep,{jpsthPairFiles.name}');
     % cant do parfor as plot gets clipped
     for pf = 1:numel(jpsthPairFiles)
+        try
         jpsthPairFile = jpsthPairFiles{pf};
         [~,temp] = fileparts(jpsthPairFile);
   
@@ -30,6 +33,11 @@ for pd = 1:numel(pairDirs)
             plotSatJpsth(jpsthPairFile,pdfOutputDir,saveFigFlag);
 
         fprintf('done!\n');
+        catch me
+            fprintf('****** ERROR*****\n')
+            disp(me)
+            continue
+        end
     end
 end
 toc
