@@ -40,8 +40,8 @@ winChoices(2).winLims = [50 200];
 winChoices(3).name = 'PostSaccade';
 winChoices(3).winLims = [50 300];
 
-
-for ii = 1:nDirs
+for ii = 1: 1 %nDirs
+    nRows = 0;
     pairDir = pairDirs{ii}; 
     [~,outputFile] = fileparts(pairDir);
     outputFile = fullfile(outputDir,[outputFile '.mat']);
@@ -50,27 +50,27 @@ for ii = 1:nDirs
     cellPairInfo = table();
     outData = table();
  
-    parfor jj = 1:4 %numel(jpsthPairFiles)
+    for jj = 1:4 %numel(jpsthPairFiles)
         pairFile = jpsthPairFiles{jj};
         fprintf('Processing file %s\n',pairFile)
         temp = load(pairFile,'cellPairInfo');
         cellPairInfo(jj,:) = temp.cellPairInfo;
-        nRows = size(outData,1) + 1;
         for kk = 1:numel(conditions)
-            nRows = nRows + 1;
             condition = conditions{kk};
             data = load(pairFile,condition);
             data = data.(condition);
-            outData(nRows).condition = condition;
+            nRows = size(outData,1) + 1;
             for ll = 1:numel(winChoices)
+                outData.cellPairId{nRows} = temp.cellPairInfo.Pair_UID;
+                outData.condition{nRows} = condition;
                 rowName = winChoices(ll).name;
                 winLims = winChoices(ll).winLims;
-                outData(jj).([rowName '_winLims']) = winLims;
+                outData.([rowName '_winLims']){nRows} = winLims;
                 times = data{rowName,'xPsthBins'}{1}(:);
                 startIdx = find(times==winLims(1));
                 endIdx = find(times==winLims(2));
                 
-                outData(jj).([rowName '_coins']) = sum(data{rowName,'coincidenceHist'}{1}(startIdx:endIdx,2));
+                outData.([rowName '_coins']){nRows} = sum(data{rowName,'coincidenceHist'}{1}(startIdx:endIdx,2));
             end
         end
         
