@@ -124,7 +124,7 @@ for cc = 1:numel(conditionPairs)
             coinsHist(:,1) = psthBins;
             % XCorr hist
             xcorrHist = currJpsths.xCorrHist{colNum};
-            xcorrBins = xcorrHist(:,1);
+            xcorrBins = xcorrHist(:,1).* unique(diff(psthBins));
             xcorrXLims = [min(xcorrBins) max(xcorrBins)];
             xcorrXTicks = sort(unique([0:-100:xcorrXLims(1) 0:100:xcorrXLims(2)]));
             xcorrXTickLabel =  arrayfun(@(x) num2str(x/1000,'%.1f'),xcorrXTicks','UniformOutput',false);
@@ -132,7 +132,8 @@ for cc = 1:numel(conditionPairs)
             
             % brodyCovariogram (we compute the full lag)
             brodySig = currJpsths.sigma{colNum};
-            brodyHist = [xcorrBins currJpsths.brodyCovariogram{colNum}];
+            brodyBins = (min(xcorrBins):max(xcorrBins))';
+            brodyHist = [brodyBins currJpsths.brodyCovariogram{colNum}];
             brodyBins = brodyHist(:,1);
             brodyXLims = [min(brodyBins) max(brodyBins)];
             brodyXTicks = sort(unique([0:-100:brodyXLims(1) 0:100:brodyXLims(2)]));

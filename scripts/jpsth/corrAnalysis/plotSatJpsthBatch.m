@@ -1,13 +1,13 @@
 
-jpsthDataBaseDir = 'dataProcessed/analysis/JPSTH';
+jpsthDataBaseDir = 'dataProcessed/analysis/JPSTH-10ms';
 
 pairDirs = {
-    'jpsth_SEF-FEF/mat'
-    'jpsth_SEF-SC/mat'
-    'jpsth_FEF-SC/mat'
-    'jpsth_SEF-SEF/mat'
-    'jpsth_FEF-FEF/mat'
-    'jpsth_SC-SC/mat'
+    'jpsth_FEF-SC'
+    'jpsth_SEF-SC'
+    'jpsth_SEF-FEF'
+    'jpsth_SEF-SEF'
+    'jpsth_SC-SC'
+    %'jpsth_FEF-FEF'
     };
 
 pairDirs = strcat(jpsthDataBaseDir,filesep,pairDirs);
@@ -16,7 +16,8 @@ tic
 saveFigFlag = 1;
 for pd = 1:numel(pairDirs)
     pairDir = pairDirs{pd};
-    pdfOutputDir = fullfile(pairDir,'pdf2');
+    pdfOutputDir = fullfile(pairDir,'pdf');
+    pairDir = fullfile(pairDir,'mat');
     if ~exist(pdfOutputDir,'dir')
       mkdir(pdfOutputDir);
     end
