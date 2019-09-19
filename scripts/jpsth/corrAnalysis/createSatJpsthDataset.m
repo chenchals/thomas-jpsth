@@ -1,24 +1,21 @@
-function [] = genSatJpsthData(area1,area2)
-% use tic;genJpsthData('SEF','FEF');toc;tic;genJpsthData('SEF','SC');toc
-% to generate all pairs
-%% Cross-area JPSTH analysis of cell pairs
-% SEF_FEF
-% [includes V,VM]
-%-----------------------------------
-%   Criteria      |  XCell  |  YCell
-%-----------------|---------|-------
-%            Area |  FEF    |   SC
-% [Vis, Mov, Fix] | [1,~,~] | [1,~,~]
-%-----------------------------------
-%
-%      RF of Cells          |
-%---------------------------|------------
-%         Targ. IN X & IN Y |   AND(X,Y)
-%       Targ. IN X NOT in Y |   XOR(X,Y)
-%       Targ. IN Y NOT in X |   XOR(X,Y)
-% Targ. NOT in X & NOT in Y |   NOT(X|Y)
-%-----------------------------------
-%
+function [] = createSatJpsthDataset(area1,area2)
+% CREATESATJPSTHDATASET Create complete dataset for all the pairs matching the criteria for
+% area1, area2
+% Expects the following files in specified location:
+% Inofrmation about all possible cell pairs:
+%        'dataProcessed/dataset/JPSTH_PAIRS_CellInfoDB.mat'
+% Trial types of all sessions (Accurate, Fast, Correct,...):
+%        'dataProcessed/dataset/TrialTypesDB.mat'
+% Event times for all trials and all sessions:
+%         'dataProcessed/dataset/TrialEventTimesDB.mat'
+% Get resptime and set it as SaccadePrimaryTempo
+%         'dataProcessed/dataset/binfo_moves_SAT.mat'
+% Spike time data for all units of all sessions:
+%         'dataProcessed/dataset/spikes_SAT.mat'
+% To generate pairs use:
+%   for SEF-SEF pairs --> createSatJpsthDataset('SEF','FEF')
+%   for SEF-SC pairs --> createSatJpsthDataset('SEF','SC')
+
 %%
 warning('off');
 % ignore processing if the sel. trials are below thisNum.
@@ -28,11 +25,8 @@ nTrialsThreshold = 10;
 binWidth = 10;% use 1 ms for JPSTH computation
 % -25 to +25 ms
 coincidenceBins = 50/binWidth;
-% area1 = 'SEF';
-% area2 = 'FEF';
-% area2 = 'SC';
 
-rootAnalysisDir = 'dataProcessed/analysis/JPSTH-10ms';
+rootAnalysisDir = ['dataProcessed/analysis/JPSTH-' num2str(binWidth,'%dms')];
 datasetDir = 'dataProcessed/dataset';
 jpsthResultsDir = fullfile(rootAnalysisDir,['jpsth_' area1 '-' area2]);
 if ~exist(jpsthResultsDir, 'dir')

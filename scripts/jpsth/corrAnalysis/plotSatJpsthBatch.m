@@ -3,10 +3,10 @@ jpsthDataBaseDir = 'dataProcessed/analysis/JPSTH-10ms';
 
 pairDirs = {
     'jpsth_FEF-SC'
-    'jpsth_SEF-SC'
-    'jpsth_SEF-FEF'
-    'jpsth_SEF-SEF'
-    'jpsth_SC-SC'
+    %'jpsth_SEF-SC'
+    %'jpsth_SEF-FEF'
+    %'jpsth_SEF-SEF'
+    %'jpsth_SC-SC'
     %'jpsth_FEF-FEF'
     };
 

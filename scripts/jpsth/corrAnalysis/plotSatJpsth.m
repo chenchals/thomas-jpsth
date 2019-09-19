@@ -4,7 +4,7 @@ function [] = plotSatJpsth(jpsthPairFile,pdfOutputDir,savePdfFlag)
         %plotSatJpsth(jpsthPairFile,pdfOutputDir,saveFigFlag);
 
 %% Put this in the function....
-smoothBinWidth = 10;
+smoothBinWidthMs = 10;
 fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
 fx_imgSmooth = @(img,w) conv2(img,ones(w)./(w^2),'same');
 
@@ -44,7 +44,10 @@ for cc = 1:numel(conditionPairs)
     psthH = 0.05; psthW = psthH*3.5;
     gutter = 0.005; % space between plots
     %% compute the min-max for axis scaling
-
+    % what are the binwidths used for JPSTH? (this is same for x,y psths)
+    psthBinWidthMs = unique(diff(jpsthData.(conditions{1}).yPsthBins{1}));
+    smoothBinWidth = smoothBinWidthMs/psthBinWidthMs;
+    
     %#ok<*AGROW>
     for ii = 1:numel(conditions)
         condition = conditions{ii};
@@ -77,7 +80,7 @@ for cc = 1:numel(conditionPairs)
     coinsLims = [-maxCoins maxCoins];
     coinsTicks = [-maxCoins maxCoins];
     coinsTicksLabel =  arrayfun(@(x) num2str(x,'%.1f'),coinsTicks','UniformOutput',false);
-    coinsYAxisLabel = {['Coincidence']; ['(\pm' num2str(currJpsths.coincidenceBins(1),'%i') ' ms)']};
+    coinsYAxisLabel = {'Coincidence'; ['(\pm' num2str(currJpsths.coincidenceBins(1),'%i') ' ms)']};
     
     normJpsthScale = [minJpsth maxJpsth];
     jpsthColorMap = jpsthColormap(65,normJpsthScale);
@@ -124,15 +127,15 @@ for cc = 1:numel(conditionPairs)
             coinsHist(:,1) = psthBins;
             % XCorr hist
             xcorrHist = currJpsths.xCorrHist{colNum};
-            xcorrBins = xcorrHist(:,1).* unique(diff(psthBins));
-            xcorrXLims = [min(xcorrBins) max(xcorrBins)];
+            xcorrHist(:,1) = xcorrHist(:,1).*psthBinWidthMs;
+            xcorrXLims = [min(xcorrHist(:,1)) max(xcorrHist(:,1))];
             xcorrXTicks = sort(unique([0:-100:xcorrXLims(1) 0:100:xcorrXLims(2)]));
             xcorrXTickLabel =  arrayfun(@(x) num2str(x/1000,'%.1f'),xcorrXTicks','UniformOutput',false);
             xcorrXTickLabel(xcorrXTicks==0)={''};
             
             % brodyCovariogram (we compute the full lag)
             brodySig = currJpsths.sigma{colNum};
-            brodyBins = (min(xcorrBins):max(xcorrBins))';
+            brodyBins = (min(xcorrHist(:,1)):max(xcorrHist(:,1)))';
             brodyHist = [brodyBins currJpsths.brodyCovariogram{colNum}];
             brodyBins = brodyHist(:,1);
             brodyXLims = [min(brodyBins) max(brodyBins)];
@@ -333,7 +336,7 @@ set(0,'defaulttextfontsize',6,...
     'defaultaxesfontsize',6,...
     'defaultaxeslinewidth',0.05);
 margin = 10; %pixels
-ss=get(0,'ScreenSize');
+%ss=get(0,'ScreenSize');
 % optimized for this size on my macbookpro
 ss = [1 1 1680 1050];
 FigPos=[margin margin ss(3)-(2*margin) ss(4)-(2*margin)];
