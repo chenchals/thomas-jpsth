@@ -5,11 +5,11 @@ classdef SpikeUtils
     %
     
     methods (Static, Access=public)
-        function outArg = jpsth(alignedSpikesX, alignedSpikesY, timeWin, binWidth, coincidenceBins)            
+        function outArg = jpsth(alignedSpikesX, alignedSpikesY, timeWin, binWidthMs, coincidenceBinsMs)            
             nTrials = size(alignedSpikesX,1);           
-            xPsth = SpikeUtils.psth(alignedSpikesX,binWidth,timeWin);
-            yPsth = SpikeUtils.psth(alignedSpikesY,binWidth,timeWin);
-            timeBins = timeWin(1):binWidth:timeWin(2);            
+            xPsth = SpikeUtils.psth(alignedSpikesX,binWidthMs,timeWin);
+            yPsth = SpikeUtils.psth(alignedSpikesY,binWidthMs,timeWin);
+            timeBins = timeWin(1):binWidthMs:timeWin(2);            
             % Cross correlation histogram for -lag:lag bins of JPSTH
             fx_xcorrh = @(jpsth,lagBins)...
                 [-abs(lagBins):abs(lagBins);arrayfun(@(x) mean(diag(jpsth,x)),...
@@ -32,8 +32,14 @@ classdef SpikeUtils
             normJpsth(isnan(normJpsth)) = 0;
             % lagBins for xCorr
             xCorrHist = fx_xcorrh(normJpsth,floor(numel(timeBins)/2));
-            % Coincidence Hist
-            coinHist = fx_coinh(normJpsth,coincidenceBins);           
+            % Coincidence Hist 
+            % lag in terms of psthBins
+            if coincidenceBinsMs< binWidthMs
+                lagBins = 0;
+            else
+                lagBins = ceil(coincidenceBinsMs/binWidthMs);
+            end
+            coinHist = fx_coinh(normJpsth,lagBins);           
             
             %% Create output structure
             temp = SpikeUtils.rasters(alignedSpikesX,timeWin);

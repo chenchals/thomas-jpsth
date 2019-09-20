@@ -1,6 +1,6 @@
 function [satJpsth] = getSatJpsth(jpsthPair,evntTimes,trialTypes,...
-    xSpkTimes,ySpkTimes,conditions,...
-    alignNames,alignEvents,alignTimeWin)
+    xSpkTimes,ySpkTimes,psthBinWidthMs,coincidenceBinWidthMs,...
+    conditions,alignNames,alignEvents,alignTimeWin)
 
 units = struct();
 satJpsth = struct();
@@ -67,7 +67,7 @@ for cond = 1:numel(conditions)
             alignTime = alignTime(selTrials);
             XAligned = SpikeUtils.alignSpikeTimes(units.(XCellId)(selTrials,:),alignTime, alignedTimeWin);
             YAligned = SpikeUtils.alignSpikeTimes(units.(YCellId)(selTrials,:),alignTime, alignedTimeWin);
-            temp = SpikeUtils.jpsth(XAligned, YAligned, alignedTimeWin, binWidth, coincidenceBins);
+            temp = SpikeUtils.jpsth(XAligned, YAligned, alignedTimeWin, psthBinWidthMs, coincidenceBinWidthMs);
             tempJpsth(evId,:) = struct2table(temp,'AsArray',true);
             %jer = SpikeUtils.jeromiahJpsth(XAligned, YAligned, alignedTimeWin, binWidth, coincidenceBins);
             opts(evId,1).xCellSpikeTimes = {XAligned}; %#ok<*AGROW>
@@ -78,8 +78,8 @@ for cond = 1:numel(conditions)
             opts(evId,1).alignedEvent = {alignedEvent};
             opts(evId,1).alignedTimeWin = {alignedTimeWin};
             opts(evId,1).alignTime = {alignTime};
-            opts(evId,1).binWidth = binWidth;
-            opts(evId,1).coincidenceBins = coincidenceBins;
+            opts(evId,1).binWidth = psthBinWidthMs;
+            opts(evId,1).coincidenceBins = coincidenceBinWidthMs;
         end % for alignEvents
         tempJpsth.Properties.RowNames = alignNames;
         satJpsth.(condition) = [tempJpsth struct2table(opts,'AsArray',true)];
