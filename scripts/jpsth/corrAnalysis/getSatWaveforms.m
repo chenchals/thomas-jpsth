@@ -26,7 +26,7 @@ clearvars A B jpsthPairs
 pairInfo = eChoicePairs(strcmpi(eChoicePairs.Pair_UID,'PAIR_0189'),:);
 matFile = pairInfo.matDatafile{1}; % maybe duplicates are present
 % need ot translate or do manually for all sessions
-plxFile = 'Z:/data/Euler/SAT/Plexon/Sorted/E20130911001-RH.plx';
+plxFile = 'data/Euler/SAT/Plexon/Sorted/E20130911001-RH.plx';
 plxData = readPLXFileC(plxFile,'all');
 chData = plxData.SpikeChannels([plxData.SpikeChannels.Channel]==13);
 spikeData.matFile = matFile;
@@ -43,16 +43,10 @@ plotWfMeanVar(spikeData);
 
 
 %%
-function plotWf(wavformMat)
-% Each column is a waveform
-  nPoints = size(wavformMat,1);
-  nWaves = size(wavformMat,2);
-  temp = [wavformMat;nan(1,nWaves)];
-  temp = temp(:);
-  x = repmat([1:nPoints NaN]',1,nWaves);
-  x = x(:);
-  plot(x,y)
-end
+
+
+
+
 
 function plotWfMeanVar(spikeData)
     colors = {'b','r','c'};
@@ -72,3 +66,15 @@ function plotWfMeanVar(spikeData)
     legend(labels,'Location','northwest','Box','off')
     hold off
 end
+
+function plotWf(wavformMat)
+% Each column is a waveform
+  nPoints = size(wavformMat,1);
+  nWaves = size(wavformMat,2);
+  temp = [wavformMat;nan(1,nWaves)];
+  temp = temp(:);
+  x = repmat([1:nPoints NaN]',1,nWaves);
+  x = x(:);
+  plot(x,temp)
+end
+
