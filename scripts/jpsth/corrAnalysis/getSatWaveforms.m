@@ -41,6 +41,16 @@ spikeData.mean = cellfun(@(x) mean(x,2),spikeData.waves,'UniformOutput',false);
 spikeData.std = cellfun(@(x) std(x,[],2),spikeData.waves,'UniformOutput',false);
 plotWfMeanVar(spikeData);
 
+%% Explore timestamp alignment
+ts_13a=spikeData.spkTimes{2};
+ts_13a_ms=ts_13a./40; %40KHz
+dsp_13a=matData.DSP13a; dsp_13a(dsp_13a==0)=NaN;
+tStart = matData.TrialStart_(:,1);
+dsp_13aPlusTStart=dsp_13a+tStart;
+dsp_13aVec=dsp_13aPlusTStart';dsp_13aVec=dsp_13aVec(:);dsp_13aVec(isnan(dsp_13aVec))=[];
+
+
+
 
 %%
 
