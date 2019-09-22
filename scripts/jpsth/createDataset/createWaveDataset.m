@@ -50,7 +50,7 @@ comment = {'Waveform data for Darwin and Euler SAT data, (not all units)'...
 save(wavOutputFile,'-mat','comment');
 
 outChan = table();
-for ii = 4:4 % 1:numel(uniqSessions)    
+parfor ii = 1:numel(uniqSessions)    
     sessionUnits = unitsBySession{ii};
     fprintf('Doing session %s\n',sessionUnits.session{1});
     %% Already translated data
@@ -169,9 +169,8 @@ end
 
 function saveWavDataForUnit(oFn,unitName,unitData)
    temp.lastUnit = unitName;
-   temp.(unitName)=unitData;
+   temp.(lastSaved)=datestr(datetime());
    save(oFn,'-append','-struct','temp');
-
 end
 
 
