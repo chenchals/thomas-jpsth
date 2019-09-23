@@ -55,14 +55,17 @@ warning('off')
 uniqSessions = cellfun(@(x) unique(x.session),unitsBySession);
 for ii = numel(uniqSessions):-1:1  
     sessionUnits = unitsBySession{ii};
-    fprintf('Doing session %s\n',sessionUnits.session{1});
+    fprintf('Doing session [%d of %d] %s\n',ii,numel(uniqSessions),sessionUnits.session{1});
     %% Already translated data
     matFile = sessionUnits.matDatafile{1};
+    fprintf('Loading matFile ')
     matData = load(matFile,'-regexp','DSP*|TrialStart_');
     %% Plexon data and other vars needed to cut /index waveforms to trials 
     % Most recoded from RH: RH_Github_Mat_Code/Mat_Code/macTranslate
     plxFile = sessionUnits.plexonFile{1};
+    fprintf('plexon file...')
     plxData = readPLXFileC(plxFile,'all');
+    fprint('Done!\n');
     strobeIdx = strcmp({plxData.EventChannels.Name},'Strobed');
     plxEvtTs = double(plxData.EventChannels(strobeIdx).Timestamps)./plxData.ADFrequency;
     plxEvtVal = plxData.EventChannels(strobeIdx).Values;
@@ -113,7 +116,7 @@ for ii = numel(uniqSessions):-1:1
         outUnits = table();
         unitNum = unitNums(jj);
         unit = units{jj};
-        fprintf('......Unit %s\n',unit);
+        fprintf('......Unit %s [%d of %d]\n',unit,jj,numel(units)); %#ok<PFBNS>
         chanNo = chanNos(jj);
         chanLetter = chanLetters{jj};
         outWavName = ['Unit_' num2str(unitNum,'%d')];
