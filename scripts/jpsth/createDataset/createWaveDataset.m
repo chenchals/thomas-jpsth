@@ -48,9 +48,10 @@ fixTrlLen = 6000; % mqseconds
 comment = {'Waveform data for Darwin and Euler SAT data, (not all units)'... 
           'See ninfo_nstats_SAT.mat (ninfo) for unit details'};
 save(wavOutputFile,'-mat','comment');
-
+warning('off')
 outChan = table();
-parfor ii = 1:numel(uniqSessions)    
+uniqSessions = cellfun(@(x) unique(x.session),unitsBySession);
+for ii = numel(uniqSessions):-1:1  
     sessionUnits = unitsBySession{ii};
     fprintf('Doing session %s\n',sessionUnits.session{1});
     %% Already translated data
@@ -70,18 +71,30 @@ parfor ii = 1:numel(uniqSessions)
     if isPd
         targOnPd = arrayfun(@(x) plxPdTs(find(plxPdTs>x,1)), plxTrlStartTs);
     end
-    actualTrlStart = floor(targOnPd*1000) - baselineTime;
-    
+    actualTrlStart = floor(targOnPd*1000) - baselineTime;    
     trlEvts = arrayfun(@(x1,x2) plxEvtVal(plxEvtTs>x1 & plxEvtTs<=x2),plxTrlStartTs(1:end-1),plxTrlStartTs(2:end),'UniformOutput',false);
-    trlEvts{end+1} = plxEvtVal(find(plxEvtTs>plxTrlStartTs(end)));
-    trlTask = cellfun(@(x) x(find(x==taskCode,1)+1),trlEvts);
+    %trlEvts{end+1} = plxEvtVal(find(plxEvtTs>plxTrlStartTs(end)));
+    trlEvts{end+1} = plxEvtVal(plxEvtTs>plxTrlStartTs(end)); %#ok<SAGROW>
+    % for those trialStarts, where the task has not started.. usually the
+    % last trial, when experiment stops at the momemt TrialStart_ code is
+    % sent....Then we will not find index for task code "3003"
+    trlTaskIdx = cellfun(@(x) find(x==taskCode,1)+1,trlEvts,'UniformOutput',false);
+    trlHoldTimeIdx = cellfun(@(x) find(x==holdTimeCode,1)+1,trlEvts,'UniformOutput',false);
+    % find valid trials
+    validTrlIdx = find(~cellfun(@(x,y) isempty(x)|isempty(y),trlTaskIdx,trlHoldTimeIdx));
+    % prune timestamps and events
+    actualTrlStart = actualTrlStart(validTrlIdx);
+    trlEvts = trlEvts(validTrlIdx);
+    trlTaskIdx = trlTaskIdx(validTrlIdx);
+    trlTask = cellfun(@(x,y) x(y),trlEvts,trlTaskIdx);
     trlHoldTime = cellfun(@(x) x(find(x==holdTimeCode,1)+1),trlEvts);
     trlTargColor = cellfun(@(x) x(find(x==targColorCode,1)+1),trlEvts);
     % from osx_breakFiles.m
     % DET_trials = find(Target_(:,9) == 1 & Target_(:,10) == 0);
     % MG_trials = find((Target_(:,9) == 1 | Target_(:,9) == 2) & Target_(:,10) > 0);
-    % SEARCH_trials = find(Target_(:,9) == 2 & Target_(:,10) == 0 & Target_(:,3) < 5); %last condition ensures we were not accidentally running MG w/ a hold time of 0.  < 5 because a few days had target colors of 2 instead of 1
-
+    % SEARCH_trials = find(Target_(:,9) == 2 & Target_(:,10) == 0 & Target_(:,3) < 5); 
+    %      last condition ensures we were not accidentally running MG w/ a hold time of 0. 
+    %       < 5 because a few days had target colors of 2 instead of 1
     detectTrls = find(trlTask == 1 & trlHoldTime == 0);
     mgTrls = find(trlTask==1 | trlTask==2 & trlHoldTime > 0);
     searchTrls = find(trlTask == 2 & trlHoldTime ==0 & trlTargColor < 5);
@@ -95,9 +108,10 @@ parfor ii = 1:numel(uniqSessions)
     outUnits = table();
     currSess = sessionUnits.session{1};
     currSessNum = sessionUnits.sessNum(1);
-    for jj = 1:numel(units)
+    for jj = numel(units):-1:1
         unitNum = unitNums(jj);
         unit = units{jj};
+        fprintf('......Unit %s\n',unit);
         chanNo = chanNos(jj);
         chanLetter = chanLetters{jj};
         outWavName = ['Unit_' num2str(unitNum,'%d')];
@@ -115,7 +129,7 @@ parfor ii = 1:numel(uniqSessions)
         unitsRow = strfind(letters,chanLetter)-1;
         % includes Search, Detection, Memory guided etc...
         wavTs = double(chData.Timestamps(chData.Units==unitsRow))./(plxData.ADFrequency/1000);
-        wavTsIdxByTrls = arrayfun(@(x) find(wavTs>x & wavTs<=x+fixTrlLen),actualTrlStart,'UniformOutput',false);
+        wavTsIdxByTrls = arrayfun(@(x) find(wavTs>x & wavTs<x+fixTrlLen),actualTrlStart,'UniformOutput',false);
         %wavTsIdxByTrls = arrayfun(@(x) find(wavTs>x,1):find(wavTs>x,1)+fixTrlLen,actualTrlStart,'UniformOutput',false);
         wavDat = double(chData.Waves(:,chData.Units==unitsRow))';
         wavDataByTrls = cellfun(@(x) wavDat(x,:) ,wavTsIdxByTrls,'UniformOutput',false);
@@ -137,6 +151,8 @@ parfor ii = 1:numel(uniqSessions)
         % what is the cout of spikes by trial for the mat file and the wav file?
         outUnits.matSpkCountSearch{jj} = [];
         outUnits.wavTsCountSearch{jj} = [];
+        outUnits.isEqualSpkCountsSearchMatWav{jj} = [];
+        outUnits.diffSpkCountsSearchMinMax{jj} = [];
         
         if numel(detectTrls)>0
             outUnits.wavDet{jj} = arrayfun(@(x) wavDataByTrls(x),detectTrls);
@@ -156,8 +172,11 @@ parfor ii = 1:numel(uniqSessions)
             outUnits.wavSearchMean{jj} = mean(cell2mat(outUnits.wavSearch{jj}));
             outUnits.wavSearchStd{jj} = std(cell2mat(outUnits.wavSearch{jj}));
             matSpks = matData.(matUnitName);
-            outUnits.matSpkCountSearch{jj} = arrayfun(@(x) sum(matSpks(x,:)>0),[1:size(matSpks,1)]');
+            outUnits.matSpkCountSearch{jj} = arrayfun(@(x) sum(matSpks(x,:)>0),(1:size(matSpks,1))');
             outUnits.wavTsCountSearch{jj} = cellfun(@(x) size(x,1),outUnits.wavSearchTs{jj});
+            outUnits.isEqualSpkCountsSearchMatWav{jj} = isequal(outUnits.matSpkCountSearch{jj},outUnits.wavTsCountSearch{jj});
+            d = outUnits.matSpkCountSearch{jj} - outUnits.wavTsCountSearch{jj};
+            outUnits.diffSpkCountsSearchMinMax{jj} = minmax((outUnits.matSpkCountSearch{jj} - outUnits.wavTsCountSearch{jj})');
         end
         % save every outUnit as a separate variable
         saveWavDataForUnit(wavOutputFile,['Unit_' num2str(unitNum,'%03d')],outUnits(jj,:))
@@ -168,8 +187,8 @@ parfor ii = 1:numel(uniqSessions)
 end
 
 function saveWavDataForUnit(oFn,unitName,unitData)
-   temp.lastUnit = unitName;
-   temp.(lastSaved)=datestr(datetime());
+   temp.lastSaved=datestr(datetime());
+   temp.(unitName)=unitData;
    save(oFn,'-append','-struct','temp');
 end
 
