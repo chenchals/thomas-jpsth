@@ -1,5 +1,8 @@
 
-wavOutputFile = 'dataProcessed/dataset/waves_SAT_DaEu.mat';
+wavOutputDir = 'dataProcessedLocal/dataset/waves';
+if ~exist(wavOutputDir,'dir')
+    mkdir(wavOutputDir);
+end
 jpsthPairs = load('dataProcessed/dataset/JPSTH_PAIRS_CellInfoDB.mat');
 jpsthPairs = jpsthPairs.JpsthPairCellInfoDB;
 
@@ -47,9 +50,8 @@ fixTrlLen = 6000; % mqseconds
 %% Create an empty output file to addend wave data for each unit
 comment = {'Waveform data for Darwin and Euler SAT data, (not all units)'... 
           'See ninfo_nstats_SAT.mat (ninfo) for unit details'};
-save(wavOutputFile,'-mat','comment');
+%save(wavOutputFile,'-mat','comment');
 warning('off')
-outChan = table();
 uniqSessions = cellfun(@(x) unique(x.session),unitsBySession);
 for ii = numel(uniqSessions):-1:1  
     sessionUnits = unitsBySession{ii};
@@ -72,7 +74,7 @@ for ii = numel(uniqSessions):-1:1
         targOnPd = arrayfun(@(x) plxPdTs(find(plxPdTs>x,1)), plxTrlStartTs);
     end
     actualTrlStart = floor(targOnPd*1000) - baselineTime;    
-    trlEvts = arrayfun(@(x1,x2) plxEvtVal(plxEvtTs>x1 & plxEvtTs<=x2),plxTrlStartTs(1:end-1),plxTrlStartTs(2:end),'UniformOutput',false);
+    trlEvts = arrayfun(@(x1,x2) plxEvtVal(plxEvtTs>x1 & plxEvtTs<x2-1),plxTrlStartTs(1:end-1),plxTrlStartTs(2:end),'UniformOutput',false);
     %trlEvts{end+1} = plxEvtVal(find(plxEvtTs>plxTrlStartTs(end)));
     trlEvts{end+1} = plxEvtVal(plxEvtTs>plxTrlStartTs(end)); %#ok<SAGROW>
     % for those trialStarts, where the task has not started.. usually the
@@ -105,81 +107,83 @@ for ii = numel(uniqSessions):-1:1
     units = sessionUnits.unit; % 09a,10b etc
     unitNums = sessionUnits.unitNum;
     tic
-    outUnits = table();
     currSess = sessionUnits.session{1};
     currSessNum = sessionUnits.sessNum(1);
-    for jj = numel(units):-1:1
+    parfor jj = 1:numel(units)
+        outUnits = table();
         unitNum = unitNums(jj);
         unit = units{jj};
         fprintf('......Unit %s\n',unit);
         chanNo = chanNos(jj);
         chanLetter = chanLetters{jj};
         outWavName = ['Unit_' num2str(unitNum,'%d')];
-        outUnits.matFile{jj} = matFile;
-        outUnits.plxFile{jj} = plxFile;        
-        outUnits.session{jj} = currSess;
-        outUnits.sessNum{jj} = currSessNum;
-        outUnits.unitNum(jj) = unitNum;
-        outUnits.unit{jj} = unit;
-        outUnits.wavUnitName{jj} = ['WAV' num2str(chanNo,'%02d'), chanLetter];
+        outUnits.matFile{1} = matFile;
+        outUnits.plxFile{1} = plxFile;        
+        outUnits.session{1} = currSess;
+        outUnits.sessNum{1} = currSessNum;
+        outUnits.unitNum{1} = unitNum;
+        outUnits.unit{1} = unit;
+        outUnits.wavUnitName{1} = ['WAV' num2str(chanNo,'%02d'), chanLetter];
         matUnitName = ['DSP' num2str(chanNo,'%02d'), chanLetter];
-        outUnits.matUnitName{jj} = matUnitName;
+        outUnits.matUnitName{1} = matUnitName;
         % channel data
         chData = plxData.SpikeChannels([plxData.SpikeChannels.Channel]==chanNo);
         unitsRow = strfind(letters,chanLetter)-1;
         % includes Search, Detection, Memory guided etc...
         wavTs = double(chData.Timestamps(chData.Units==unitsRow))./(plxData.ADFrequency/1000);
-        wavTsIdxByTrls = arrayfun(@(x) find(wavTs>x & wavTs<x+fixTrlLen),actualTrlStart,'UniformOutput',false);
+        wavTsIdxByTrls = arrayfun(@(x) find(wavTs>x & wavTs<=x+fixTrlLen),actualTrlStart,'UniformOutput',false);
         %wavTsIdxByTrls = arrayfun(@(x) find(wavTs>x,1):find(wavTs>x,1)+fixTrlLen,actualTrlStart,'UniformOutput',false);
-        wavDat = double(chData.Waves(:,chData.Units==unitsRow))';
+        wavDat = single(chData.Waves(:,chData.Units==unitsRow))';
         wavDataByTrls = cellfun(@(x) wavDat(x,:) ,wavTsIdxByTrls,'UniformOutput',false);
         wavTsByTrls = cellfun(@(x) wavTs(x,:) ,wavTsIdxByTrls,'UniformOutput',false);
         % parse wave timestamps and waves into detection, Mg, search
-        outUnits.wavDet{jj} = [];
-        outUnits.wavMg{jj} = [];
-        outUnits.wavSearch{jj} = [];        
-        outUnits.wavDetTs{jj} = [];
-        outUnits.wavMgTs{jj} = [];
-        outUnits.wavSearchTs{jj} = [];
-        outUnits.wavDetMean{jj} = [];
-        outUnits.wavMgMean{jj} = [];
-        outUnits.wavSearchMean{jj} = [];
-        outUnits.wavDetStd{jj} = [];
-        outUnits.wavMgStd{jj} = [];
-        outUnits.wavSearchStd{jj} = [];
+        outUnits.wavDet{1} = [];
+        outUnits.wavMg{1} = [];
+        outUnits.wavSearch{1} = [];        
+        outUnits.wavDetTs{1} = [];
+        outUnits.wavMgTs{1} = [];
+        outUnits.wavSearchTs{1} = [];
+        outUnits.wavDetMean{1} = [];
+        outUnits.wavMgMean{1} = [];
+        outUnits.wavSearchMean{1} = [];
+        outUnits.wavDetStd{1} = [];
+        outUnits.wavMgStd{1} = [];
+        outUnits.wavSearchStd{1} = [];
         
         % what is the cout of spikes by trial for the mat file and the wav file?
-        outUnits.matSpkCountSearch{jj} = [];
-        outUnits.wavTsCountSearch{jj} = [];
-        outUnits.isEqualSpkCountsSearchMatWav{jj} = [];
-        outUnits.diffSpkCountsSearchMinMax{jj} = [];
+        outUnits.matSpkCountSearch{1} = [];
+        outUnits.wavTsCountSearch{1} = [];
+        outUnits.isEqualSpkCountsSearchMatWav{1} = [];
+        outUnits.diffSpkCountsSearchMinMax{1} = [];
         
         if numel(detectTrls)>0
-            outUnits.wavDet{jj} = arrayfun(@(x) wavDataByTrls(x),detectTrls);
-            outUnits.wavDetTs{jj} = arrayfun(@(x) wavTsByTrls(x),detectTrls);
-            outUnits.wavDetMean{jj} = mean(cell2mat(outUnits.wavDet{jj}));
-            outUnits.wavDetStd{jj} = std(cell2mat(outUnits.wavDet{jj}));
+            outUnits.wavDet{1} = arrayfun(@(x) wavDataByTrls(x),detectTrls);
+            outUnits.wavDetTs{1} = arrayfun(@(x) wavTsByTrls(x),detectTrls);
+            outUnits.wavDetMean{1} = mean(cell2mat(outUnits.wavDet{1}));
+            outUnits.wavDetStd{1} = std(cell2mat(outUnits.wavDet{1}));
         end
         if numel(mgTrls)>0
-            outUnits.wavMg{jj} = arrayfun(@(x) wavDataByTrls(x),mgTrls);
-            outUnits.wavMgTs{jj} = arrayfun(@(x) wavTsByTrls(x),mgTrls);
-            outUnits.wavMgMean{jj} = mean(cell2mat(outUnits.wavMg{jj}));
-            outUnits.wavMgStd{jj} = std(cell2mat(outUnits.wavMg{jj}));
+            outUnits.wavMg{1} = arrayfun(@(x) wavDataByTrls(x),mgTrls);
+            outUnits.wavMgTs{1} = arrayfun(@(x) wavTsByTrls(x),mgTrls);
+            outUnits.wavMgMean{1} = mean(cell2mat(outUnits.wavMg{1}));
+            outUnits.wavMgStd{1} = std(cell2mat(outUnits.wavMg{1}));
         end       
         if numel(searchTrls)>0
-            outUnits.wavSearch{jj} = arrayfun(@(x) wavDataByTrls(x),searchTrls);
-            outUnits.wavSearchTs{jj} = arrayfun(@(x) wavTsByTrls(x),searchTrls);
-            outUnits.wavSearchMean{jj} = mean(cell2mat(outUnits.wavSearch{jj}));
-            outUnits.wavSearchStd{jj} = std(cell2mat(outUnits.wavSearch{jj}));
+            outUnits.wavSearch{1} = arrayfun(@(x) wavDataByTrls(x),searchTrls);
+            % these are trial timestamps from trial start
+            outUnits.wavSearchTs{1} = arrayfun(@(x) round(wavTsByTrls{x}-actualTrlStart(x)),searchTrls,'UniformOutput',false);
+            outUnits.wavSearchMean{1} = mean(cell2mat(outUnits.wavSearch{1}));
+            outUnits.wavSearchStd{1} = std(cell2mat(outUnits.wavSearch{1}));
             matSpks = matData.(matUnitName);
-            outUnits.matSpkCountSearch{jj} = arrayfun(@(x) sum(matSpks(x,:)>0),(1:size(matSpks,1))');
-            outUnits.wavTsCountSearch{jj} = cellfun(@(x) size(x,1),outUnits.wavSearchTs{jj});
-            outUnits.isEqualSpkCountsSearchMatWav{jj} = isequal(outUnits.matSpkCountSearch{jj},outUnits.wavTsCountSearch{jj});
-            d = outUnits.matSpkCountSearch{jj} - outUnits.wavTsCountSearch{jj};
-            outUnits.diffSpkCountsSearchMinMax{jj} = minmax((outUnits.matSpkCountSearch{jj} - outUnits.wavTsCountSearch{jj})');
+            outUnits.matSpkCountSearch{1} = arrayfun(@(x) sum(matSpks(x,:)>0),(1:size(matSpks,1))');
+            outUnits.wavTsCountSearch{1} = cellfun(@(x) size(x,1),outUnits.wavSearchTs{1});
+            outUnits.isEqualSpkCountsSearchMatWav{1} = isequal(outUnits.matSpkCountSearch{1},outUnits.wavTsCountSearch{1});
+            d = outUnits.matSpkCountSearch{1} - outUnits.wavTsCountSearch{1};
+            outUnits.diffSpkCountsSearchMinMax{1} = minmax((outUnits.matSpkCountSearch{1} - outUnits.wavTsCountSearch{1})');
         end
         % save every outUnit as a separate variable
-        saveWavDataForUnit(wavOutputFile,['Unit_' num2str(unitNum,'%03d')],outUnits(jj,:))
+        oUnitName = ['Unit_' num2str(unitNum,'%03d')];
+        saveWavDataForUnit(fullfile(wavOutputDir,oUnitName),oUnitName,outUnits)
     end
     toc
     %outChan = [outChan;outUnits];
@@ -189,7 +193,8 @@ end
 function saveWavDataForUnit(oFn,unitName,unitData)
    temp.lastSaved=datestr(datetime());
    temp.(unitName)=unitData;
-   save(oFn,'-append','-struct','temp');
+   save(oFn,'-struct','temp');
+   %save(oFn,'-append','-struct','temp');
 end
 
 
