@@ -9,11 +9,12 @@ timingErrUnits = errUnits.unit_Signal_TimingError;
 choiceErrPairsIdx = arrayfun(@(x) find((JpsthPairCellInfoDB.X_unitNum==x|JpsthPairCellInfoDB.Y_unitNum==x)...
     & strcmp(JpsthPairCellInfoDB.X_area,'SEF') ...
     & strcmp(JpsthPairCellInfoDB.Y_area,'SEF')),[choiceErrUnits.unitNum],'UniformOutput',false);
-choiceErrPairsIdx = cell2mat(choiceErrPairsIdx);
+choiceErrPairsIdx = unique(cell2mat(choiceErrPairsIdx));
+
 timingErrPairsIdx = arrayfun(@(x) find((JpsthPairCellInfoDB.X_unitNum==x|JpsthPairCellInfoDB.Y_unitNum==x)...
     & strcmp(JpsthPairCellInfoDB.X_area,'SEF') ...
     & strcmp(JpsthPairCellInfoDB.Y_area,'SEF')),[timingErrUnits.unitNum],'UniformOutput',false);
-timingErrPairsIdx = cell2mat(timingErrPairsIdx);
+timingErrPairsIdx = unique(cell2mat(timingErrPairsIdx));
 
 % to create JPSTH data we need
 % spikes
@@ -43,8 +44,8 @@ if ~exist('temp','dir')
 end
 %% process for pairs
 errPairs = {choiceErrPairsIdx, timingErrPairsIdx};
-pairDirs = {'dataProcessed/analysis/SEF-PAPER/CHOICE_ERR_PAIRS'
-    'dataProcessed/analysis/SEF-PAPER/TIMING_ERR_PAIRS'
+pairDirs = {'dataProcessed/analysis/SEF-PAPER/CHOICE_ERR_PAIRS/mat'
+    'dataProcessed/analysis/SEF-PAPER/TIMING_ERR_PAIRS/mat'
     };
 for jj = 1:numel(errPairs)
     errPair = errPairs{jj};
@@ -52,7 +53,7 @@ for jj = 1:numel(errPairs)
     if ~exist(pairDir,'dir')
         mkdir(pairDir)
     end
-    parfor p = 1:1 % numel(choiceErrPairsIdx)
+   parfor p = 1:numel(errPair)
         jpsthPair = JpsthPairCellInfoDB(choiceErrPairsIdx(p),:); %#ok<*PFBNS>
         sess = jpsthPair.X_sess{1};
         % must be cell array of ntrials by 1
@@ -61,7 +62,7 @@ for jj = 1:numel(errPairs)
         evntTimes = sessionEventTimes(strcmp(sessionEventTimes.session,sess),:);
         trialTypes = sessionTrialTypes(strcmp(sessionTrialTypes.session,sess),:);
         satJpsth =  getSatJpsth(jpsthPair,xSpkTimes,ySpkTimes,evntTimes,trialTypes,conditions,alignNames,alignEvents,alignTimeWin,psthBinWidthMs,coincidenceBinWidthMs);
-        oFn = fullfile(pairDir,['mat/JPSTH-' jpsthPair.Pair_UID '.mat']);
+        oFn = fullfile(pairDir,['JPSTH-' jpsthPair.Pair_UID{1} '.mat']);
         saveJpsthData(oFn,satJpsth);
     end
     
