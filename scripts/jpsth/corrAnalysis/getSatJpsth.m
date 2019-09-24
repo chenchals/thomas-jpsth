@@ -1,6 +1,25 @@
-function [satJpsth] = getSatJpsth(jpsthPair,evntTimes,trialTypes,...
-    xSpkTimes,ySpkTimes,psthBinWidthMs,coincidenceBinWidthMs,...
-    conditions,alignNames,alignEvents,alignTimeWin)
+function [satJpsth] = getSatJpsth(jpsthPair,xSpkTimes,ySpkTimes,evntTimes,trialTypes,...
+    conditions,alignNames,alignEvents,alignTimeWin,psthBinWidthMs,coincidenceBinWidthMs)
+
+% jpsthPair : the pair row in the table JPSTH_PAIRS_CellInfoDB.mat
+% xSpkTimes : X-axis cell: spike times as cell array of nTrials
+% ySpkTimes : Y-axis cell: spike times as cell array of nTrials
+% evntTimes : event times for session from TrialEventTimesDB.mat
+% trialTypes : trial types for session from TrialTypesDB.mat
+% conditions : Trial type names: AccurateCorrect, FastCorrect... from
+%              TrialTypesDB
+% alignNames : Name of the aligned event window : Baseline, Visual,
+%              postSaccade
+% alignEvents : Name of the event to align on ... from
+%               TrialEventTimesDB.mat 
+% alignTimeWin : A cell array of time windows for epochs corres[ponding to
+%                align events
+% psthBinWidthMs : binwidth for PSTH, Same bins will be used for JPSTH mat
+% coincidenceBinWidthMs: binwidth for coincidence histogram.
+
+warning('off');
+% ignore processing if the sel. trials are below thisNum.
+nTrialsThreshold = 10;
 
 units = struct();
 satJpsth = struct();
@@ -65,8 +84,8 @@ for cond = 1:numel(conditions)
                 alignTime = alignTime + evntTimes.(alignedEvent){1}(:);
             end
             alignTime = alignTime(selTrials);
-            XAligned = SpikeUtils.alignSpikeTimes(units.(XCellId)(selTrials,:),alignTime, alignedTimeWin);
-            YAligned = SpikeUtils.alignSpikeTimes(units.(YCellId)(selTrials,:),alignTime, alignedTimeWin);
+            XAligned = SpikeUtils.alignSpikeTimes(units.(XCellId)(selTrials),alignTime, alignedTimeWin);
+            YAligned = SpikeUtils.alignSpikeTimes(units.(YCellId)(selTrials),alignTime, alignedTimeWin);
             temp = SpikeUtils.jpsth(XAligned, YAligned, alignedTimeWin, psthBinWidthMs, coincidenceBinWidthMs);
             tempJpsth(evId,:) = struct2table(temp,'AsArray',true);
             %jer = SpikeUtils.jeromiahJpsth(XAligned, YAligned, alignedTimeWin, binWidth, coincidenceBins);

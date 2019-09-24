@@ -5,7 +5,7 @@ datasetDir = 'dataProcessed/dataset';
 jpsthPairsDBFile = fullfile(datasetDir,'JPSTH_PAIRS_CellInfoDB.mat');
 % Output dataset files
 trialTypesFile = fullfile(datasetDir,'TrialTypesDB_2.mat');
-TrialEventTimesFile = fullfile(inRootAnalysisDir,'TrialEventTimesDB_2.mat');
+TrialEventTimesFile = fullfile(datasetDir,'TrialEventTimesDB_2.mat');
 
 %% Process for trial event times and trial types
 
@@ -16,7 +16,7 @@ sessionMatFiles = unique(jpsthPairsDB(:,{'X_sess','matDatafile'}));
 
 % Create TrialTypes for each session
 % Regexp for all vars ending in '_' and not starting with Eye or Pupil
-vars2LoadRegEx = '.*_$(?<!^(Eye|Pupil).*)|saccLoc';
+vars2LoadRegEx = '.*_$(?<!^(Eye|Pupil).*)|saccLoc|SRT';
 TrialTypesDB = struct();
 TrialEventTimesDB = struct();
 nSess = size(sessionMatFiles,1);
@@ -60,6 +60,10 @@ for s = 1:nSess
     
     %% SAT event times
     TrialEventTimesDB.session{s,1} = sessName;
+    TrialEventTimesDB.TrialStart{s,1} = nan(nTrials,1);
+    if isfield(vars,'TrialStart_')
+        TrialEventTimesDB.TrialStart{s,1} = vars.TrialStart_(:,1);       
+    end
     TrialEventTimesDB.CueOn{s,1} = nan(nTrials,1);
     if isfield(vars,'Target_')
         TrialEventTimesDB.CueOn{s,1} = vars.Target_(:,1);       
@@ -78,7 +82,7 @@ for s = 1:nSess
     TrialEventTimesDB.SaccadePrimaryTempo{s,1} = nan(nTrials,1);
     if isfield(vars,'SRT')
         TrialEventTimesDB.SaccadePrimaryTempo{s,1} = vars.SRT(:,1);       
-    end
+    end     
     TrialEventTimesDB.ToneOn{s,1} = nan(nTrials,1);
     if isfield(vars,'ToneOn_')
         TrialEventTimesDB.ToneOn{s,1} = vars.ToneOn_(:,1);       
