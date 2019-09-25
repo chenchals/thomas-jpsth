@@ -62,12 +62,12 @@ alindUnitTsWin = fx_alindTsToWin(alindUnitTs,alignWin);
 alindWfTs = fx_alignTs(wavUnitTbl.wavSearchTs{1}(selTrls),alignTime(selTrls));
 alindWfTsWin = fx_alindTsToWin(alindWfTs,alignWin);
 % find matching indices for extracting waveforms
-mathedSpkIdx = cellfun(@(aUts,aWts) fx_matchedSpkIdx(aUts,aWts),alindUnitTsWin,alindWfTsWin,'UniformOutput',false);
+spkIdxByTrl = cellfun(@(aUts,aWts) fx_matchedSpkIdx(aUts,aWts),alindUnitTsWin,alindWfTsWin,'UniformOutput',false);
+% all waveforms for spikes in selected trials
+allWfBytrl = wavUnitTbl.wavSearch{1}(selTrls);
+alindWfWin = cellfun(@(wfByTrl,idxByTrl) wfByTrl(cell2mat(idxByTrl'),:),allWfBytrl,spkIdxByTrl,'UniformOutput',false);
 
-   % all waveforms for spikes in trial
-   trlWf = wavUnitTbl.wavSearch{1}{trlNo};
-   % timestamps got from waveforms
-
+plotWaveforms(cell2mat(alindWfWin));
 
 
 
