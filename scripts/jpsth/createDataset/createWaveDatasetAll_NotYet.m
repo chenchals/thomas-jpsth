@@ -2,7 +2,7 @@
 % read waveform from plexon file for every spike time of a given
 % session-unit 
 dataDir = '/Users/subravcr/teba';
-wavOutputDir = 'dataProcessedLocal/dataset/waves2';
+wavOutputDir = 'dataProcessedLocal/dataset/waves_notYet';
 if ~exist(wavOutputDir,'dir')
     mkdir(wavOutputDir);
 end

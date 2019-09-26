@@ -1,22 +1,33 @@
 
-wavOutputDir = 'dataProcessed/dataset/waves2';
+wavOutputDir = 'dataProcessed/dataset/waves';
 if ~exist(wavOutputDir,'dir')
     mkdir(wavOutputDir);
 end
-% load ninfo
-ninfo = load('dataProcessed/dataset/ninfo_nstats_SAT.mat');
-ninfo = struct2table(ninfo.ninfo);
+jpsthPairs = load('dataProcessed/dataset/JPSTH_PAIRS_CellInfoDB.mat');
+jpsthPairs = jpsthPairs.JpsthPairCellInfoDB;
 
 % session mat file to plexon file
 sessionFiles = load('dataProcessed/dataset/SessionFiles_SAT.mat');
 sessionFiles = sessionFiles.sessionFiles;
+%v Need to get cell / unit nums and units
+daEuPairs = innerjoin(jpsthPairs,sessionFiles,'LeftKeys',{'X_sess','X_sessNum'},...
+    'RightKeys',{'session','sessNum'},...
+    'LeftVariables',{'X_unitNum','X_unit','Y_unitNum','Y_unit','matDatafile'},...
+    'RightVariables',{'session','sessNum','plexonFile'}...
+    );
 
-ninfo = innerjoin(ninfo,sessionFiles,'LeftKeys',{'sess','sessNum'},...
-    'RightKeys',{'sess','sessNum'});
-ninfo.unit = cellfun(@(x) regexprep(x,'^(\d)([a-z])$','0$1$2'),ninfo.unit,'UniformOutput',false);
+xUnits = daEuPairs(:,{'session','sessNum','X_unitNum','X_unit','matDatafile','plexonFile'});
+xUnits.Properties.VariableNames = strrep(xUnits.Properties.VariableNames,'X_','');
+yUnits = daEuPairs(:,{'session','sessNum','Y_unitNum','Y_unit','matDatafile','plexonFile'});
+yUnits.Properties.VariableNames = strrep(yUnits.Properties.VariableNames,'Y_','');
 
-uniqSessions = unique(ninfo.sess);
-unitsBySession = cellfun(@(x) ninfo(strcmp([ninfo.sess],x),:),uniqSessions,'UniformOutput',false);
+allUnits = [xUnits;yUnits];
+
+uniqUnits = unique(allUnits,'rows');
+uniqUnits.matDatafile = regexprep(uniqUnits.matDatafile,'.*/data/','data/');
+uniqUnits.unit = regexprep(uniqUnits.unit,'^(\d)([a-z])$','0$1$2');
+
+unitsBySession = cellfun(@(x) uniqUnits(strcmp([uniqUnits.session],x),:),unique(uniqUnits.session),'UniformOutput',false);
 % map cluster to row no. in plexon file
 % row 0='i',row 1='a'...
 letters = 'iabcdefghjklmnopqrstuvwxyz';
@@ -41,17 +52,17 @@ comment = {'Waveform data for Darwin and Euler SAT data, (not all units)'...
           'See ninfo_nstats_SAT.mat (ninfo) for unit details'};
 %save(wavOutputFile,'-mat','comment');
 warning('off')
-tic
-for ii = 1:numel(uniqSessions)
+uniqSessions = cellfun(@(x) unique(x.session),unitsBySession);
+for ii = 2:2 %1:numel(uniqSessions)
     sessionUnits = unitsBySession{ii};
-    fprintf('Doing session [%d of %d] %s\n',ii,numel(uniqSessions),sessionUnits.sess{1});
+    fprintf('Doing session [%d of %d] %s\n',ii,numel(uniqSessions),sessionUnits.session{1});
     %% Already translated data
     matFile = sessionUnits.matDatafile{1};
     fprintf('Loading matFile ')
     matData = load(matFile,'-regexp','DSP*|TrialStart_');
     %% Plexon data and other vars needed to cut /index waveforms to trials 
     % Most recoded from RH: RH_Github_Mat_Code/Mat_Code/macTranslate
-    plxFile = sessionUnits.plxDatafile{1};
+    plxFile = sessionUnits.plexonFile{1};
     fprintf('plexon file...')
     plxData = readPLXFileC(plxFile,'all');
     fprintf('Done!\n');
@@ -99,13 +110,13 @@ for ii = 1:numel(uniqSessions)
     units = sessionUnits.unit; % 09a,10b etc
     unitNums = sessionUnits.unitNum;
     tic
-    currSess = sessionUnits.sess{1};
+    currSess = sessionUnits.session{1};
     currSessNum = sessionUnits.sessNum(1);
-    parfor jj = 1:numel(units)
+    for jj = 1:numel(units)
         outUnits = table();
         unitNum = unitNums(jj);
         unit = units{jj};
-        %fprintf('......Unit %s [%d of %d]\n',unit,jj,numel(units)); %#ok<PFBNS>
+        fprintf('......Unit %s [%d of %d]\n',unit,jj,numel(units)); %#ok<PFBNS>
         chanNo = chanNos(jj);
         chanLetter = chanLetters{jj};
         outWavName = ['Unit_' num2str(unitNum,'%d')];
@@ -177,10 +188,10 @@ for ii = 1:numel(uniqSessions)
         oUnitName = ['Unit_' num2str(unitNum,'%03d')];
         saveWavDataForUnit(fullfile(wavOutputDir,oUnitName),oUnitName,outUnits)
     end
-    toc  
+    toc
+    %outChan = [outChan;outUnits];
+    
 end
-toc
-
 
 function saveWavDataForUnit(oFn,unitName,unitData)
    temp.lastSaved=datestr(datetime());
