@@ -1,7 +1,7 @@
 
 function plotWaveforms(wavformMat,varargin)
   % Each column should be a waveform
-  pColor = 'b';
+  %pColor = 'b';
   wavformMat = wavformMat';
   nPoints = size(wavformMat,1);
   nWaves = size(wavformMat,2);
@@ -10,7 +10,7 @@ function plotWaveforms(wavformMat,varargin)
   % plot mean and std
   meanWf = mean(wavformMat,2)';
   stdWf = std(wavformMat,[],2)';
-  p = plot(x,meanWf,'LineWidth',2.5,'Color',pColor);
+  p = plot(x,meanWf,'LineWidth',2.5); %,'Color',pColor);
   c = p.Color;
   hold on
   fill([x fliplr(x)], [meanWf+stdWf fliplr(meanWf-stdWf)],c,'FaceAlpha',0.4,'LineStyle','none')
@@ -19,7 +19,7 @@ function plotWaveforms(wavformMat,varargin)
   temp = temp(:);
   x = repmat([1:nPoints NaN]',1,nWaves);
   x = x(:);
-  ph = plot(x,temp,'k','LineWidth',0.1);
-  ph.Color(4) = 0.2;
+  ph = plot(x,temp,'Color', c,'LineWidth',0.1);
+  ph.Color(4) = 0.1;
   hold off
 end
