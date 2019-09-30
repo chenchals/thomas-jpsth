@@ -28,7 +28,7 @@ for d = 1:2
     movingWins = [ 50, 100, 200, 400];
     fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win),rasters,'UniformOutput',false);
     
-    parfor p = 1:numel(dFiles)
+    for p = 1:numel(dFiles)
         out = struct();
         cellPairInfo = load(dFiles{p},'cellPairInfo');
         cellPairInfo = cellPairInfo.cellPairInfo;
