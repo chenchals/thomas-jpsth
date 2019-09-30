@@ -1,12 +1,12 @@
 
 
 jpsthDirs = {
-    'dataProcessed/analysis/SEF-PAPER/CHOICE_ERR_PAIRS/mat'
-    'dataProcessed/analysis/SEF-PAPER/TIMING_ERR_PAIRS/mat'
+    'dataProcessed/analysis/SEF-PAPER/jpsth/CHOICE_ERR_PAIRS/mat'
+    'dataProcessed/analysis/SEF-PAPER/jpsth/TIMING_ERR_PAIRS/mat'
     };
 outDirs = {
-    'dataProcessed/analysis/SEF-PAPER/r_spkCounts/CHOICE_ERR_PAIRS'
-    'dataProcessed/analysis/SEF-PAPER/r_spkCounts/TIMING_ERR_PAIRS'
+    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/mat/CHOICE_ERR_PAIRS'
+    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/mat/TIMING_ERR_PAIRS'
     };
 for d = 1:2
     jpsthDir = jpsthDirs{d};
@@ -26,9 +26,12 @@ for d = 1:2
     colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
         'rasterBins','xRasters','yRasters'};
     movingWins = [ 50, 100, 200, 400];
-    fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win),rasters,'UniformOutput',false);
+    staticWins.Baseline = [-500 -100];
+    staticWins.Visual = [50 200];
+    staticWins.PostSaccade = [100 300];
+    fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win,2),rasters,'UniformOutput',false);
     
-    for p = 1:numel(dFiles)
+    for p = 1:1 %numel(dFiles)
         out = struct();
         cellPairInfo = load(dFiles{p},'cellPairInfo');
         cellPairInfo = cellPairInfo.cellPairInfo;
@@ -52,6 +55,15 @@ for d = 1:2
             [rho_pval,dat.critRho10,dat.critRho05,dat.critRho01] = getPearsonData(xMat,yMat);
             dat.(['rho_pval_' movWinStr]) = rho_pval;
         end
+        
+        % do static Window spike counts
+        dat.rho_pval_win = repmat(struct2cell(staticWins),numel(unique(dat.condition)),1);
+        dat.xSpkCount_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+            dat.rasterBins,dat.xRasters,dat.rho_pval_win,'UniformOutput',false);
+        dat.ySpkCount_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+            dat.rasterBins,dat.yRasters,dat.rho_pval_win,'UniformOutput',false);
+        dat.rho_pval_static = getPearsonData(dat.xSpkCount_win,dat.ySpkCount_win);
+        
         out.cellPairInfo = cellPairInfo;
         out.spikeCorr = dat;
         oFn = fullfile(outputDir,['rscCorr_' cellPairInfo.Pair_UID{1} '.mat']);

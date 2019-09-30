@@ -2,7 +2,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 %CORRSPKCOUNTPLOT Summary of this function goes here
 
 %% Put this in the function....
-smoothBinWidthMs = 10;
+smoothBinWidthMs = 5;
 fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
 
 conditionPairs = {
@@ -36,10 +36,11 @@ spikeCorr = spikeCorr.spikeCorr;
     minMaxRsc = cell2mat(cellfun(@(x) minmax(x(:,1)'),allRsc,'UniformOutput',false));
     minMaxRsc(minMaxRsc<-1 | minMaxRsc > 1) = NaN;
     minMaxRsc = minmax(minMaxRsc(:)');
-    rscYlims(1) = -1; %round(minMaxRsc(1),1);
-    rscYlims(2) = +1; %round(minMaxRsc(2),1);
-    rscYTicks = -1:0.5:1;
-    rscYTickLabel =  {'-1',' ', '0', ' ', '1'};
+    rscYlims(1) = round(minMaxRsc(1),1);
+    rscYlims(2) = round(minMaxRsc(2),1);
+    rscYTicks = [rscYlims(1) 0 rscYlims(2)];
+    rscYTickLabel =  arrayfun(@(x) num2str(x,'%0.1f'),rscYTicks','UniformOutput',false);
+    rscYTickLabel(rscYTicks==0) = {'0'};
     rscYaxisLabel = 'r_{sc}';
     
     
