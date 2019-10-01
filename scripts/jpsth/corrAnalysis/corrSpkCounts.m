@@ -39,14 +39,14 @@ for d = 1:2
         cellPairInfo = cellPairInfo.cellPairInfo;
         datStruct = load(dFiles{p},'-regexp','.*Error*');
         fns = fieldnames(datStruct);
+        
         dat = table();
         for ii = 1:numel(fns)
             fn = fns{ii};
             rowNames = datStruct.(fn).Properties.RowNames;
             tempTbl =  datStruct.(fn)(rowNames,colNames);
             tempTbl.Properties.RowNames = {};
-            dat = [dat;tempTbl]; %#ok<*AGROW>
-            
+            dat = [dat;tempTbl]; %#ok<*AGROW>           
         end
         
         for w = movingWins
@@ -56,8 +56,7 @@ for d = 1:2
             dat.(['xSpkCount_' movWinStr]) = xMat;
             dat.(['ySpkCount_' movWinStr]) = yMat;
             [rho_pval,dat.critRho10,dat.critRho05,dat.critRho01] = getCorrData(xMat,yMat,'Pearson');            
-            dat.(['rho_pval_' movWinStr]) = rho_pval;
-             
+            dat.(['rho_pval_' movWinStr]) = rho_pval;             
         end       
         % do static Window spike counts
         dat.rho_pval_win = repmat(struct2cell(staticWins),numel(unique(dat.condition)),1);
