@@ -2,7 +2,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 %CORRSPKCOUNTPLOT Summary of this function goes here
 
 %% Put this in the function....
-smoothBinWidthMs = 5;
+smoothBinWidthMs = 1;
 fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
 
 conditionPairs = {
@@ -56,11 +56,11 @@ for cc = 1:numel(conditionPairs)
     H_out = struct();
     ss = get(0,'ScreenSize');
     aspectRatio = ss(3)/ss(4);
-    offsetsX=[0.004 (1:3).*0.248]; % for 4 columns
+    offsetsX=[0.01 (1:3).*0.248]; % for 4 columns
     offsetsY = [0.88 0.43]; %[0.90 0.45]; % for 2 rows
     startPos = 0.015; % top position of yPsth
     psthH = 0.05; psthW = psthH*3.5;
-    gutter = 0.008; % space between plots
+    gutter = 0.01; % space between plots
     
     %% plot each condition in a row
     for rowNum = 1:2
@@ -115,7 +115,7 @@ for cc = 1:numel(conditionPairs)
             %pos(1) = offsetsX(colNum) + startPos;
             pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*2;
             pos(3:4) = [psthW psthH];
-            H_out.H_psth2=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth2');
+            H_out.H_rsc50=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc50');
             rho_pval = currSpkCorr.rho_pval_50ms{1};
             sig_05 = currSpkCorr.critRho05;
             plot(psthBins,fx_vecSmooth(rho_pval(:,1),smoothBinWidthMs),'LineWidth',1.5);
@@ -133,7 +133,7 @@ for cc = 1:numel(conditionPairs)
             %pos(1) = offsetsX(colNum) + startPos;
             pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*3;
             pos(3:4) = [psthW psthH];
-            H_out.H_psth2=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth2');
+            H_out.H_rsc100=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc100');
             rho_pval = currSpkCorr.rho_pval_100ms{1};
             sig_05 = currSpkCorr.critRho05;
             plot(psthBins,fx_vecSmooth(rho_pval(:,1),smoothBinWidthMs),'LineWidth',1.5);
@@ -151,7 +151,7 @@ for cc = 1:numel(conditionPairs)
             %pos(1) = offsetsX(colNum) + startPos;
             pos(2) = pos(2) - (psthH + gutter); % offsetsY(rowNum) - (psthH + gutter)*4;
             pos(3:4) = [psthW psthH];
-            H_out.H_psth2=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth2');
+            H_out.H_rsc200=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc200');
             rho_pval = currSpkCorr.rho_pval_200ms{1};
             sig_05 = currSpkCorr.critRho05;
             plot(psthBins,fx_vecSmooth(rho_pval(:,1),smoothBinWidthMs),'LineWidth',1.5);
@@ -165,11 +165,11 @@ for cc = 1:numel(conditionPairs)
             %sigIdx = rho_pval(:,2)<=0.05;
             %plot(psthBins(sigIdx),rho_pval(sigIdx,1),'r','LineWidth',2.0);
 
-            %% H_rsc499
+            %% H_rsc400
             %pos(1) = offsetsX(colNum) + startPos;
             pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*5;
             pos(3:4) = [psthW psthH];
-            H_out.H_psth2=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth2');
+            H_out.H_rsc400=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc400');
             rho_pval = currSpkCorr.rho_pval_400ms{1};
             sig_05 = currSpkCorr.critRho05;
             plot(psthBins,fx_vecSmooth(rho_pval(:,1),smoothBinWidthMs),'LineWidth',1.5);
@@ -189,6 +189,54 @@ for cc = 1:numel(conditionPairs)
                 'FontSize',8,'FontWeight','bold','FitBoxToText','on','Interpreter','none','EdgeColor','none');
 
         end
+        % Draw static window spike count corr
+        % get min-max of spk counts for scaling
+        maxSpkCountX = max(cell2mat(spikeCorr.xSpkCount_win));
+        maxSpkCountX = maxSpkCountX + mod(maxSpkCountX,2);
+        spkCountLimsX = [0 maxSpkCountX];
+        spkCountTicksX = 0:maxSpkCountX/4:maxSpkCountX;
+        spkCountTickLabelX =  arrayfun(@(x) num2str(x,'%d'),spkCountTicksX','UniformOutput',false);
+        spkCountTickLabelX(2:end-1) = repmat({' '},numel(spkCountTickLabelX)-2,1);
+        
+        maxSpkCountY = max(cell2mat(spikeCorr.ySpkCount_win));
+        maxSpkCountY = maxSpkCountY + mod(maxSpkCountY,2);
+        spkCountLimsY = [0 maxSpkCountY];
+        spkCountTicksY = 0:maxSpkCountY/4:maxSpkCountY;
+        spkCountTickLabelY =  arrayfun(@(x) num2str(x,'%d'),spkCountTicksY','UniformOutput',false);
+        spkCountTickLabelY(2:end-1) = repmat({' '},numel(spkCountTickLabelY)-2,1);
+        
+        spkCountXAxisLabel = {'X-Unit', 'Spk.Count'};
+        spkCountYAxisLabel = {'Y-Unit', 'Spk.Count'};
+        pltW = psthW/3;
+        pltH = (psthW/3)*aspectRatio;
+        
+        for s = 1:3 
+        % Draw 3 scatter plots across for Baseline, visual, postsac
+         pos(1) = offsetsX(4) + startPos + (pltW + gutter*2)*(s-1);
+         pos(2) = offsetsY(rowNum) - (psthH + gutter*4);
+         pos(3:4) = [pltW pltH];
+         H_out.H_rscBl=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rscBl');
+         plotData = spikeCorr(strcmp(spikeCorr.condition,condition) ...,
+                        & strcmp(spikeCorr.alignedName,alignNames{s}),...
+                        {'rho_pval_win','xSpkCount_win','ySpkCount_win','rho_pval_static'});
+         scatter(plotData.xSpkCount_win{1},plotData.ySpkCount_win{1},5,'o');
+         hold on
+         annotateAxis(gca,'y',spkCountLimsY,spkCountTicksY,spkCountTickLabelY,0,axColor);
+         annotateAxis(gca,'x',spkCountLimsX,spkCountTicksX,spkCountTickLabelX,0,axColor);
+         set(gca,'YGrid','on','GridLineStyle','--', 'GridColor', [0.3 0.3 0.3])
+        
+         doYLabel(gca,spkCountYAxisLabel)
+         doXLabel(gca,spkCountXAxisLabel)
+         titleStr = {alignNames{s}...
+             ['[' num2str(plotData.rho_pval_win{1},'%d ') ']' ]...
+             sprintf('\\rho = %0.2f, p = %0.2e', ...
+             plotData.rho_pval_static{1}(1),plotData.rho_pval_static{1}(2))};
+         title(titleStr,'Interpreter','tex')
+        
+        end
+         
+        
+        
     end
     addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile, [cellPairInfo.X_area{1} ' vs ' cellPairInfo.Y_area{1}],...
                    conditions,alignNames);
@@ -247,12 +295,12 @@ function doYLabel(H_axis,yLabel)
  else
      v = get(H_axis,'View');
      if (v(1) == 0) % normal view
-         xPos = xLim(1) - range(xLim)*0.08; % left
+         xPos = xLim(1) - range(xLim)*0.05; % left
      else
          xPos = xLim(1) - range(xLim)*0.01; % down
      end
  end
- ylabel(yLabel,'Position',[xPos yPos],'VerticalAlignment','top',...
+ ylabel(yLabel,'Position',[xPos yPos],'VerticalAlignment','bottom',...
      'HorizontalAlignment','center','FontSize',8,'FontWeight','bold',...
      'FontAngle', 'italic','Color','black'); 
 end
