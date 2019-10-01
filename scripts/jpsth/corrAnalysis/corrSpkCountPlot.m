@@ -1,22 +1,22 @@
 function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 %CORRSPKCOUNTPLOT Summary of this function goes here
 
-%% Put this in the function....
-smoothBinWidthMs = 1;
-fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
+    %% Put this in the function....
+    smoothBinWidthMs = 1;
+    fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
 
-conditionPairs = {
-    {'FastErrorChoice','AccurateErrorChoice'};
-    {'FastErrorTiming','AccurateErrorTiming'};
-    };
-pdfPrefixMap = containers.Map();
-pdfPrefixMap(conditionPairs{1}{1}) = 'SAT_ERROR_CHOICE_';
-pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_ERROR_TIMING_';
+    conditionPairs = {
+        {'FastErrorChoice','AccurateErrorChoice'};
+        {'FastErrorTiming','AccurateErrorTiming'};
+        };
+    pdfPrefixMap = containers.Map();
+    pdfPrefixMap(conditionPairs{1}{1}) = 'SAT_ERROR_CHOICE_';
+    pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_ERROR_TIMING_';
 
-cellPairInfo = load(spkCountFile,'cellPairInfo');
-cellPairInfo = cellPairInfo.cellPairInfo;
-spikeCorr = load(spkCountFile,'spikeCorr');
-spikeCorr = spikeCorr.spikeCorr;
+    cellPairInfo = load(spkCountFile,'cellPairInfo');
+    cellPairInfo = cellPairInfo.cellPairInfo;
+    spikeCorr = load(spkCountFile,'spikeCorr');
+    spikeCorr = spikeCorr.spikeCorr;
 
     %% compute the min-max for axis scaling
     % common for all psth plots
@@ -41,205 +41,221 @@ spikeCorr = spikeCorr.spikeCorr;
     rscYTicks = [rscYlims(1) 0 rscYlims(2)];
     rscYTickLabel =  arrayfun(@(x) num2str(x,'%0.1f'),rscYTicks','UniformOutput',false);
     rscYTickLabel(rscYTicks==0) = {'0'};
-    rscYaxisLabel = 'r_{sc}';
-    
-    
-%%
-[~,pdfBaseFile] = fileparts(spkCountFile);
-colormap('jet');close gcf;
-for cc = 1:numel(conditionPairs)
-    
-    conditions = conditionPairs{cc};  
-    outPdfFile = fullfile(pdfOutputDir, [pdfPrefixMap(conditions{1}) pdfBaseFile '.pdf']);    
-    %% plot each pair of conditions
-    parentFig = getFigHandle();
-    H_out = struct();
-    ss = get(0,'ScreenSize');
-    aspectRatio = ss(3)/ss(4);
-    offsetsX=[0.01 (1:3).*0.248]; % for 4 columns
-    offsetsY = [0.88 0.43]; %[0.90 0.45]; % for 2 rows
-    startPos = 0.015; % top position of yPsth
-    psthH = 0.05; psthW = psthH*3.5;
-    gutter = 0.01; % space between plots
-    
-    %% plot each condition in a row
-    for rowNum = 1:2
-        condition = conditions{rowNum};
-        axColor = [0.5 0.5 0.5];
-        alignNames = unique(spikeCorr.alignedName,'stable');       
-        for colNum = 1:3
-            currSpkCorr = spikeCorr(strcmp(spikeCorr.condition,condition) ...
-                & strcmp(spikeCorr.alignedName,alignNames{colNum}),:);
-            unitSumm ={
-                sprintf('%10s %10s %10s','Unit','nTrials','nSpikes')
-                sprintf('%10s %10d %10d','X-Unit',size(currSpkCorr.xRasters{1},1),sum(currSpkCorr.xRasters{1}(:)))
-                sprintf('%10s %10d %10d','Y-Unit',size(currSpkCorr.yRasters{1},1),sum(currSpkCorr.yRasters{1}(:)))
-                };
-            % bins for xUnit , yUnit
-            psthBins = currSpkCorr.rasterBins{1};
-            psthXLims = [min(psthBins) max(psthBins)];
-            psthXTicks = min(psthBins):100:max(psthBins);
-            psthXTickLabel =  arrayfun(@(x) num2str(x/1000,'%.1f'),psthXTicks','UniformOutput',false);
-            psthXTickLabel(2:end-1) = {''};
-            psthXTickLabel(psthXTicks==0) = {'0'};
-            psthXaxisLabel = ['Time from ', currSpkCorr.alignedEvent{1},' (s)'];
-            psthXaxisLabel = strrep(psthXaxisLabel,'SaccadePrimaryTempo','Saccade');
-            
-            %% H_Psth1
-            pos(1) = offsetsX(colNum) + startPos;
-            pos(2) = offsetsY(rowNum);
-            pos(3:4) = [psthW psthH];
-            H_out.H_psth1=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth1');
-            
-            rasters = currSpkCorr.xRasters{1};
-            plot(psthBins,fx_vecSmooth(mean(rasters)*1000,smoothBinWidthMs),'LineWidth',1.5);
-            annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,0,axColor);
-            annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
-            doYLabel(gca,{'X-Unit'; psthYaxisLabel})
-            hold on
-            PlotUtils.plotRasters(rasters,psthBins);
-            %% H_Psth2
-            %pos(1) = offsetsX(colNum) + startPos;
-            pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter);
-            pos(3:4) = [psthW psthH];
-            H_out.H_psth2=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth2');
-            
-            rasters = currSpkCorr.yRasters{1};
-            plot(psthBins,fx_vecSmooth(mean(rasters)*1000,smoothBinWidthMs),'LineWidth',1.5);
-            annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,0,axColor);
-            annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
-            doYLabel(gca,{'Y-Unit'; psthYaxisLabel})
-            hold on
-            PlotUtils.plotRasters(rasters,psthBins);
-            %% H_rsc50
-            %pos(1) = offsetsX(colNum) + startPos;
-            pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*2;
-            pos(3:4) = [psthW psthH];
-            H_out.H_rsc50=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc50');
-            rho_pval = currSpkCorr.rho_pval_50ms{1};
-            sig_05 = currSpkCorr.critRho05;
-            plot(psthBins,fx_vecSmooth(rho_pval(:,1),smoothBinWidthMs),'LineWidth',1.5);
-            annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
-            annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
-            doYLabel(gca,'r_{sc} 50ms')
-            hold on
-            line(get(gca,'XLim'),[0 0],'Color','k')
-            line(get(gca,'XLim'),[sig_05 sig_05],'Color','r')
-            line(get(gca,'XLim'),[-sig_05 -sig_05],'Color','r')
-            %sigIdx = rho_pval(:,2)<=0.05;
-            %plot(psthBins(sigIdx),rho_pval(sigIdx,1),'r','LineWidth',2.0);
-            
-            %% H_rsc100
-            %pos(1) = offsetsX(colNum) + startPos;
-            pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*3;
-            pos(3:4) = [psthW psthH];
-            H_out.H_rsc100=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc100');
-            rho_pval = currSpkCorr.rho_pval_100ms{1};
-            sig_05 = currSpkCorr.critRho05;
-            plot(psthBins,fx_vecSmooth(rho_pval(:,1),smoothBinWidthMs),'LineWidth',1.5);
-            annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
-            annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
-            doYLabel(gca,'r_{sc} 100ms')
-            hold on
-            line(get(gca,'XLim'),[0 0],'Color','k')
-            line(get(gca,'XLim'),[sig_05 sig_05],'Color','r')
-            line(get(gca,'XLim'),[-sig_05 -sig_05],'Color','r')
-            %sigIdx = rho_pval(:,2)<=0.05;
-            %plot(psthBins(sigIdx),rho_pval(sigIdx,1),'r','LineWidth',2.0);
 
-            %% H_rsc200
-            %pos(1) = offsetsX(colNum) + startPos;
-            pos(2) = pos(2) - (psthH + gutter); % offsetsY(rowNum) - (psthH + gutter)*4;
-            pos(3:4) = [psthW psthH];
-            H_out.H_rsc200=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc200');
-            rho_pval = currSpkCorr.rho_pval_200ms{1};
-            sig_05 = currSpkCorr.critRho05;
-            plot(psthBins,fx_vecSmooth(rho_pval(:,1),smoothBinWidthMs),'LineWidth',1.5);
-            annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
-            annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
-            doYLabel(gca,'r_{sc} 200ms')
-            hold on
-            line(get(gca,'XLim'),[0 0],'Color','k')
-            line(get(gca,'XLim'),[sig_05 sig_05],'Color','r')
-            line(get(gca,'XLim'),[-sig_05 -sig_05],'Color','r')
-            %sigIdx = rho_pval(:,2)<=0.05;
-            %plot(psthBins(sigIdx),rho_pval(sigIdx,1),'r','LineWidth',2.0);
+    %%
+    [~,pdfBaseFile] = fileparts(spkCountFile);
+    %colormap('jet');close gcf;
+    colrs = lines;
+    for cc = 1:numel(conditionPairs)
 
-            %% H_rsc400
-            %pos(1) = offsetsX(colNum) + startPos;
-            pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*5;
-            pos(3:4) = [psthW psthH];
-            H_out.H_rsc400=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc400');
-            rho_pval = currSpkCorr.rho_pval_400ms{1};
-            sig_05 = currSpkCorr.critRho05;
-            plot(psthBins,fx_vecSmooth(rho_pval(:,1),smoothBinWidthMs),'LineWidth',1.5);
-            annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
-            annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
-            doYLabel(gca,'r_{sc} 400ms')
-            hold on
-            line(get(gca,'XLim'),[0 0],'Color','k')
-            line(get(gca,'XLim'),[sig_05 sig_05],'Color','r')
-            line(get(gca,'XLim'),[-sig_05 -sig_05],'Color','r')
-            %sigIdx = rho_pval(:,2)<=0.05;
-            %plot(psthBins(sigIdx),rho_pval(sigIdx,1),'r','LineWidth',2.0);
-            doXLabel(gca,psthXaxisLabel);
+        conditions = conditionPairs{cc};
+        outPdfFile = fullfile(pdfOutputDir, [pdfPrefixMap(conditions{1}) pdfBaseFile '.pdf']);
+        %% plot each pair of conditions
+        parentFig = getFigHandle();
+        H_out = struct();
+        ss = get(0,'ScreenSize');
+        aspectRatio = ss(3)/ss(4);
+        offsetsX=[0.01 (1:3).*0.23]; % for 4 columns
+        offsetsY = [0.88 0.43]; %[0.90 0.45]; % for 2 rows
+        startPos = 0.015; % top position of yPsth
+        psthH = 0.05; psthW = psthH*3.5;
+        gutter = 0.01; % space between plots
 
-            % Add unit summary annotation here
-            annotation('textbox','Position',[pos(1) pos(2)-(psthH+gutter*2) 0.02 0.05],'String',char(unitSumm),...
-                'FontSize',8,'FontWeight','bold','FitBoxToText','on','Interpreter','none','EdgeColor','none');
+        %% plot each condition in a row
+        for rowNum = 1:2
+            condition = conditions{rowNum};
+            axColor = [0.5 0.5 0.5];
+            alignNames = unique(spikeCorr.alignedName,'stable');
+            for colNum = 1:3
+                currSpkCorr = spikeCorr(strcmp(spikeCorr.condition,condition) ...
+                    & strcmp(spikeCorr.alignedName,alignNames{colNum}),:);
+                unitSumm ={
+                    sprintf('%10s %10s %10s','Unit','nTrials','nSpikes')
+                    sprintf('%10s %10d %10d','X-Unit',size(currSpkCorr.xRasters{1},1),sum(currSpkCorr.xRasters{1}(:)))
+                    sprintf('%10s %10d %10d','Y-Unit',size(currSpkCorr.yRasters{1},1),sum(currSpkCorr.yRasters{1}(:)))
+                    };
+                % bins for xUnit , yUnit
+                psthBins = currSpkCorr.rasterBins{1};
+                psthXLims = [min(psthBins) max(psthBins)];
+                psthXTicks = min(psthBins):100:max(psthBins);
+                psthXTickLabel =  arrayfun(@(x) num2str(x/1000,'%.1f'),psthXTicks','UniformOutput',false);
+                psthXTickLabel(2:end-1) = {''};
+                psthXTickLabel(psthXTicks==0) = {'0'};
+                psthXaxisLabel = ['Time from ', currSpkCorr.alignedEvent{1},' (s)'];
+                psthXaxisLabel = strrep(psthXaxisLabel,'SaccadePrimaryTempo','Saccade');
 
-        end
-        % Draw static window spike count corr
-        % get min-max of spk counts for scaling
-        maxSpkCountX = max(cell2mat(spikeCorr.xSpkCount_win));
-        maxSpkCountX = maxSpkCountX + mod(maxSpkCountX,2);
-        spkCountLimsX = [0 maxSpkCountX];
-        spkCountTicksX = 0:maxSpkCountX/4:maxSpkCountX;
-        spkCountTickLabelX =  arrayfun(@(x) num2str(x,'%d'),spkCountTicksX','UniformOutput',false);
-        spkCountTickLabelX(2:end-1) = repmat({' '},numel(spkCountTickLabelX)-2,1);
-        
-        maxSpkCountY = max(cell2mat(spikeCorr.ySpkCount_win));
-        maxSpkCountY = maxSpkCountY + mod(maxSpkCountY,2);
-        spkCountLimsY = [0 maxSpkCountY];
-        spkCountTicksY = 0:maxSpkCountY/4:maxSpkCountY;
-        spkCountTickLabelY =  arrayfun(@(x) num2str(x,'%d'),spkCountTicksY','UniformOutput',false);
-        spkCountTickLabelY(2:end-1) = repmat({' '},numel(spkCountTickLabelY)-2,1);
-        
-        spkCountXAxisLabel = {'X-Unit', 'Spk.Count'};
-        spkCountYAxisLabel = {'Y-Unit', 'Spk.Count'};
-        pltW = psthW/3;
-        pltH = (psthW/3)*aspectRatio;
-        
-        for s = 1:3 
-        % Draw 3 scatter plots across for Baseline, visual, postsac
-         pos(1) = offsetsX(4) + startPos + (pltW + gutter*2)*(s-1);
-         pos(2) = offsetsY(rowNum) - (psthH + gutter*4);
-         pos(3:4) = [pltW pltH];
-         H_out.H_rscBl=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rscBl');
-         plotData = spikeCorr(strcmp(spikeCorr.condition,condition) ...,
+                %% H_Psth1
+                pos(1) = offsetsX(colNum) + startPos;
+                pos(2) = offsetsY(rowNum);
+                pos(3:4) = [psthW psthH];
+                H_out.H_psth1=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth1');
+
+                rasters = currSpkCorr.xRasters{1};
+                plot(psthBins,fx_vecSmooth(mean(rasters)*1000,smoothBinWidthMs),'LineWidth',1.5);
+                annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,0,axColor);
+                annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
+                doYLabel(gca,{'X-Unit'; psthYaxisLabel})
+                hold on
+                PlotUtils.plotRasters(rasters,psthBins);
+                %% H_Psth2
+                %pos(1) = offsetsX(colNum) + startPos;
+                pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter);
+                pos(3:4) = [psthW psthH];
+                H_out.H_psth2=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth2');
+
+                rasters = currSpkCorr.yRasters{1};
+                plot(psthBins,fx_vecSmooth(mean(rasters)*1000,smoothBinWidthMs),'LineWidth',1.5);
+                annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,0,axColor);
+                annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
+                doYLabel(gca,{'Y-Unit'; psthYaxisLabel})
+                hold on
+                PlotUtils.plotRasters(rasters,psthBins);
+                %% H_rsc50
+                %pos(1) = offsetsX(colNum) + startPos;
+                pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*2;
+                pos(3:4) = [psthW psthH];
+                H_out.H_rsc50=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc50');
+
+                rho_pval = currSpkCorr.rho_pval_50ms{1};
+                rho_pvalZ = currSpkCorr.rho_pval_50ms_Z{1};
+                plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
+
+                annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
+                annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
+                doYLabel(gca,'r_{sc} 50ms')
+                line(get(gca,'XLim'),[0 0],'Color','k')
+                %sigIdx = rho_pval(:,2)<=0.05;
+                %plot(psthBins(sigIdx),rho_pval(sigIdx,1),'r','LineWidth',2.0);
+
+                %% H_rsc100
+                %pos(1) = offsetsX(colNum) + startPos;
+                pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*3;
+                pos(3:4) = [psthW psthH];
+                H_out.H_rsc100=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc100');
+
+                rho_pval = currSpkCorr.rho_pval_100ms{1};
+                rho_pvalZ = currSpkCorr.rho_pval_100ms_Z{1};
+                plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
+
+                annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
+                annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
+                doYLabel(gca,'r_{sc} 100ms')
+                hold on
+                line(get(gca,'XLim'),[0 0],'Color','k')
+
+                %% H_rsc200
+                %pos(1) = offsetsX(colNum) + startPos;
+                pos(2) = pos(2) - (psthH + gutter); % offsetsY(rowNum) - (psthH + gutter)*4;
+                pos(3:4) = [psthW psthH];
+                H_out.H_rsc200=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc200');
+
+                rho_pval = currSpkCorr.rho_pval_200ms{1};
+                rho_pvalZ = currSpkCorr.rho_pval_200ms_Z{1};
+                plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
+
+                annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
+                annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
+                doYLabel(gca,'r_{sc} 200ms')
+                hold on
+                line(get(gca,'XLim'),[0 0],'Color','k')
+
+                %% H_rsc400
+                %pos(1) = offsetsX(colNum) + startPos;
+                pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*5;
+                pos(3:4) = [psthW psthH];
+                H_out.H_rsc400=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc400');
+
+                rho_pval = currSpkCorr.rho_pval_400ms{1};
+                rho_pvalZ = currSpkCorr.rho_pval_400ms_Z{1};
+                plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
+
+                annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
+                annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
+                doYLabel(gca,'r_{sc} 400ms')
+                hold on
+                line(get(gca,'XLim'),[0 0],'Color','k')
+                doXLabel(gca,psthXaxisLabel);
+
+                % Add unit summary annotation here
+                annotation('textbox','Position',[pos(1) pos(2)-(psthH+gutter*2) 0.02 0.05],'String',char(unitSumm),...
+                    'FontSize',8,'FontWeight','bold','FitBoxToText','on','Interpreter','none','EdgeColor','none');
+
+            end
+            %% Draw static window spike count corr
+            staticCols  = {'xSpkCount_win','ySpkCount_win','rho_pval_win','rho_pval_static'};
+
+            for z = 1:2
+                if z > 1
+                    staticCols = strcat(staticCols,'_Z');
+                end
+                % get min-max of spk counts for scaling
+                maxSpkCountX = max(cell2mat(spikeCorr.(staticCols{1})));
+                maxSpkCountY = max(cell2mat(spikeCorr.(staticCols{2})));
+                if z == 1
+                    maxSpkCountX = maxSpkCountX + mod(maxSpkCountX,2);
+                    maxSpkCountY = maxSpkCountY + mod(maxSpkCountY,2);
+                else
+                    maxSpkCountX = round(maxSpkCountX,2);
+                    maxSpkCountY = round(maxSpkCountY,2);
+                end
+                spkCountLimsX = [0 maxSpkCountX];
+                spkCountLimsY = [0 maxSpkCountY];
+                spkCountTicksX = 0:maxSpkCountX/4:maxSpkCountX;
+                spkCountTicksY = 0:maxSpkCountY/4:maxSpkCountY;
+                if z == 1
+                    spkCountTickLabelX =  arrayfun(@(x) num2str(x,'%d'),spkCountTicksX','UniformOutput',false);
+                    spkCountTickLabelY =  arrayfun(@(x) num2str(x,'%d'),spkCountTicksY','UniformOutput',false);
+                    spkCountXAxisLabel = {'X-Unit', 'Spk.Count'};
+                    spkCountYAxisLabel = {'Y-Unit', 'Spk.Count'};
+                else
+                    spkCountTickLabelX =  arrayfun(@(x) num2str(x,'%0.1f'),spkCountTicksX','UniformOutput',false);
+                    spkCountTickLabelY =  arrayfun(@(x) num2str(x,'%0.1f'),spkCountTicksY','UniformOutput',false);
+                    spkCountXAxisLabel = {'X-Unit', 'sum(z-score)'};
+                    spkCountYAxisLabel = {'Y-Unit', 'sum(z-score)'};
+                end
+                spkCountTickLabelX(2:end-1) = repmat({' '},numel(spkCountTickLabelX)-2,1);
+                spkCountTickLabelY(2:end-1) = repmat({' '},numel(spkCountTickLabelY)-2,1);
+
+                pltW = psthW/3.3;
+                pltH = (psthW/3.3)*aspectRatio;
+
+                for s = 1:3
+                    % Draw 3 scatter plots across for Baseline, visual, postsac
+                    pos(1) = offsetsX(4) + (psthH + gutter*4)*(s-1);
+                    pos(2) = offsetsY(rowNum) - (psthH + gutter) - (pltH + gutter*4)*(z-1);
+                    pos(3:4) = [pltW pltH];
+                    H_out.H_rscBl=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rscBl');
+                    plotData = spikeCorr(strcmp(spikeCorr.condition,condition) ...,
                         & strcmp(spikeCorr.alignedName,alignNames{s}),...
-                        {'rho_pval_win','xSpkCount_win','ySpkCount_win','rho_pval_static'});
-         scatter(plotData.xSpkCount_win{1},plotData.ySpkCount_win{1},5,'o');
-         hold on
-         annotateAxis(gca,'y',spkCountLimsY,spkCountTicksY,spkCountTickLabelY,0,axColor);
-         annotateAxis(gca,'x',spkCountLimsX,spkCountTicksX,spkCountTickLabelX,0,axColor);
-         set(gca,'YGrid','on','GridLineStyle','--', 'GridColor', [0.3 0.3 0.3])
-        
-         doYLabel(gca,spkCountYAxisLabel)
-         doXLabel(gca,spkCountXAxisLabel)
-         titleStr = {alignNames{s}...
-             ['[' num2str(plotData.rho_pval_win{1},'%d ') ']' ]...
-             sprintf('\\rho = %0.2f, p = %0.2e', ...
-             plotData.rho_pval_static{1}(1),plotData.rho_pval_static{1}(2))};
-         title(titleStr,'Interpreter','tex')
-        
+                        staticCols);
+                    scatter(plotData.(staticCols{1}){1},plotData.(staticCols{2}){1},5,'o');
+                    hold on
+                    annotateAxis(gca,'y',spkCountLimsY,spkCountTicksY,spkCountTickLabelY,0,axColor);
+                    annotateAxis(gca,'x',spkCountLimsX,spkCountTicksX,spkCountTickLabelX,0,axColor);
+                    set(gca,'YGrid','on','GridLineStyle','--', 'GridColor', [0.3 0.3 0.3])
+
+                    doYLabel(gca,spkCountYAxisLabel)
+                    doXLabel(gca,spkCountXAxisLabel)
+                    if z == 1
+                        titleStr = {alignNames{s}...
+                            ['[' num2str(plotData.(staticCols{3}){1},'%d ') ']' ]...
+                            sprintf('\\rho = %0.2f, p = %0.2e', ...
+                            plotData.(staticCols{4}){1}(1),plotData.(staticCols{4}){1}(2))};
+                    else
+                        titleStr = {...
+                            sprintf('\\rho = %0.2f, p = %0.2e', ...
+                            plotData.(staticCols{4}){1}(1),plotData.(staticCols{4}){1}(2))};
+                    end
+                    title(titleStr,'Interpreter','tex')
+                end
+
+
+            end
+            
+        %% end roNum
         end
-         
-        
-        
-    end
     addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile, [cellPairInfo.X_area{1} ' vs ' cellPairInfo.Y_area{1}],...
-                   conditions,alignNames);
+        conditions,alignNames);
     H_pairInfo = axes('parent',parentFig,'position',[0.01 0.01 0.98 0.06],...
         'box','on','XTick',[],'YTick',[],'layer','top','Tag','H_jpsthInfo');
     addPairInfo(H_pairInfo, cellPairInfo);
@@ -248,9 +264,22 @@ for cc = 1:numel(conditionPairs)
         saveFigAs(outPdfFile);
         delete(parentFig);
     end
+    end
 end
 
+
+function [] = plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_handle,colrs)
+    yVals = fx_handle(rho_pval(:,1),smoothBinWidthMs);
+    p = plot(psthBins,yVals,'Color',colrs(1,:));
+    hold on
+    yVals(rho_pval(:,2)>0.05) = NaN;
+    plot(psthBins,yVals,'Color',p.Color,'LineWidth',4);
+    yValsZ = fx_handle(rho_pvalZ(:,1),smoothBinWidthMs);
+    p = plot(psthBins,yValsZ,'Color',colrs(5,:));
+    yValsZ(rho_pvalZ(:,2)>0.05) = NaN;
+    plot(psthBins,yValsZ,'Color',p.Color,'LineWidth',4);
 end
+
 
 function addPairInfo(H_axes,cellPairInfo)
   cellInfo = cellPairInfo(1,contains(cellPairInfo.Properties.VariableNames,'X_'));
