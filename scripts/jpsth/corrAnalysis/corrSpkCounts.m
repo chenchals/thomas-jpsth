@@ -32,7 +32,7 @@ for d = 1:2
     staticWins.Visual = [50 200];
     staticWins.PostSaccade = [100 300];
     fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win,2),rasters,'UniformOutput',false);
-    
+    fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
     parfor p = 1:numel(dFiles)
         out = struct();
         cellPairInfo = load(dFiles{p},'cellPairInfo');
@@ -48,17 +48,38 @@ for d = 1:2
             tempTbl.Properties.RowNames = {};
             dat = [dat;tempTbl]; %#ok<*AGROW>           
         end
-        
+        xMatRaw = dat.xRasters;
+        yMatRaw = dat.yRasters;
+        % Z-Score each trial
+        % see: https://www.nature.com/articles/s41593-019-0477-1
+        % Ruff & Cohen Simultaneous multi-area recordings suggest that
+        % attention improves performance by reshaping stimulus
+        % representations 2019, Nature Neuroscience 22:1669-1676
+        [xMatZ,xMatMean,xMatStd] = fx_zscoreTrls(xMatRaw);
+        [yMatZ,yMatMean,yMatStd] = fx_zscoreTrls(yMatRaw);
+        dat.xRastersZ = xMatZ;
+        dat.xRastersMean = xMatMean;
+        dat.xRastersStd = xMatStd;
+        dat.yRastersZ = yMatZ;
+        dat.yRastersMean = yMatMean;
+        dat.yRastersStd = yMatStd;        
         for w = movingWins
             movWinStr = num2str(w,'%dms');
-            xMat = fx_mvsum(dat.xRasters,w);
-            yMat = fx_mvsum(dat.yRasters,w);
+            xMat = fx_mvsum(xMatRaw,w);
+            yMat = fx_mvsum(yMatRaw,w);
             dat.(['xSpkCount_' movWinStr]) = xMat;
             dat.(['ySpkCount_' movWinStr]) = yMat;
             [rho_pval,dat.critRho10,dat.critRho05,dat.critRho01] = getCorrData(xMat,yMat,'Pearson');            
-            dat.(['rho_pval_' movWinStr]) = rho_pval;             
+            dat.(['rho_pval_' movWinStr]) = rho_pval;      
+            %% do on Zscored            
+            xMat = fx_mvsum(xMatZ,w);
+            yMat = fx_mvsum(yMatZ,w);
+            dat.(['xSpkCountZ_' movWinStr]) = xMat;
+            dat.(['ySpkCountZ_' movWinStr]) = yMat;
+            [rho_pval,dat.critRho10Z,dat.critRho05Z,dat.critRho01Z] = getCorrData(xMat,yMat,'Pearson');
+            dat.(['rho_pvalZ_' movWinStr]) = rho_pval;           
         end       
-        % do static Window spike counts
+        %% do static Window spike counts
         dat.rho_pval_win = repmat(struct2cell(staticWins),numel(unique(dat.condition)),1);
         dat.xSpkCount_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
             dat.rasterBins,dat.xRasters,dat.rho_pval_win,'UniformOutput',false);
@@ -66,9 +87,18 @@ for d = 1:2
             dat.rasterBins,dat.yRasters,dat.rho_pval_win,'UniformOutput',false);
         dat.rho_pval_static = getCorrData(dat.xSpkCount_win,dat.ySpkCount_win,'Pearson');
         
-        % get waveforms
+        %% do static Window spike counts - Z-scored
+        dat.rho_pval_winZ = repmat(struct2cell(staticWins),numel(unique(dat.condition)),1);
+        dat.xSpkCountZ_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+            dat.rasterBins,dat.xRastersZ,dat.rho_pval_winZ,'UniformOutput',false);
+        dat.ySpkCountZ_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+            dat.rasterBins,dat.yRastersZ,dat.rho_pval_win,'UniformOutput',false);
+        dat.rho_pval_static = getCorrData(dat.xSpkCountZ_win,dat.ySpkCountZ_win,'Pearson');
+        
+        %% get waveforms
         [dat.xWaves,dat.yWaves] = getWaveforms(wavDir,cellPairInfo,dat);
         
+        %% save datta file for r-spkCounts
         out.cellPairInfo = cellPairInfo;
         out.spikeCorr = dat;
         oFn = fullfile(outputDir,['rscCorr_' cellPairInfo.Pair_UID{1} '.mat']);
