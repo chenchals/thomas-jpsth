@@ -57,10 +57,10 @@ for d = 1:2
         % representations 2019, Nature Neuroscience 22:1669-1676
         [xMatZ,xMatMean,xMatStd] = fx_zscoreTrls(xMatRaw);
         [yMatZ,yMatMean,yMatStd] = fx_zscoreTrls(yMatRaw);
-        dat.xRastersZ = xMatZ;
+        dat.xRasters_Z = xMatZ;
         dat.xRastersMean = xMatMean;
         dat.xRastersStd = xMatStd;
-        dat.yRastersZ = yMatZ;
+        dat.yRasters_Z = yMatZ;
         dat.yRastersMean = yMatMean;
         dat.yRastersStd = yMatStd;        
         for w = movingWins
@@ -74,10 +74,10 @@ for d = 1:2
             %% do on Zscored            
             xMat = fx_mvsum(xMatZ,w);
             yMat = fx_mvsum(yMatZ,w);
-            dat.(['xSpkCountZ_' movWinStr]) = xMat;
-            dat.(['ySpkCountZ_' movWinStr]) = yMat;
-            [rho_pval,dat.critRho10Z,dat.critRho05Z,dat.critRho01Z] = getCorrData(xMat,yMat,'Pearson');
-            dat.(['rho_pvalZ_' movWinStr]) = rho_pval;           
+            dat.(['xSpkCount_' movWinStr '_Z']) = xMat;
+            dat.(['ySpkCount_' movWinStr '_Z']) = yMat;
+            [rho_pval,dat.critRho10_Z,dat.critRho05_Z,dat.critRho01_Z] = getCorrData(xMat,yMat,'Pearson');
+            dat.(['rho_pval_' movWinStr '_Z']) = rho_pval;           
         end       
         %% do static Window spike counts
         dat.rho_pval_win = repmat(struct2cell(staticWins),numel(unique(dat.condition)),1);
@@ -88,12 +88,12 @@ for d = 1:2
         dat.rho_pval_static = getCorrData(dat.xSpkCount_win,dat.ySpkCount_win,'Pearson');
         
         %% do static Window spike counts - Z-scored
-        dat.rho_pval_winZ = repmat(struct2cell(staticWins),numel(unique(dat.condition)),1);
-        dat.xSpkCountZ_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
-            dat.rasterBins,dat.xRastersZ,dat.rho_pval_winZ,'UniformOutput',false);
-        dat.ySpkCountZ_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
-            dat.rasterBins,dat.yRastersZ,dat.rho_pval_win,'UniformOutput',false);
-        dat.rho_pval_static = getCorrData(dat.xSpkCountZ_win,dat.ySpkCountZ_win,'Pearson');
+        dat.rho_pval_win_Z = repmat(struct2cell(staticWins),numel(unique(dat.condition)),1);
+        dat.xSpkCount_win_Z = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+            dat.rasterBins,dat.xRasters_Z,dat.rho_pval_win_Z,'UniformOutput',false);
+        dat.ySpkCount_win_Z = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+            dat.rasterBins,dat.yRasters_Z,dat.rho_pval_win_Z,'UniformOutput',false);
+        dat.rho_pval_static_Z = getCorrData(dat.xSpkCount_win_Z,dat.ySpkCount_win_Z,'Pearson');
         
         %% get waveforms
         [dat.xWaves,dat.yWaves] = getWaveforms(wavDir,cellPairInfo,dat);
