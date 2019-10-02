@@ -1,11 +1,11 @@
 
 corrDirs = {
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts/mat/CHOICE_ERR_PAIRS'
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts/mat/TIMING_ERR_PAIRS'
+    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/mat/CHOICE_ERR_PAIRS'
+    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/mat/TIMING_ERR_PAIRS'
     };
 plotDirs = {
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts/pdf/CHOICE_ERR_PAIRS'
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts/pdf/TIMING_ERR_PAIRS'
+    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/pdf/CHOICE_ERR_PAIRS'
+    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/pdf/TIMING_ERR_PAIRS'
     };
 for p = 1:numel(plotDirs)
     if ~exist(plotDirs{p},'dir')

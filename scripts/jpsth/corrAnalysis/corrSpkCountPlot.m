@@ -287,7 +287,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             annotateAxis(gca,'x',wfXlim,wfXTicks,wfXTickLabel,0,axColor);
             doXLabel(gca,wfXaxisLabel)
             
-            legend(unitsTxt)
+            legend(unitsTxt,'Location', 'northwest','Box','off')
            
         %% end rowNum
         end
