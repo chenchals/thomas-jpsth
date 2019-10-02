@@ -1,6 +1,11 @@
 % Needs ninfo_nstats_SAT.mat created by Thomas
 %       and all recoded xlsx files from Rich's SAT summary excel files 
 %       [monk]_SAT_colorRecode.xlsx
+% Criteria for Pairs:
+%      1. Only use Units the satisfy: abs(unit.visGrade) > 1 | abs(unit.moveGrade) > 1
+%      2  There has to atleast 2 units in the session
+% The data for all units and their criteria is in file ninfo_nstats_SAT.mat
+% 
 % Run createTrialTypesEventTimesDB after running this script.
 % see also: CREATETRIALTYPESEVENTTIMESDB, PARSESATEXCEL
 
