@@ -1,25 +1,30 @@
 % Needs ninfo_nstats_SAT.mat created by Thomas
 %       and all recoded xlsx files from Rich's SAT summary excel files 
 %       [monk]_SAT_colorRecode.xlsx
+% Criteria for Pairs:
+%      1. Only use Units the satisfy: abs(unit.visGrade) > 1 | abs(unit.moveGrade) > 1
+%      2  There has to atleast 2 units in the session
+% The data for all units and their criteria is in file ninfo_nstats_SAT.mat
+% 
 % Run createTrialTypesEventTimesDB after running this script.
 % see also: CREATETRIALTYPESEVENTTIMESDB, PARSESATEXCEL
 
+% Modifications:
+% 10/03/2019 : Removed the criteria for filtering for only vis/mov units
+
+useVizMovUnits = false;
 ninfo_nstat_file = 'dataProcessed/dataset/ninfo_nstats_SAT.mat';
 xlsxDir = 'dataProcessed/excel';
-matFilebase = '/Volumes/schalllab/data';
+matAndPlxFiles = 'dataProcessed/dataset/SessionFiles_SAT.mat';
 inRootAnalysisDir = fullfile('dataProcessed/dataset');
 % if ~exist(inRootAnalysisDir,'dir')
 %     mkdir(inRootAnalysisDir);
 % end
 
 monkNameMap = containers.Map({'D','E','Q','S'},{'Darwin','Euler','Quincy','Seymour'});
-%% Add matlab datafile to the info table
-matFileDirStruct = cellfun(@(x) dir(fullfile(matFilebase,x,'SAT/MATLAB', [x(1) '*RH_SEARCH.mat'])),...
-                    monkNameMap.values,'UniformOutput',false);
-matFiles = arrayfun(@(x) strcat({matFileDirStruct{x}.folder}', filesep, {matFileDirStruct{x}.name}'),...
-                    1:4,'UniformOutput',false);
-matFiles = vertcat(matFiles{:});
-
+%% Add matlab datafile and plx datafile  to the info table
+sessMatPlxFiles = load(matAndPlxFiles);
+sessMatPlxFiles = sessMatPlxFiles.sessionFiles;
 %% Add information of grid location and hemifield from recoded excel files
 excelInfos = cellfun(@(x) parseSatExcel(fullfile(xlsxDir,[x '_SAT_colorRecode.xlsx'])), monkNameMap.values, 'UniformOutput', false);
 excelInfos = vertcat(excelInfos{:});
@@ -36,17 +41,24 @@ cInfo = innerjoin(cInfo,excelInfos,'LeftKeys',{'sess','unit'},...
 JpsthPairSummary=table();
 JpsthPairSummary.sess = unique(cInfo.sess);
 JpsthPairSummary.nUnits = cell2mat(cellfun(@(x) sum(contains(cInfo.sess,x)),JpsthPairSummary.sess,'UniformOutput',false));
-JpsthPairSummary.matFile = matFiles(contains(matFiles,JpsthPairSummary.sess));
+temp = innerjoin(sessMatPlxFiles,JpsthPairSummary);
+JpsthPairSummary.matDatafile = temp.matDatafile;
+JpsthPairSummary.plxDatafile = temp.plxDatafile;
 
-goodVMIdx = abs(cInfo.visGrade) > 1 | abs(cInfo.moveGrade) > 1;
-cellsGoodVM = cInfo(goodVMIdx,:);
-cellsBySession = arrayfun(@(x) find(contains(cellsGoodVM.sess,x)), JpsthPairSummary.sess, 'UniformOutput',false);
+if useVizMovUnits
+    goodVMIdx = abs(cInfo.visGrade) > 1 | abs(cInfo.moveGrade) > 1; %#ok<UNRCH>
+    goodUnits = cInfo(goodVMIdx,:);
+else
+    goodUnits = cInfo;
+end
+
+cellsBySession = arrayfun(@(x) find(contains(goodUnits.sess,x)), JpsthPairSummary.sess, 'UniformOutput',false);
 varsForPairs = cInfo.Properties.VariableNames;
 nextPairId = 0;
 JpsthPairCellInfoDB = table();
 
 for s=1:numel(cellsBySession)
-    res = cellsGoodVM(cellsBySession{s},:);
+    res = goodUnits(cellsBySession{s},:);
     session = res.sess{1};    
     tIdx = contains(JpsthPairSummary.sess,session);
     if size(res,1) <= 1
@@ -54,9 +66,9 @@ for s=1:numel(cellsBySession)
         JpsthPairSummary.nPairsJpsth(tIdx) = 0;
         continue;
     elseif size(res,1) > 1 % we have more than 1 unit
-        result.CellInfoTable = cellsGoodVM(cellsBySession{s},:);
+        result.CellInfoTable = goodUnits(cellsBySession{s},:);
         sessName = JpsthPairSummary.sess{tIdx};
-        matDatafile = JpsthPairSummary.matFile{tIdx};
+        matDatafile = JpsthPairSummary.matDatafile{tIdx};
         monkName = monkNameMap(char(unique(result.CellInfoTable.monkey)));
         pairRowIds = sortrows(combnk(1: size(result.CellInfoTable,1), 2),[1 2]);
         nPairs = size(pairRowIds,1);

@@ -40,9 +40,11 @@ classdef PlotUtils
             %       For a given bin, no spike = 0, spike = 1,
             %     rasterBins: Vector of [1 x mBins]. Raster bin times in ms
             %
+            offsetRatio = 0.1;
             fillRatio = 0.8; % How much of the plot to fill
             tickHeightFrac = 0.9;
             vertHeight_fx = @(nTrials) (fillRatio*max(get(gca,'YLim')))/nTrials;
+            rasterOffset = offsetRatio*max(get(gca,'YLim'));
             
             % Plot Rasters
             if ~isempty(rastersLogical)
@@ -58,7 +60,7 @@ classdef PlotUtils
                 timebins = timebins';
                 x = [ rasterBins(timebins);rasterBins(timebins);NaN(size(timebins)) ];
                 y = [ trialNos - tickHeight/2;trialNos + tickHeight/2;NaN(size(trialNos)) ];
-                plot(x(:),y(:),'k','color',[0.2 0.2 0.2 0.5]);
+                plot(x(:),y(:)+rasterOffset,'color',[0.3 0.3 0.3]);
                 xlim([min(rasterBins) max(rasterBins)])
             end
             % Plot bursts

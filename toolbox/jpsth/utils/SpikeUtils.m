@@ -5,18 +5,18 @@ classdef SpikeUtils
     %
     
     methods (Static, Access=public)
-        function outArg = jpsth(alignedSpikesX, alignedSpikesY, timeWin, binWidth, coincidenceBins)            
+        function outArg = jpsth(alignedSpikesX, alignedSpikesY, timeWin, binWidthMs, coincidenceBinsMs)            
             nTrials = size(alignedSpikesX,1);           
-            xPsth = SpikeUtils.psth(alignedSpikesX,binWidth,timeWin);
-            yPsth = SpikeUtils.psth(alignedSpikesY,binWidth,timeWin);
-            timeBins = timeWin(1):binWidth:timeWin(2);            
+            xPsth = SpikeUtils.psth(alignedSpikesX,binWidthMs,timeWin);
+            yPsth = SpikeUtils.psth(alignedSpikesY,binWidthMs,timeWin);
+            timeBins = timeWin(1):binWidthMs:timeWin(2);            
             % Cross correlation histogram for -lag:lag bins of JPSTH
             fx_xcorrh = @(jpsth,lagBins)...
                 [-abs(lagBins):abs(lagBins);arrayfun(@(x) mean(diag(jpsth,x)),...
                 -abs(lagBins):abs(lagBins))]';
             % Coincidence Histogram
             fx_coinh = @getCoincidence;
-           
+
             % JPSTH Equations from Aertsen et al. 1989
             % Note bins [1,1] is top-left and [n,n] is bottom-right
             % Eq. 3
@@ -32,11 +32,16 @@ classdef SpikeUtils
             normJpsth(isnan(normJpsth)) = 0;
             % lagBins for xCorr
             xCorrHist = fx_xcorrh(normJpsth,floor(numel(timeBins)/2));
-            % Coincidence Hist
-            coinHist = fx_coinh(normJpsth,coincidenceBins);
+            % Coincidence Hist 
+            % lag in terms of psthBins
+            if coincidenceBinsMs< binWidthMs
+                lagBins = 0;
+            else
+                lagBins = ceil(coincidenceBinsMs/binWidthMs);
+            end
+            coinHist = fx_coinh(normJpsth,lagBins);           
             
-            % Create output structure
-            
+            %% Create output structure
             temp = SpikeUtils.rasters(alignedSpikesX,timeWin);
             outArg.rasterBins = {temp.rasterBins};
             outArg.xRasters = {temp.rasters};
@@ -49,6 +54,8 @@ classdef SpikeUtils
             outArg.yPsth = {yPsth.psth};
             outArg.yPsthStd = {yPsth.psthStd};
             outArg.normalizedJpsth = normJpsth;
+            outArg.unNormalizedJpsth = unnormalizedJpsth;
+            
             outArg.xCorrHist = xCorrHist;
             outArg.coincidenceHist = coinHist;
             outArg.xSpikeCounts = {xPsth.spikeCounts};
@@ -63,6 +70,16 @@ classdef SpikeUtils
             if numel(normalizer)==1
                 outArg.normalizer = {normalizer};
             end
+            %% Also do Brody covariogram myVersion
+            xPsth1 = SpikeUtils.psth(alignedSpikesX,1,timeWin);
+            yPsth1 = SpikeUtils.psth(alignedSpikesY,1,timeWin);
+
+            [outArg.brodyCovariogram, outArg.rawCrossCorr, outArg.shuffleCorrector,...
+                outArg.sigma, outArg.sigHigh, outArg.sigLow, ~] = getCovariogram(...
+                outArg.xRasters{1}, outArg.yRasters{1},...
+                xPsth1.psth, yPsth1.psth, xPsth1.psthStd, xPsth1.psthStd,...
+                floor(range(xPsth1.psthBins)/2));
+            
         end
         
         function outArg = jeromiahJpsth(alignedSpikesX, alignedSpikesY, timeWin, binWidth, coincidenceBinWidth)
