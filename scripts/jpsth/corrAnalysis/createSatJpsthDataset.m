@@ -22,9 +22,9 @@ warning('off');
 nTrialsThreshold = 10;
 
 %% Options for JPSTH computation
-binWidth = 10;% use 1 ms for JPSTH computation
+binWidth = 5;% use 1 ms for JPSTH computation
 % -25 to +25 ms
-coincidenceBins = 50/binWidth;
+coincidenceBins = 25/binWidth;
 
 rootAnalysisDir = ['dataProcessed/analysis/JPSTH-' num2str(binWidth,'%dms')];
 datasetDir = 'dataProcessed/dataset';

@@ -1,3 +1,0 @@
-createJpsthPairCellInfoDB;
-createTrialTypesEventTimesDB;
-clear all
