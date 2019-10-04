@@ -57,6 +57,24 @@ varsForPairs = cInfo.Properties.VariableNames;
 nextPairId = 0;
 JpsthPairCellInfoDB = table();
 
+%% Ensure the following is true for area1 vs area2
+% for cross area pairs: always have first SEF on x-axis, then FEF on
+% x-axis, then SC on x-axis; NSEFN is always on y-axis
+pairXYarea = {
+          {'SEF' 'SEF'}
+          {'SEF' 'FEF'}
+          {'SEF' 'SC'}
+          {'SEF' 'NSEFN'}
+          {'FEF' 'FEF'}
+          {'FEF' 'SC'}
+          {'FEF' 'NSEFN'}
+          {'SC' 'SC'}
+          {'SC' 'NSEFN'}         
+          {'NSEFN' 'NSEFN'}
+          };
+% concated strings
+pairXYarea = cellfun(@(x) [x{:}],pairXYarea,'UniformOutput',false);
+          
 for s=1:numel(cellsBySession)
     res = goodUnits(cellsBySession{s},:);
     session = res.sess{1};    
@@ -69,6 +87,8 @@ for s=1:numel(cellsBySession)
         result.CellInfoTable = goodUnits(cellsBySession{s},:);
         sessName = JpsthPairSummary.sess{tIdx};
         matDatafile = JpsthPairSummary.matDatafile{tIdx};
+        plxDatafile = JpsthPairSummary.plxDatafile{tIdx};        
+        
         monkName = monkNameMap(char(unique(result.CellInfoTable.monkey)));
         pairRowIds = sortrows(combnk(1: size(result.CellInfoTable,1), 2),[1 2]);
         nPairs = size(pairRowIds,1);
@@ -80,16 +100,29 @@ for s=1:numel(cellsBySession)
         JpsthPairSummary.firstPairUID(tIdx) = pairs.Pair_UID(1);
         JpsthPairSummary.lastPairUID(tIdx) = pairs.Pair_UID(end);
         
+        % add flag to check if we need to swap rowIds so as to get X-Unit
+        % and Y-Uint too be congruent with pairXYAreas defined above
+        % the pairRowIds(:,3) is the swar flag, swap col1 and 2 for that
+        % row
+        pairRowIds(:,3) = arrayfun(@(x) ...
+            sum(strcmp(pairXYarea,[result.CellInfoTable.area{pairRowIds(x,:)}]))== 0,...
+            1:nPairs)';
+        pairRowIds(:,4:5) = pairRowIds(:,1:2);
+        swapCols = find(pairRowIds(:,3));
+        for zz = 1:numel(swapCols)
+            pairRowIds(swapCols(zz),1:2) = fliplr(pairRowIds(swapCols(zz),1:2));
+        end
         for v = 1:numel(varsForPairs)
             cName = varsForPairs{v};
             pairs.(['X_' cName]) = result.CellInfoTable.(cName)(pairRowIds(:,1));
             pairs.(['Y_' cName]) = result.CellInfoTable.(cName)(pairRowIds(:,2));
         end
         pairs.matDatafile = repmat({matDatafile},nPairs,1);          
-        nextPairId = nextPairId + nPairs;
+        pairs.plxDatafile = repmat({plxDatafile},nPairs,1);          
         JpsthPairCellInfoDB = [JpsthPairCellInfoDB;pairs]; %#ok<AGROW>
         tempSumm =table();
         tempSumm.sessionName = sessName;
+        nextPairId = nextPairId + nPairs;
     end
     result.PairInfoTable = pairs;
 end

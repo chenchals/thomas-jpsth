@@ -33,54 +33,62 @@ if ~exist(jpsthResultsDir, 'dir')
     mkdir(jpsthResultsDir);
 end
 
-% Info files
+%% Files for getting data to run JPSTH
 jpshPairsFile = fullfile(datasetDir,'JPSTH_PAIRS_CellInfoDB.mat');
 trialTypesFile = fullfile(datasetDir,'TrialTypesDB.mat');
 trialEventTimesFile = fullfile(datasetDir,'TrialEventTimesDB.mat');
 % to get resptime and set it as SaccadePrimaryTempo
 binfoFile = fullfile(datasetDir,'binfo_moves_SAT.mat');
 spikeTimesFile = fullfile(datasetDir,'spikes_SAT.mat');
-% Setup time windows for different event time alignment, the field names
-% SHALL correspond to column names for trialEventTimes below.
-alignNames = {'Baseline','Visual', 'PostSaccade'};
-alignEvents = {'CueOn', 'CueOn','SaccadePrimaryTempo'};
-alignTimeWin = {[-700 100], [-100 400], [-100 400]};
 
-%conditions
-% (Accurate|Fast)*(Correct|ErrorHold|ErrorChoice|ErrorTiming|ErrorNoSaccade)
-availConditions = {'Accurate'; 'AccurateCorrect';'AccurateErrorChoice';'AccurateErrorTiming';
-    'Fast';     'FastCorrect';    'FastErrorChoice';    'FastErrorTiming'};
-%% Load Variables
-% load variable: JpsthPairsCellInfo
+%% Load data variable: JpsthPairsCellInfo
 jpsthCellPairs = load(jpshPairsFile);
 jpsthCellPairs = jpsthCellPairs.JpsthPairCellInfoDB;
-% load all spike times
+% Load data variable: spike times
 spikeTimes = load(spikeTimesFile);
 spikeTimes = spikeTimes.spikes;
-% load TrialTypes
+% Load data variable: TrialTypes 
 trialTypes = load(trialTypesFile);
 trialTypes = trialTypes.TrialTypesDB;
-% load TrialEventTimes
+% Load data variable: TrialEventTimes 
 trialEventTimes = load(trialEventTimesFile);
 trialEventTimes = trialEventTimes.TrialEventTimesDB;
-% The variable SaccadePrimaryTempo is NaN, so replace with one from binfo
-binfo = load(binfoFile);
-temp = table();
-temp.session = {binfo.binfo.SAT.session}';
-temp.resptime = {binfo.binfo.SAT.resptime}';
-temp = innerjoin(trialEventTimes,temp);
-trialEventTimes.SaccadePrimaryTempo = temp.resptime;
-clearvars temp binfo
 
+%%
+******fix it here ........to use getSatJpsth******************************
 %% Filter cell pairs for the areas of interest
-jpsthCellPairs = jpsthCellPairs(((contains(jpsthCellPairs.X_area,area1) & contains(jpsthCellPairs.Y_area,area2)) ...
-    | (contains(jpsthCellPairs.X_area,area2) & contains(jpsthCellPairs.Y_area,area1))),:);
+jpsthCellPairs = jpsthCellPairs(...
+    ((contains(jpsthCellPairs.X_area,area1) & contains(jpsthCellPairs.Y_area,area2)) ...
+   | (contains(jpsthCellPairs.X_area,area2) & contains(jpsthCellPairs.Y_area,area1))),...
+     :);
 sessions = unique(jpsthCellPairs.X_sess);
 assert(isequal(sessions,unique(jpsthCellPairs.Y_sess)),'********Fatal: Error X-xell sessions and Y-cell sessions do not match');
 
-%% Filter Trial Types and Trial Event Times for the sessions of interest above
-trialTypes = trialTypes(contains(trialTypes.session,sessions),:);
-trialEventTimes = trialEventTimes(contains(trialEventTimes.session,sessions),:);
+%% alignment:
+% Setup time windows for different event time alignment, the field names
+% SHALL correspond to column names for trialEventTimes below.
+alignNames = {'Baseline','Visual', 'PostSaccade', 'PostReward'};
+alignEvents = {'CueOn', 'CueOn','SaccadePrimary', 'RewardTime'};
+alignTimeWin = {[-700 100], [-100 500], [-100 500], [-200 400]};
+
+%%conditions
+% (Accurate|Fast)*(Correct|ErrorHold|ErrorChoice|ErrorTiming|ErrorNoSaccade)
+conditionsTbl = table();
+conditionsTbl.conditions = {
+     'AccurateCorrect';'AccurateErrorChoice';'AccurateErrorTiming';
+     'FastCorrect';    'FastErrorChoice';    'FastErrorTiming'
+     };
+% sort trials first event
+conditionsTbl.trialsSortFirst = {
+    'SaccadePrimary';'SaccadePrimary';'SaccadePrimary';
+    'SaccadePrimary';'SaccadePrimary';'SaccadePrimary';
+    };
+% sort trials next event
+conditionsTbl.TrialsSortNext = {
+    'RewardTime';'SaccadeSecond';[];
+    'RewardTime';'SaccadeSecond';[];
+    };
+
 
 %% For each JPSH cell pair do JPSTH
 % see doc pctRunOnAll
@@ -100,10 +108,10 @@ parfor s = 1:size(jpsthCellPairs,1)
     units.(YCellId) = spikeTimes(jpsthPair.Y_unitNum).SAT';
     
     %% For each condition
-    for cond = 1:numel(availConditions)
+    for cond = 1:numel(conditions)
         try
             % incase something breaks continue...
-            condition = availConditions{cond};
+            condition = conditions{cond};
             selTrials = sessionTrialTypes.(condition){:};
             if isempty(selTrials)
                 tempConditions.(condition) = [];
