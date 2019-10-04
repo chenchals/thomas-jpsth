@@ -5,8 +5,8 @@ datasetDir = 'dataProcessed/dataset';
 jpsthPairsDBFile = fullfile(datasetDir,'JPSTH_PAIRS_CellInfoDB.mat');
 binfoMovesFile = fullfile(datasetDir,'binfo_moves_SAT.mat');
 % Output dataset files
-trialTypesFile = fullfile(datasetDir,'TrialTypesDB_2.mat');
-TrialEventTimesFile = fullfile(datasetDir,'TrialEventTimesDB_2.mat');
+trialTypesFile = fullfile(datasetDir,'TrialTypesDB.mat');
+TrialEventTimesFile = fullfile(datasetDir,'TrialEventTimesDB.mat');
 
 %% Process for trial event times and trial types
 
