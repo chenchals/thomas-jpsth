@@ -4,21 +4,19 @@ function [] = plotSatJpsth(jpsthPairFile,pdfOutputDir,savePdfFlag)
         %plotSatJpsth(jpsthPairFile,pdfOutputDir,saveFigFlag);
 
 %% Put this in the function....
-smoothBinWidthMs = 10;
+smoothBinWidthMs = 5;
 fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
 fx_imgSmooth = @(img,w) conv2(img,ones(w)./(w^2),'same');
 
 conditionPairs = {
-    {'Fast','Accurate'};
     {'FastCorrect','AccurateCorrect'};
     {'FastErrorChoice','AccurateErrorChoice'};
     {'FastErrorTiming','AccurateErrorTiming'};
     };
 pdfPrefixMap = containers.Map();
-pdfPrefixMap(conditionPairs{1}{1}) = 'SAT_';
-pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_CORRECT_';
-pdfPrefixMap(conditionPairs{3}{1}) = 'SAT_ERROR_CHOICE_';
-pdfPrefixMap(conditionPairs{4}{1}) = 'SAT_ERROR_TIMING_';
+pdfPrefixMap(conditionPairs{1}{1}) = 'SAT_CORRECT_';
+pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_ERROR_CHOICE_';
+pdfPrefixMap(conditionPairs{3}{1}) = 'SAT_ERROR_TIMING_';
 
 load(jpsthPairFile,'cellPairInfo');
 

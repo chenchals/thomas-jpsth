@@ -1,19 +1,23 @@
 
-jpsthDataBaseDir = 'dataProcessed/analysis/JPSTH-10ms';
+jpsthDataBaseDir = 'dataProcessed/analysis/JPSTH-5ms';
 
 pairDirs = {
+    'jpsth_SEF-SEF'
+    'jpsth_SEF-FEF'
+    'jpsth_SEF-SC'
+    'jpsth_SEF-NSEFN'
+    'jpsth_FEF-FEF'
     'jpsth_FEF-SC'
-    %'jpsth_SEF-SC'
-    %'jpsth_SEF-FEF'
-    %'jpsth_SEF-SEF'
-    %'jpsth_SC-SC'
-    %'jpsth_FEF-FEF'
+    'jpsth_FEF-NSEFN'
+    'jpsth_SC-SC'
+    'jpsth_SC-NSEFN'
+    %'jpsth_NSEFN-NSEFN'
     };
 
 pairDirs = strcat(jpsthDataBaseDir,filesep,pairDirs);
 
 tic
-saveFigFlag = 1;
+saveFigFlag = 0;
 for pd = 1:numel(pairDirs)
     pairDir = pairDirs{pd};
     pdfOutputDir = fullfile(pairDir,'pdf');
@@ -36,7 +40,7 @@ for pd = 1:numel(pairDirs)
         fprintf('done!\n');
         catch me
             fprintf('****** ERROR*****\n')
-            disp(me)
+            getReport(me)
             continue
         end
     end
