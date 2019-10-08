@@ -52,8 +52,8 @@ sessionEventTimes = sessionEventTimes.TrialEventTimesDB;
 
 %% Filter cell pairs for the areas of interest
 jpsthCellPairs = jpsthCellPairs(...
-    ((strcmp(jpsthCellPairs.X_area,area1) & strcmp(jpsthCellPairs.Y_area,area2)) ...
-   | (strcmp(jpsthCellPairs.X_area,area2) & strcmp(jpsthCellPairs.Y_area,area1))),...
+    ((contains(jpsthCellPairs.X_area,area1) & contains(jpsthCellPairs.Y_area,area2)) ...
+   | (contains(jpsthCellPairs.X_area,area2) & contains(jpsthCellPairs.Y_area,area1))),...
      :);
 sessions = unique(jpsthCellPairs.X_sess);
 assert(isequal(sessions,unique(jpsthCellPairs.Y_sess)),'********Fatal: Error X-xell sessions and Y-cell sessions do not match');
@@ -107,6 +107,7 @@ end
 end
 
 function [] = saveJpsthData(oFn,varToSave)
+fprintf('Saving file : %s',oFn)
 tempConditions = varToSave;
 save(oFn,'-v7.3','-struct','tempConditions');
 end
