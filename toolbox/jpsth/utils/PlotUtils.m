@@ -19,7 +19,11 @@ classdef PlotUtils
             line([0 0],get(gca,'Ylim'))
         end
         
-        function plotRasters(rastersLogical, rasterBins)
+        function plotRasters(rastersLogical, rasterBins, varargin)
+            if numel(varargin) == 1
+                sortMarkers = varargin{1};
+            end
+            
             PlotUtils.doRastersAndBursts_(rastersLogical, rasterBins);
         end
         
@@ -34,6 +38,37 @@ classdef PlotUtils
     end
     
     methods (Static, Access=private)
+        
+        function doRasters_(rastersLogical, rasterBins, varargin)
+            % rastersLogical: Logical matrix [nTrials x mBins].
+            %       For a given bin, no spike = 0, spike = 1,
+            %     rasterBins: Vector of [1 x mBins]. Raster bin times in ms
+            %
+            offsetRatio = 0.1;
+            fillRatio = 0.8; % How much of the plot to fill
+            tickHeightFrac = 0.9;
+            vertHeight_fx = @(nTrials) (fillRatio*max(get(gca,'YLim')))/nTrials;
+            rasterOffset = offsetRatio*max(get(gca,'YLim'));
+            
+            % Plot Rasters
+            if ~isempty(rastersLogical)
+                nTrials = size(rastersLogical, 1);
+                % Verical offset for each trial
+                vertHeight = vertHeight_fx(nTrials);
+                % use 90 % for vertical height for tick
+                tickHeight = tickHeightFrac*vertHeight;
+                % Find the trial (yPoints) and timebin (xPoints) of each spike
+                [trialNos,timebins] = find(rastersLogical);
+                trialNos = trialNos';
+                trialNos = trialNos.*vertHeight;
+                timebins = timebins';
+                x = [ rasterBins(timebins);rasterBins(timebins);NaN(size(timebins)) ];
+                y = [ trialNos - tickHeight/2;trialNos + tickHeight/2;NaN(size(trialNos)) ];
+                plot(x(:),y(:)+rasterOffset,'color',[0.3 0.3 0.3 0.2]);
+                xlim([min(rasterBins) max(rasterBins)])
+            end
+        end
+
         
         function doRastersAndBursts_(rastersLogical, rasterBins, varargin)
             % rastersLogical: Logical matrix [nTrials x mBins].
@@ -60,7 +95,7 @@ classdef PlotUtils
                 timebins = timebins';
                 x = [ rasterBins(timebins);rasterBins(timebins);NaN(size(timebins)) ];
                 y = [ trialNos - tickHeight/2;trialNos + tickHeight/2;NaN(size(trialNos)) ];
-                plot(x(:),y(:)+rasterOffset,'color',[0.3 0.3 0.3]);
+                plot(x(:),y(:)+rasterOffset,'color',[0.3 0.3 0.3 0.2]);
                 xlim([min(rasterBins) max(rasterBins)])
             end
             % Plot bursts

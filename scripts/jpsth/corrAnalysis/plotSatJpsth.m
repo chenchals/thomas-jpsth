@@ -20,6 +20,8 @@ pdfPrefixMap(conditionPairs{3}{1}) = 'SAT_ERROR_TIMING_';
 
 load(jpsthPairFile,'cellPairInfo');
 fx_chanNo = @(x) str2num(char(regexp(x,'(^\d{1,2})','match')));
+fx_getFirstSortColIdx = @(tbl) find(contains(tbl.Properties.VariableNames,'firstSortBy_'));
+fx_getSecondSortColIdx = @(tbl) find(contains(tbl.Properties.VariableNames,'secondSortBy_'));
 
 %%
 [~,pdfBaseFile] = fileparts(jpsthPairFile);
@@ -31,6 +33,7 @@ for cc = 1:numel(conditionPairs)
     if ~isequal(sortrows(conditions(:)),sortrows(fieldnames(jpsthData)))
         continue;
     end    
+    
     outPdfFile = fullfile(pdfOutputDir, [pdfPrefixMap(conditions{1}) pdfBaseFile '.pdf']);    
     %% plot each pair of conditions
     parentFig = getFigHandle();
@@ -112,6 +115,7 @@ for cc = 1:numel(conditionPairs)
                 sprintf('nTrials : %6d %6d',size(currJpsths.xRasters{colNum},1),size(currJpsths.yRasters{colNum},1))
                 sprintf('nSpikes : %6d %6d',sum(currJpsths.xRasters{colNum}(:)),sum(currJpsths.yRasters{colNum}(:)))
                 };
+            
             % bins for xUnit , yUnit
             psthBins = currJpsths.yPsthBins{colNum};
             psthXLims = [min(psthBins) max(psthBins)];
@@ -155,7 +159,15 @@ for cc = 1:numel(conditionPairs)
             doYLabel(gca,['Y-Unit - ' psthYaxisLabel])
             view([-90 90])
             hold on
-            PlotUtils.plotRasters(currJpsths.yRasters{colNum}, currJpsths.rasterBins{colNum});
+            sortMarkers = cell(2,1);
+            if ~isempty(fx_getFirstSortColIdx(currJpsths))
+                sortMarkers{1} = currJpsths{:,fx_getFirstSortColIdx(currJpsths)};
+            end
+            if ~isempty(fx_getSecondSortColIdx(currJpsths))
+                sortMarkers{2} = currJpsths{:,fx_getSecondSortColIdx(currJpsths)};
+            end
+            
+            PlotUtils.plotRasters(currJpsths.yRasters{colNum}, currJpsths.rasterBins{colNum}, sortMarkers);
 
                       
             %% H_jpsth
@@ -201,7 +213,7 @@ for cc = 1:numel(conditionPairs)
             doXLabel(gca,psthXaxisLabel);
             doYLabel(gca,['X-Unit - ' psthYaxisLabel]);
             hold on
-            PlotUtils.plotRasters(currJpsths.xRasters{colNum}, currJpsths.rasterBins{colNum});
+            PlotUtils.plotRasters(currJpsths.xRasters{colNum}, currJpsths.rasterBins{colNum},sortMarkers);
             % Add unit summary annotation here
             annotation('textbox','Position',[xPsthPos(1)-psthH-0.02 xPsthPos(2) 0.02 0.05],'String',char(unitSumm),...
                 'FontSize',8,'FontWeight','bold','FitBoxToText','on','Interpreter','none','EdgeColor','none');
