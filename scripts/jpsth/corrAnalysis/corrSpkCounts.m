@@ -1,5 +1,11 @@
+%% TODO change wins...
+%    movingWins = [100, 200]; <== Drop 50 & 400 (this will make plots less cluttered)
+%     staticWins.Baseline = [-500 -100];
+%     staticWins.Visual = [50 250];
+%     staticWins.PostSaccade = [0 400];
+%     staticWins.PostReward = [0 600];
 
-
+%%
 jpsthDirs = {
     'dataProcessed/analysis/SEF-PAPER/jpsth/CHOICE_ERR_PAIRS/mat'
     'dataProcessed/analysis/SEF-PAPER/jpsth/TIMING_ERR_PAIRS/mat'

@@ -18,15 +18,13 @@ function [] = createSatJpsthDataset(area1,area2)
 
 %%
 warning('off');
-% ignore processing if the sel. trials are below thisNum.
-nTrialsThreshold = 10;
 
 %% Options for JPSTH computation
-binWidth = 5;% use 1 ms for JPSTH computation
+psthBinWidthMs = 5;
 % -25 to +25 ms
-coincidenceBins = 25/binWidth;
+coincidenceBinWidthMs = 25;
 
-rootAnalysisDir = ['dataProcessed/analysis/JPSTH-' num2str(binWidth,'%dms')];
+rootAnalysisDir = ['dataProcessed/analysis/JPSTH-' num2str(psthBinWidthMs,'%dms')];
 datasetDir = 'dataProcessed/dataset';
 jpsthResultsDir = fullfile(rootAnalysisDir,['jpsth_' area1 '-' area2]);
 if ~exist(jpsthResultsDir, 'dir')
@@ -35,27 +33,23 @@ end
 
 %% Files for getting data to run JPSTH
 jpshPairsFile = fullfile(datasetDir,'JPSTH_PAIRS_CellInfoDB.mat');
+spikeTimesFile = fullfile(datasetDir,'spikes_SAT.mat');
 trialTypesFile = fullfile(datasetDir,'TrialTypesDB.mat');
 trialEventTimesFile = fullfile(datasetDir,'TrialEventTimesDB.mat');
-% to get resptime and set it as SaccadePrimaryTempo
-binfoFile = fullfile(datasetDir,'binfo_moves_SAT.mat');
-spikeTimesFile = fullfile(datasetDir,'spikes_SAT.mat');
 
 %% Load data variable: JpsthPairsCellInfo
 jpsthCellPairs = load(jpshPairsFile);
 jpsthCellPairs = jpsthCellPairs.JpsthPairCellInfoDB;
 % Load data variable: spike times
-spikeTimes = load(spikeTimesFile);
-spikeTimes = spikeTimes.spikes;
+spikesSat = load(spikeTimesFile);
+spikesSat = {spikesSat.spikes.SAT};
 % Load data variable: TrialTypes 
-trialTypes = load(trialTypesFile);
-trialTypes = trialTypes.TrialTypesDB;
+sessionTrialTypes = load(trialTypesFile);
+sessionTrialTypes = sessionTrialTypes.TrialTypesDB;
 % Load data variable: TrialEventTimes 
-trialEventTimes = load(trialEventTimesFile);
-trialEventTimes = trialEventTimes.TrialEventTimesDB;
+sessionEventTimes = load(trialEventTimesFile);
+sessionEventTimes = sessionEventTimes.TrialEventTimesDB;
 
-%%
-******fix it here ........to use getSatJpsth******************************
 %% Filter cell pairs for the areas of interest
 jpsthCellPairs = jpsthCellPairs(...
     ((contains(jpsthCellPairs.X_area,area1) & contains(jpsthCellPairs.Y_area,area2)) ...
@@ -67,9 +61,9 @@ assert(isequal(sessions,unique(jpsthCellPairs.Y_sess)),'********Fatal: Error X-x
 %% alignment:
 % Setup time windows for different event time alignment, the field names
 % SHALL correspond to column names for trialEventTimes below.
-alignNames = {'Baseline','Visual', 'PostSaccade', 'PostReward'};
-alignEvents = {'CueOn', 'CueOn','SaccadePrimary', 'RewardTime'};
-alignTimeWin = {[-700 100], [-100 500], [-100 500], [-200 400]};
+alignNames = {'Visual', 'PostSaccade', 'PostReward'};
+alignEvents = {'CueOn','SaccadePrimary', 'RewardTime'};
+alignTimeWin = {[-700 500], [-100 500], [-300 600]};
 
 %%conditions
 % (Accurate|Fast)*(Correct|ErrorHold|ErrorChoice|ErrorTiming|ErrorNoSaccade)
@@ -84,114 +78,30 @@ conditionsTbl.trialsSortFirst = {
     'SaccadePrimary';'SaccadePrimary';'SaccadePrimary';
     };
 % sort trials next event
-conditionsTbl.TrialsSortNext = {
+conditionsTbl.trialsSortNext = {
     'RewardTime';'SaccadeSecond';[];
     'RewardTime';'SaccadeSecond';[];
     };
 
-
 %% For each JPSH cell pair do JPSTH
 % see doc pctRunOnAll
-pctRunOnAll warning off;
-parfor s = 1:size(jpsthCellPairs,1)
-    units = struct();
-    jpsthPair = jpsthCellPairs(s,:);
-    sessionTrialEventTimes = trialEventTimes(contains(trialEventTimes.session,jpsthPair.X_sess),:);
-    sessionTrialTypes = trialTypes(contains(trialTypes.session,jpsthPair.X_sess),:);
-    
-    tempConditions = struct();
-    pairUid = jpsthPair.Pair_UID{1};
-    XCellId = ['DSP' jpsthPair.X_unit{1}];
-    YCellId = ['DSP' jpsthPair.Y_unit{1}];
-    pairFilename = ['JPSTH-' pairUid];
-    units.(XCellId) = spikeTimes(jpsthPair.X_unitNum).SAT';
-    units.(YCellId) = spikeTimes(jpsthPair.Y_unitNum).SAT';
-    
-    %% For each condition
-    for cond = 1:numel(conditions)
-        try
-            % incase something breaks continue...
-            condition = conditions{cond};
-            selTrials = sessionTrialTypes.(condition){:};
-            if isempty(selTrials)
-                tempConditions.(condition) = [];
-                continue;
-            end
-            
-            %% Mutually Exclusive trila for Choice/Timing Errors
-            % If condition is *ChoiceErr or *TimingError ensure mutually
-            % exclusive
-            otherCondition = [];
-            if contains(condition,'ChoiceError')
-                otherCondition = regexprep(codition,'ChoiceError','TimingError');
-            elseif contains(condition, 'TimingError')
-                otherCondition = regexprep(codition,'TimingError','ChoiceError');
-            end
-            if ~isempty(otherCondition)
-                selTrials(sessionTrialTypes.(otherCondition){:}) = 0;
-            end
-            if isempty(selTrials) || numel(selTrials) < nTrialsThreshold
-                tempConditions.(condition) = [];
-                continue;
-            end
-            
-            %% check if trials need to be dropped due to poor_isolation..
-            trRem = jpsthPair.X_trRemSAT{1};
-            if ~isempty(trRem)
-                selTrials(trRem(1):trRem(2)) = 0;
-            end
-            trRem = jpsthPair.Y_trRemSAT{1};
-            if ~isempty(trRem)
-                selTrials(trRem(1):trRem(2)) = 0;
-            end
-            if isempty(selTrials)
-                tempConditions.(condition) = [];
-                continue;
-            end
-            
-            %% for each aligned event
-            tempJpsth = table();
-            opts = struct();
-            for evId = 1:numel(alignEvents)
-                alignedEvent = alignEvents{evId};
-                alignedTimeWin = alignTimeWin{evId};
-                alignedName = alignNames{evId};
-                alignTime = sessionTrialEventTimes.CueOn{1};
-                if ~strcmp(alignedEvent,'CueOn')
-                    alignTime = alignTime + sessionTrialEventTimes.(alignedEvent){1}(:);
-                end
-                alignTime = alignTime(selTrials);
-                XAligned = SpikeUtils.alignSpikeTimes(units.(XCellId)(selTrials,:),alignTime, alignedTimeWin);
-                YAligned = SpikeUtils.alignSpikeTimes(units.(YCellId)(selTrials,:),alignTime, alignedTimeWin);
-                temp = SpikeUtils.jpsth(XAligned, YAligned, alignedTimeWin, binWidth, coincidenceBins);
-                tempJpsth(evId,:) = struct2table(temp,'AsArray',true);
-                %jer = SpikeUtils.jeromiahJpsth(XAligned, YAligned, alignedTimeWin, binWidth, coincidenceBins);
-                opts(evId,1).xCellSpikeTimes = {XAligned}; %#ok<*AGROW>
-                opts(evId,1).yCellSpikeTimes = {YAligned};
-                opts(evId,1).trialNosByCondition = {selTrials};
-                opts(evId,1).condition = {condition};
-                opts(evId,1).alignedName = {alignedName};
-                opts(evId,1).alignedEvent = {alignedEvent};
-                opts(evId,1).alignedTimeWin = {alignedTimeWin};
-                opts(evId,1).alignTime = {alignTime};
-                opts(evId,1).binWidth = binWidth;
-                opts(evId,1).coincidenceBins = coincidenceBins;
-            end % for alignEvents
-            tempJpsth.Properties.RowNames = alignNames;
-            tempConditions.(condition) = [tempJpsth struct2table(opts,'AsArray',true)];
-        catch mE
-            disp(mE)
-            continue
-        end
-    end % for conditions
-    %% Save for the current pair
-    tempConditions.cellPairInfo = jpsthPair;
-    tempConditions.GithubRef = 'https://github.com/chenchals/thomas-jpsth.git';
-    oFn = fullfile(jpsthResultsDir,[pairFilename '.mat']);
-    fprintf('Saving processed pair : %s\n',oFn);
-    saveJpsthData(oFn,tempConditions);
-    %save(oFn,'-v7.3','-struct','tempConditions');
-    
+%pctRunOnAll warning off;
+nPairs = size(jpsthCellPairs,1);
+parfor p = 1:nPairs
+    jpsthPair = jpsthCellPairs(p,:); %#ok<*PFBNS>
+    sess = jpsthPair.X_sess{1};
+    % must be cell array of ntrials by 1
+    xSpkTimes = spikesSat{jpsthPair.X_unitNum}';
+    ySpkTimes = spikesSat{jpsthPair.Y_unitNum}';
+    evntTimes = sessionEventTimes(strcmp(sessionEventTimes.session,sess),:);
+    trialTypes = sessionTrialTypes(strcmp(sessionTrialTypes.session,sess),:);
+    satJpsth =  getSatJpsthForPair(jpsthPair,xSpkTimes,ySpkTimes,...
+                            evntTimes,trialTypes,conditionsTbl.conditions,...
+                            alignNames,alignEvents,alignTimeWin,...
+                            psthBinWidthMs,coincidenceBinWidthMs,...
+                            conditionsTbl.trialsSortFirst,conditionsTbl.trialsSortNext);
+    oFn = fullfile(jpsthResultsDir,['JPSTH-' jpsthPair.Pair_UID{1} '.mat']);
+    saveJpsthData(oFn,satJpsth);
 end
 
 end
@@ -200,3 +110,4 @@ function [] = saveJpsthData(oFn,varToSave)
 tempConditions = varToSave;
 save(oFn,'-v7.3','-struct','tempConditions');
 end
+
