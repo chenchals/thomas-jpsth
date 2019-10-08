@@ -53,7 +53,7 @@ for cond = 1:numel(conditions)
     try
         % incase something breaks continue...
         condition = conditions{cond};
-        selTrials = find(trialTypes.(condition){:});        
+        selTrials = trialTypes.(condition){:};        
         if isempty(selTrials)
             satJpsth.(condition) = [];
             continue;
@@ -71,7 +71,9 @@ for cond = 1:numel(conditions)
         if ~isempty(otherCondition)
             selTrials(trialTypes.(otherCondition){:}) = 0;
         end
-        if isempty(selTrials) || numel(selTrials) < nTrialsThreshold
+        
+         % first check for nTrials
+       if isempty(selTrials) || numel(selTrials) < nTrialsThreshold
             satJpsth.(condition) = [];
             continue;
         end
@@ -89,6 +91,13 @@ for cond = 1:numel(conditions)
             satJpsth.(condition) = [];
             continue;
         end
+        % second check for nTrials
+        selTrials = find(selTrials);
+        if numel(selTrials) <= nTrialsThreshold
+            satJpsth.(condition) = [];
+            continue;
+        end
+        
         
         %% Sort selected trials based on the event
         selTrlsTbl = table();
