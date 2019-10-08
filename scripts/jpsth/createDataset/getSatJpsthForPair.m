@@ -148,7 +148,7 @@ for cond = 1:numel(conditions)
         tempJpsth.Properties.RowNames = alignNames;
         satJpsth.(condition) = [tempJpsth struct2table(opts,'AsArray',true)];
     catch mE
-        disp(mE)
+        getReport(mE)
         continue
     end
 end % for conditions
