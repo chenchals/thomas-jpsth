@@ -11,7 +11,7 @@ pairDirs = {
     'jpsth_FEF-NSEFN'
     'jpsth_SC-SC'
     'jpsth_SC-NSEFN'
-    %'jpsth_NSEFN-NSEFN'
+    'jpsth_NSEFN-NSEFN'
     };
 
 pairDirs = strcat(jpsthDataBaseDir,filesep,pairDirs);

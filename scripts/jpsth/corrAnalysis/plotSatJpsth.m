@@ -19,6 +19,7 @@ pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_ERROR_CHOICE_';
 pdfPrefixMap(conditionPairs{3}{1}) = 'SAT_ERROR_TIMING_';
 
 load(jpsthPairFile,'cellPairInfo');
+fx_chanNo = @(x) str2num(char(regexp(x,'(^\d{1,2})','match')));
 
 %%
 [~,pdfBaseFile] = fileparts(jpsthPairFile);
@@ -245,8 +246,12 @@ for cc = 1:numel(conditionPairs)
             %addPlotTitles(H_out);
         end
     end
+    chanStr = 'Different Channels';
+    if fx_chanNo(cellPairInfo.X_unit{1}) == fx_chanNo(cellPairInfo.Y_unit{1})
+        chanStr = 'Same Channel';
+    end
     addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile, [cellPairInfo.X_area{1} ' vs ' cellPairInfo.Y_area{1}],...
-                   conditions,alignWinNames);
+                   chanStr,conditions,alignWinNames);
     H_jpsthInfo = axes('parent',parentFig,'position',[0.01 0.01 0.98 0.06],...
         'box','on','XTick',[],'YTick',[],'layer','top','Tag','H_jpsthInfo');
     addJpsthInfo(H_jpsthInfo, cellPairInfo);
@@ -266,12 +271,16 @@ function addJpsthInfo(H_axes,cellPairInfo)
   plotAddPairInfo(H_axes,cellInfo);
 end
 
-function addAnnotations(pairUid,pdfFile,xyAreas,rowNames,colNames)
+function addAnnotations(pairUid,pdfFile,xyAreas,chanStr,rowNames,colNames)
 % 
 annotation('textbox',[0.10 0.95 0.05 0.05],'String',pairUid,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
 [~,fn,ext] = fileparts(pdfFile);
 annotation('textbox',[0.35 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-annotation('textbox',[0.75 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+annotation('textbox',[0.70 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+h = annotation('textbox',[0.85 0.95 0.10 0.05],'String',chanStr,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none');
+if contains(chanStr,'Same')
+    set(h,'Color','r');
+end
 % conditions / alignNames
 annotation('textbox',[0.01 0.92 0.05 0.05],'String',rowNames{1},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
 annotation('textbox',[0.10 0.90 0.05 0.05],'String',colNames{1},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
