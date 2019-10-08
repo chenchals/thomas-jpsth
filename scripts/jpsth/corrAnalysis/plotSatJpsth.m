@@ -19,7 +19,7 @@ pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_ERROR_CHOICE_';
 pdfPrefixMap(conditionPairs{3}{1}) = 'SAT_ERROR_TIMING_';
 
 load(jpsthPairFile,'cellPairInfo');
-fx_chanNo = @(x) str2num(char(regexp(x,'(^\d{1,2})','match')));
+fx_chanNo = @(x) str2double(char(regexp(x,'(^\d{1,2})','match')));
 fx_getFirstSortColIdx = @(tbl) find(contains(tbl.Properties.VariableNames,'firstSortBy_'));
 fx_getSecondSortColIdx = @(tbl) find(contains(tbl.Properties.VariableNames,'secondSortBy_'));
 
@@ -161,14 +161,12 @@ for cc = 1:numel(conditionPairs)
             hold on
             sortMarkers = cell(2,1);
             if ~isempty(fx_getFirstSortColIdx(currJpsths))
-                sortMarkers{1} = currJpsths{:,fx_getFirstSortColIdx(currJpsths)};
+                sortMarkers{1} = currJpsths{colNum,fx_getFirstSortColIdx(currJpsths)}{1};
             end
             if ~isempty(fx_getSecondSortColIdx(currJpsths))
-                sortMarkers{2} = currJpsths{:,fx_getSecondSortColIdx(currJpsths)};
-            end
-            
+                sortMarkers{2} = currJpsths{colNum,fx_getSecondSortColIdx(currJpsths)}{1};
+            end          
             PlotUtils.plotRasters(currJpsths.yRasters{colNum}, currJpsths.rasterBins{colNum}, sortMarkers);
-
                       
             %% H_jpsth
             jpsthPos(1) = yPsthPos(1) + yPsthPos(3) + 2*gutter/aspectRatio;
