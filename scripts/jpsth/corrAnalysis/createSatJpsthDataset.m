@@ -107,7 +107,7 @@ end
 end
 
 function [] = saveJpsthData(oFn,varToSave)
-fprintf('Saving file : %s',oFn)
+fprintf('Saving file : %s\n',oFn)
 tempConditions = varToSave;
 save(oFn,'-v7.3','-struct','tempConditions');
 end
