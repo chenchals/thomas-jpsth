@@ -17,7 +17,7 @@ pairDirs = {
 pairDirs = strcat(jpsthDataBaseDir,filesep,pairDirs);
 
 tic
-saveFigFlag = 0;
+saveFigFlag = 1;
 for pd = 1:numel(pairDirs)
     pairDir = pairDirs{pd};
     pdfOutputDir = fullfile(pairDir,'pdf');
