@@ -98,7 +98,8 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
                 doYLabel(gca,{'X-Unit'; psthYaxisLabel})
                 hold on
-                PlotUtils.plotRasters(rasters,psthBins);
+                sortMarkers = getSortMarkers(currSpkCorr);
+                PlotUtils.plotRasters(rasters,psthBins,sortMarkers);
                 addPatch(gca,rhoPvalWin);
                 
                 %% H_Psth2
@@ -113,7 +114,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
                 doYLabel(gca,{'Y-Unit'; psthYaxisLabel})
                 hold on
-                PlotUtils.plotRasters(rasters,psthBins);
+                PlotUtils.plotRasters(rasters,psthBins,sortMarkers);
                 addPatch(gca,rhoPvalWin);
 
                 %% H_rsc50
@@ -427,6 +428,17 @@ print(fn,'-dpdf','-painters')
 drawnow
 end
 
+function [sortMarkers] = getSortMarkers(thisTbl)
+    fx_getFirstSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'firstSortBy'));
+    fx_getSecondSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'secondSortBy'));
+    sortMarkers = cell(2,1);
+    if ~isempty(fx_getFirstSortColIdx(thisTbl))
+        sortMarkers{1} = thisTbl{1,fx_getFirstSortColIdx(thisTbl)}{1};
+    end
+    if ~isempty(fx_getSecondSortColIdx(thisTbl))
+        sortMarkers{2} = thisTbl{1,fx_getSecondSortColIdx(thisTbl)}{1};
+    end
+end
 
 
 

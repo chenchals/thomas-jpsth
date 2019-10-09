@@ -31,7 +31,7 @@ outDirs = {
     'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
     'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
     };
-for d = 1:numel(jpsthDirs)
+for d = 1:1 %numel(jpsthDirs)
     jpsthDir = jpsthDirs{d};
     outputDir = outDirs{d};
     if ~exist(outputDir,'dir')
@@ -45,29 +45,37 @@ for d = 1:numel(jpsthDirs)
     %% get rasters for all alignments, for each file in directory
     availConds = {{'FastErrorChoice' 'AccurateErrorChoice'}
         {'FastErrorTiming' 'AccurateErrorTiming'}};
-    % rowNames and colNames to output
-    movingWins = [100, 200];
+    %% Baseline epoch to extract from Visual epoch
+    baselineWin = [-600 50];
+    
+    %% Static r_sc
+    movingWins = [50, 100, 200, 400];
     staticWins.Baseline = [-500 -100];
     staticWins.Visual = [50 250];
     staticWins.PostSaccade = [0 400];
     staticWins.PostReward = [0 600];
     fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win,2),rasters,'UniformOutput',false);
     fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
-    for p = 1:numel(dFiles)
+    
+    %% For each file
+    for p = 1:1%numel(dFiles)
         out = struct();
         colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
             'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
             'rasterBins','xRasters','yRasters'...
             };
-       cellPairInfo = load(dFiles{p},'cellPairInfo');
+        cellPairInfo = load(dFiles{p},'cellPairInfo');
         cellPairInfo = cellPairInfo.cellPairInfo;
         datStruct = load(dFiles{p},'-regexp','.*Error*');
-        fns = fieldnames(datStruct);
-        
+        %% For each condition add a new row: Baseline derived from Visual row
+        datStruct = appendBaselineRowFromVisual(datStruct,baselineWin);
+               
+        %% process, now that we have added the baseline row (Not all cols are valid       
+        fns = fieldnames(datStruct);        
         dat = table();
         for ii = 1:numel(fns)
             fn = fns{ii};
-            rowNames = datStruct.(fn).Properties.RowNames;
+            rowNames = datStruct.(fn).Properties.RowNames;            
             % add *SortBy_* fields to dat
             datFns = datStruct.(fn).Properties.VariableNames;
             sortBys = datFns(contains(datFns,'SortBy_'));          
@@ -101,7 +109,9 @@ for d = 1:numel(jpsthDirs)
         dat.xRastersStd = xMatStd;
         dat.yRasters_Z = yMatZ;
         dat.yRastersMean = yMatMean;
-        dat.yRastersStd = yMatStd;        
+        dat.yRastersStd = yMatStd;
+        
+        %%
         for w = movingWins
             movWinStr = num2str(w,'%dms');
             xMat = fx_mvsum(xMatRaw,w);
@@ -110,7 +120,7 @@ for d = 1:numel(jpsthDirs)
             dat.(['ySpkCount_' movWinStr]) = yMat;
             [rho_pval,dat.critRho10,dat.critRho05,dat.critRho01] = getCorrData(xMat,yMat,'Pearson');            
             dat.(['rho_pval_' movWinStr]) = rho_pval;      
-            %% do on Zscored            
+            % do on Zscored            
             xMat = fx_mvsum(xMatZ,w);
             yMat = fx_mvsum(yMatZ,w);
             dat.(['xSpkCount_' movWinStr '_Z']) = xMat;
@@ -118,6 +128,7 @@ for d = 1:numel(jpsthDirs)
             [rho_pval,dat.critRho10_Z,dat.critRho05_Z,dat.critRho01_Z] = getCorrData(xMat,yMat,'Pearson');
             dat.(['rho_pval_' movWinStr '_Z']) = rho_pval;           
         end       
+        
         %% do static Window spike counts
         dat.rho_pval_win = repmat(struct2cell(staticWins),numel(unique(dat.condition)),1);
         dat.xSpkCount_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
@@ -136,6 +147,8 @@ for d = 1:numel(jpsthDirs)
         
         %% get waveforms
         [dat.xWaves,dat.yWaves] = getWaveforms(wavDir,cellPairInfo,dat);
+        dat.xWaveWidths = getWaveformWidths(dat.xWaves);
+        dat.yWaveWidths = getWaveformWidths(dat.yWaves);
         
         %% save datta file for r-spkCounts
         out.cellPairInfo = cellPairInfo;
@@ -143,6 +156,43 @@ for d = 1:numel(jpsthDirs)
         oFn = fullfile(outputDir,['rscCorr_' cellPairInfo.Pair_UID{1} '.mat']);
         saveFile(oFn,out);
     end
+end
+
+function [outStruct] = appendBaselineRowFromVisual(datStruct,baselineWin)
+% Since we have visual epoch from -700 to +500, which also comprise of
+% Baseline epoch, we add the same row as "Baseline" to the each condition
+% for ease of processing. 
+% Cols used for spkCorr that need changes...
+% changeCols = {'condition','alignedName','alignedEvent','alignedTimeWin',...
+%     'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
+%     'rasterBins','xRasters','yRasters'...
+%     };
+% other fields in the jpsth are not trimmed, hence invalid
+conditions = fieldnames(datStruct);
+conditions(~contains(conditions,'Error'))=[];
+outStruct = struct();
+fx_trimSpkTs = @(spkTs,winTs)  cellfun(@(x) x(x>=winTs(1) & x<=winTs(2)),spkTs,'UniformOutput',false);
+for c = 1:numel(conditions)
+    condName = conditions{c};
+    condJpsthTbl = datStruct.(condName);
+    blRow = condJpsthTbl('Visual',:); 
+    % change the visual row cols to be for baseline period
+    blRow.Properties.RowNames = {'Baseline'};
+    blRow.condition = condName;
+    blRow.alignedName = 'Baseline';
+    blRow.alignedTimeWin = {baselineWin};
+    % xCellSpikeTimes and yCellSpikeTimes to bo in alignedTimeWin:
+    blRow.xCellSpikeTimes = {fx_trimSpkTs(blRow.xCellSpikeTimes{1},baselineWin)};
+    blRow.yCellSpikeTimes = {fx_trimSpkTs(blRow.yCellSpikeTimes{1},baselineWin)};
+    % trim rasters
+    rastIdx = blRow.rasterBins{1} >= baselineWin(1) &  blRow.rasterBins{1} <= baselineWin(2);
+    blRow.rasterBins = {blRow.rasterBins{1}(rastIdx)};
+    blRow.xRasters = {blRow.xRasters{1}(:,rastIdx)};
+    blRow.yRasters = {blRow.yRasters{1}(:,rastIdx)};
+    outStruct.(condName) = [blRow;condJpsthTbl];
+end
+
+
 end
 
 function saveFile(oFn,varData)
@@ -227,7 +277,34 @@ function [xWaves,yWaves] = getWaveforms(wavDir,cellPairInfo,dat)
         yWaves{jj} = cellfun(@(wfByTrl,idxByTrl) wfByTrl(cell2mat(idxByTrl'),:),wavsY(selTrls),spkIdxByTrlY,'UniformOutput',false);
 
     end
+end
 
 
+function [wavWidths] = getWaveformWidths(wavforms)
+    % given a matrix of waveforms, find width by interpolating with a
+    % cubic-spline at 10x sampling
+    fx_spkWid = @(spks,magFactor) ...
+        arrayfun(@(s) (find(spks(s,:)==max(spks(s,:),[],2),1) ...
+                    - find(spks(s,:)==min(spks(s,:),[],2),1))/magFactor,...
+                      (1:size(spks,1))');
+    wavWidths = cell(numel(wavforms),1);
+    interpolateAt = 10; % 10x
+    for ro = 1:numel(wavforms)
+        w = wavforms{ro};
+        x = size(w{1},2);
+        x = (1:x)';
+        xq = (1:1/interpolateAt:max(x))';
+        % there could be trials with no spikes
+        notEmptyIdx = find(~cellfun(@isempty,w));
+        % interpolated waveforms for trials with spikes
+        wq = cellfun(@(s) interp1(x,s',xq,'pchip')',w(notEmptyIdx),'UniformOutput',false);
+        % waveform widths in sampling space
+        wqWideTemp = cellfun(@(s) fx_spkWid(s,interpolateAt),wq,'UniformOutput',false);
+        % put back widths for correct trials
+        wqWide = cell(size(w,1),1);
+        wqWide(notEmptyIdx) = wqWideTemp;
+        wavWidths{ro} = wqWide;
+        
+    end
 end
 
