@@ -7,9 +7,9 @@
 
 %%
 jpsthDirs = {
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SEF/mat' 
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-FEF/mat'    
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SC/mat'     
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SEF/mat' 
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-FEF/mat'    
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SC/mat'     
     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat'    
     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-SC/mat'     
     'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-SC/mat'      
@@ -20,9 +20,9 @@ jpsthDirs = {
     };
 wavDir = 'dataProcessed/dataset/waves';
 outDirs = {
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
+%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
+%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
+%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
     'dataProcessed/analysis/spkCorr/spkCorr_FEF-FEF/mat'    
     'dataProcessed/analysis/spkCorr/spkCorr_FEF-SC/mat'     
     'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'      
@@ -31,7 +31,8 @@ outDirs = {
     'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
     'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
     };
-for d = 1:1 %numel(jpsthDirs)
+fx_saveWorkspaceOnError = @(fn) save(fn);
+for d = 1:numel(jpsthDirs)
     jpsthDir = jpsthDirs{d};
     outputDir = outDirs{d};
     if ~exist(outputDir,'dir')
@@ -39,7 +40,7 @@ for d = 1:1 %numel(jpsthDirs)
     end
     
     %% Files/pairs in the dirctory and pair info
-    dFiles = dir(fullfile(jpsthDirs{1},'*.mat'));
+    dFiles = dir(fullfile(jpsthDir,'*.mat'));
     dFiles = strcat({dFiles.folder}',filesep,{dFiles.name}');
     cellPairInfos = table();
     %% get rasters for all alignments, for each file in directory
@@ -58,7 +59,7 @@ for d = 1:1 %numel(jpsthDirs)
     fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
     
     %% For each file
-    for p = 1:1%numel(dFiles)
+    parfor p = 1:numel(dFiles)
         out = struct();
         colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
             'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
@@ -68,8 +69,16 @@ for d = 1:1 %numel(jpsthDirs)
         cellPairInfo = cellPairInfo.cellPairInfo;
         datStruct = load(dFiles{p},'-regexp','.*Error*');
         %% For each condition add a new row: Baseline derived from Visual row
-        datStruct = appendBaselineRowFromVisual(datStruct,baselineWin);
-               
+        try
+            datStruct = appendBaselineRowFromVisual(datStruct,baselineWin);
+        catch me
+            msg = sprintf('Error in processing pair_UID %s while call to appendBaselineRowFromVisual\n',cellPairInfo.Pair_UID{1});
+            fprintf(msg);
+            getReport(me);
+            oFn = fullfile(outputDir,['ERROR_PROCESSING_rscCorr_' cellPairInfo.Pair_UID{1} '.mat']);
+            fx_saveWorkspaceOnError(oFn);
+            continue
+        end               
         %% process, now that we have added the baseline row (Not all cols are valid       
         fns = fieldnames(datStruct);        
         dat = table();
@@ -146,9 +155,18 @@ for d = 1:1 %numel(jpsthDirs)
         dat.rho_pval_static_Z = getCorrData(dat.xSpkCount_win_Z,dat.ySpkCount_win_Z,'Pearson');
         
         %% get waveforms
+        try
         [dat.xWaves,dat.yWaves] = getWaveforms(wavDir,cellPairInfo,dat);
         dat.xWaveWidths = getWaveformWidths(dat.xWaves);
         dat.yWaveWidths = getWaveformWidths(dat.yWaves);
+        catch me
+            msg = sprintf('Error in processing pair_UID %s while call to getWaveforms ...\n',cellPairInfo.Pair_UID{1});
+            fprintf(msg);
+            getReport(me);
+            oFn = fullfile(outputDir,['ERROR_PROCESSING_rscCorr_' cellPairInfo.Pair_UID{1} '.mat']);
+            fx_saveWorkspaceOnError(oFn);
+            continue        
+        end
         
         %% save datta file for r-spkCounts
         out.cellPairInfo = cellPairInfo;
@@ -243,9 +261,15 @@ function [xWaves,yWaves] = getWaveforms(wavDir,cellPairInfo,dat)
     diffMax = 1; % 1 ms different
     fx_matchedSpkIdx = @(alindUTs,alindWfTs) arrayfun(@(uTs) find(abs(alindWfTs - uTs)<=diffMax,1),alindUTs,'UniformOutput',false);
 
+    xWaves = cell(12,1);
+    yWaves = cell(12,1);
+
     %% get all waves parse for sel. trials and match wave Ts.
     % X Unit
     unitName = sprintf('Unit_%03d',cellPairInfo.X_unitNum);
+    if ~exist(fullfile(wavDir,[unitName '.mat']),'file')
+        return;
+    end
     allWavs = load(fullfile(wavDir,[unitName '.mat']));
     wavTsX = allWavs.(unitName).wavSearchTs{1};
     wavsX = allWavs.(unitName).wavSearch{1};
@@ -254,9 +278,6 @@ function [xWaves,yWaves] = getWaveforms(wavDir,cellPairInfo,dat)
     allWavs = load(fullfile(wavDir,[unitName '.mat']));
     wavTsY = allWavs.(unitName).wavSearchTs{1};
     wavsY = allWavs.(unitName).wavSearch{1};
-
-    xWaves = cell(12,1);
-    yWaves = cell(12,1);
 
     for jj = 1:size(dat,1)
         selTrls = find(dat.trialNosByCondition{jj});
@@ -291,6 +312,9 @@ function [wavWidths] = getWaveformWidths(wavforms)
     interpolateAt = 10; % 10x
     for ro = 1:numel(wavforms)
         w = wavforms{ro};
+        if isempty(w)
+            continue;
+        end      
         x = size(w{1},2);
         x = (1:x)';
         xq = (1:1/interpolateAt:max(x))';
