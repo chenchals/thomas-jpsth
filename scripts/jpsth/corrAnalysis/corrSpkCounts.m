@@ -1,15 +1,10 @@
-%% TODO change wins...
-%    movingWins = [100, 200]; <== Drop 50 & 400 (this will make plots less cluttered)
-%     staticWins.Baseline = [-500 -100];
-%     staticWins.Visual = [50 250];
-%     staticWins.PostSaccade = [0 400];
-%     staticWins.PostReward = [0 600];
 
 %%
+monkIdsToDo = {'D','E'};
 jpsthDirs = {
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SEF/mat' 
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-FEF/mat'    
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SC/mat'     
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SEF/mat' 
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-FEF/mat'    
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SC/mat'     
     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat'    
     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-SC/mat'     
     'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-SC/mat'      
@@ -20,9 +15,9 @@ jpsthDirs = {
     };
 wavDir = 'dataProcessed/dataset/waves';
 outDirs = {
-%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
-%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
-%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
     'dataProcessed/analysis/spkCorr/spkCorr_FEF-FEF/mat'    
     'dataProcessed/analysis/spkCorr/spkCorr_FEF-SC/mat'     
     'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'      
@@ -31,7 +26,13 @@ outDirs = {
     'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
     'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
     };
-fx_saveWorkspaceOnError = @(fn) save(fn);
+%% do only for Da and Eu
+jpsthPairsDaEu = load('dataProcessed/dataset/JPSTH_PAIRS_CellInfoDB.mat');
+jpsthPairsDaEu = jpsthPairsDaEu.JpsthPairCellInfoDB;
+jpsthPairsDaEu = jpsthPairsDaEu{ismember([jpsthPairsDaEu.X_monkey],monkIdsToDo),{'Pair_UID'}};
+
+fx_saveFilenameOnError = @(fn) save(fn);
+%%
 for d = 1:numel(jpsthDirs)
     jpsthDir = jpsthDirs{d};
     outputDir = outDirs{d};
@@ -42,7 +43,9 @@ for d = 1:numel(jpsthDirs)
     %% Files/pairs in the dirctory and pair info
     dFiles = dir(fullfile(jpsthDir,'*.mat'));
     dFiles = strcat({dFiles.folder}',filesep,{dFiles.name}');
-    cellPairInfos = table();
+    % restrict to Da, Eu pairs
+    dFiles = dFiles(contains(dFiles,jpsthPairsDaEu));
+    
     %% get rasters for all alignments, for each file in directory
     availConds = {{'FastErrorChoice' 'AccurateErrorChoice'}
         {'FastErrorTiming' 'AccurateErrorTiming'}};
@@ -58,7 +61,7 @@ for d = 1:numel(jpsthDirs)
     fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win,2),rasters,'UniformOutput',false);
     fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
 
-    dFiles{1} = 'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat/JPSTH-PAIR_0697.mat';
+%    dFiles{1} = 'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat/JPSTH-PAIR_0697.mat';
     %% For each file
     parfor p = 1:numel(dFiles)
         out = struct();
