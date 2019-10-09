@@ -57,7 +57,8 @@ for d = 1:numel(jpsthDirs)
     staticWins.PostReward = [0 600];
     fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win,2),rasters,'UniformOutput',false);
     fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
-    
+
+    dFiles{1} = 'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat/JPSTH-PAIR_0697.mat';
     %% For each file
     parfor p = 1:numel(dFiles)
         out = struct();
@@ -84,6 +85,9 @@ for d = 1:numel(jpsthDirs)
         dat = table();
         for ii = 1:numel(fns)
             fn = fns{ii};
+            if isempty(datStruct.(fn))
+                continue
+            end
             rowNames = datStruct.(fn).Properties.RowNames;            
             % add *SortBy_* fields to dat
             datFns = datStruct.(fn).Properties.VariableNames;
@@ -193,6 +197,10 @@ fx_trimSpkTs = @(spkTs,winTs)  cellfun(@(x) x(x>=winTs(1) & x<=winTs(2)),spkTs,'
 for c = 1:numel(conditions)
     condName = conditions{c};
     condJpsthTbl = datStruct.(condName);
+    if isempty(condJpsthTbl)
+        outStruct.(condName) = [[];condJpsthTbl];
+        continue
+    end
     blRow = condJpsthTbl('Visual',:); 
     % change the visual row cols to be for baseline period
     blRow.Properties.RowNames = {'Baseline'};
@@ -261,8 +269,8 @@ function [xWaves,yWaves] = getWaveforms(wavDir,cellPairInfo,dat)
     diffMax = 1; % 1 ms different
     fx_matchedSpkIdx = @(alindUTs,alindWfTs) arrayfun(@(uTs) find(abs(alindWfTs - uTs)<=diffMax,1),alindUTs,'UniformOutput',false);
 
-    xWaves = cell(12,1);
-    yWaves = cell(12,1);
+    xWaves = cell(size(dat,1),1);
+    yWaves = cell(size(dat,1),1);
 
     %% get all waves parse for sel. trials and match wave Ts.
     % X Unit
