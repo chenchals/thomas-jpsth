@@ -7,15 +7,31 @@
 
 %%
 jpsthDirs = {
-    'dataProcessed/analysis/SEF-PAPER/jpsth/CHOICE_ERR_PAIRS/mat'
-    'dataProcessed/analysis/SEF-PAPER/jpsth/TIMING_ERR_PAIRS/mat'
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SEF/mat' 
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-FEF/mat'    
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SC/mat'     
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat'    
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-SC/mat'     
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-SC/mat'      
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-NSEFN/mat'  
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-NSEFN/mat'  
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-NSEFN/mat'   
+    'dataProcessed/analysis/JPSTH-5ms/jpsth_NSEFN-NSEFN/mat'
     };
-wavDir = 'dataProcessed/dataset/waves2';
+wavDir = 'dataProcessed/dataset/waves';
 outDirs = {
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/mat/CHOICE_ERR_PAIRS'
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/mat/TIMING_ERR_PAIRS'
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
+    'dataProcessed/analysis/spkCorr/spkCorr_FEF-FEF/mat'    
+    'dataProcessed/analysis/spkCorr/spkCorr_FEF-SC/mat'     
+    'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'      
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-NSEFN/mat'  
+    'dataProcessed/analysis/spkCorr/spkCorr_FEF-NSEFN/mat'  
+    'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
+    'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
     };
-for d = 1:2
+for d = 1:numel(jpsthDirs)
     jpsthDir = jpsthDirs{d};
     outputDir = outDirs{d};
     if ~exist(outputDir,'dir')
@@ -23,25 +39,27 @@ for d = 1:2
     end
     
     %% Files/pairs in the dirctory and pair info
-    dFiles = dir(fullfile(jpsthDirs{1},'JPSTH*.mat'));
+    dFiles = dir(fullfile(jpsthDirs{1},'*.mat'));
     dFiles = strcat({dFiles.folder}',filesep,{dFiles.name}');
     cellPairInfos = table();
     %% get rasters for all alignments, for each file in directory
     availConds = {{'FastErrorChoice' 'AccurateErrorChoice'}
         {'FastErrorTiming' 'AccurateErrorTiming'}};
     % rowNames and colNames to output
-    colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
-        'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
-        'rasterBins','xRasters','yRasters'};
-    movingWins = [ 50, 100, 200, 400];
+    movingWins = [100, 200];
     staticWins.Baseline = [-500 -100];
-    staticWins.Visual = [50 200];
-    staticWins.PostSaccade = [100 300];
+    staticWins.Visual = [50 250];
+    staticWins.PostSaccade = [0 400];
+    staticWins.PostReward = [0 600];
     fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win,2),rasters,'UniformOutput',false);
     fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
-    parfor p = 1:numel(dFiles)
+    for p = 1:numel(dFiles)
         out = struct();
-        cellPairInfo = load(dFiles{p},'cellPairInfo');
+        colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
+            'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
+            'rasterBins','xRasters','yRasters'...
+            };
+       cellPairInfo = load(dFiles{p},'cellPairInfo');
         cellPairInfo = cellPairInfo.cellPairInfo;
         datStruct = load(dFiles{p},'-regexp','.*Error*');
         fns = fieldnames(datStruct);
@@ -50,9 +68,24 @@ for d = 1:2
         for ii = 1:numel(fns)
             fn = fns{ii};
             rowNames = datStruct.(fn).Properties.RowNames;
+            % add *SortBy_* fields to dat
+            datFns = datStruct.(fn).Properties.VariableNames;
+            sortBys = datFns(contains(datFns,'SortBy_'));          
             tempTbl =  datStruct.(fn)(rowNames,colNames);
+            for sb = 1:numel(sortBys)
+                sortBy = sortBys{sb};
+                sortByParts = split(sortBy,'_');
+                t = datStruct.(fn)(rowNames,sortBy);
+                t.Properties.RowNames = {};
+                tempTbl.(sortByParts{1}) =  t.(sortBy);
+                sortEvt = sortByParts{2};
+                if isempty(sortEvt)
+                    sortEvt = 'None';
+                end
+                tempTbl.([sortByParts{1} '_EventName']) =  repmat({sortEvt},numel(rowNames),1);               
+            end           
             tempTbl.Properties.RowNames = {};
-            dat = [dat;tempTbl]; %#ok<*AGROW>           
+            dat = [dat;tempTbl]; %#ok<*AGROW>
         end
         xMatRaw = dat.xRasters;
         yMatRaw = dat.yRasters;
