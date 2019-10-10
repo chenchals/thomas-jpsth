@@ -85,9 +85,9 @@ conditionsTbl.trialsSortNext = {
 
 %% For each JPSH cell pair do JPSTH
 % see doc pctRunOnAll
-%pctRunOnAll warning off;
+pctRunOnAll warning off;
 nPairs = size(jpsthCellPairs,1);
-for p = 1:1 %nPairs
+parfor p = 1:nPairs
     jpsthPair = jpsthCellPairs(p,:); %#ok<*PFBNS>
     sess = jpsthPair.X_sess{1};
     % must be cell array of ntrials by 1
@@ -97,9 +97,8 @@ for p = 1:1 %nPairs
     trialTypes = sessionTrialTypes(strcmp(sessionTrialTypes.session,sess),:);
     satJpsth =  getSatJpsthForPair(jpsthPair,xSpkTimes,ySpkTimes,...
                             evntTimes,trialTypes,conditionsTbl.conditions,...
-                            alignNames,alignEvents,alignTimeWin,...
-                            psthBinWidthMs,coincidenceBinWidthMs,...
-                            conditionsTbl.trialsSortFirst,conditionsTbl.trialsSortNext);
+                            alignNames,alignEvents,alignTimeWin,firstSortEvent,...
+                            psthBinWidthMs,coincidenceBinWidthMs);
     oFn = fullfile(jpsthResultsDir,['JPSTH-' jpsthPair.Pair_UID{1} '.mat']);
     saveJpsthData(oFn,satJpsth);
 end

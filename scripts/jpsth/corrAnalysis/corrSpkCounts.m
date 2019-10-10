@@ -57,22 +57,11 @@ for d = 1:numel(jpsthDirs)
         out = struct();
         colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
             'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
-            'rasterBins','xRasters','yRasters'...
+            'rasterBins','xRasters','yRasters','firstSortByName','firstSortByTime'...
             };
         cellPairInfo = load(dFiles{p},'cellPairInfo');
         cellPairInfo = cellPairInfo.cellPairInfo;
         datStruct = load(dFiles{p},'-regexp','.*Error*');
-        %% For each condition add a new row: Baseline derived from Visual row
-%         try
-%             datStruct = appendBaselineRowFromVisual(datStruct,baselineWin);
-%         catch me
-%             msg = sprintf('Error in processing pair_UID %s while call to appendBaselineRowFromVisual\n',cellPairInfo.Pair_UID{1});
-%             fprintf(msg);
-%             getReport(me);
-%             oFn = fullfile(outputDir,['ERROR_PROCESSING_rscCorr_' cellPairInfo.Pair_UID{1} '.mat']);
-%             fx_saveWorkspaceOnError(oFn);
-%             continue
-%         end               
         %% process, now that we have added the baseline row (Not all cols are valid       
         fns = fieldnames(datStruct);        
         dat = table();
@@ -173,47 +162,6 @@ for d = 1:numel(jpsthDirs)
     end
 end
 
-function [outStruct] = appendBaselineRowFromVisual(datStruct,baselineWin)
-% Since we have visual epoch from -700 to +500, which also comprise of
-% Baseline epoch, we add the same row as "Baseline" to the each condition
-% for ease of processing. 
-% Cols used for spkCorr that need changes...
-% changeCols = {'condition','alignedName','alignedEvent','alignedTimeWin',...
-%     'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
-%     'rasterBins','xRasters','yRasters'...
-%     };
-% other fields in the jpsth are not trimmed, hence invalid
-conditions = fieldnames(datStruct);
-conditions(~contains(conditions,'Error'))=[];
-outStruct = struct();
-fx_trimSpkTs = @(spkTs,winTs)  cellfun(@(x) x(x>=winTs(1) & x<=winTs(2)),spkTs,'UniformOutput',false);
-for c = 1:numel(conditions)
-    condName = conditions{c};
-    condJpsthTbl = datStruct.(condName);
-    if isempty(condJpsthTbl)
-        outStruct.(condName) = [[];condJpsthTbl];
-        continue
-    end
-    blRow = condJpsthTbl('Visual',:); 
-    % change the visual row cols to be for baseline period
-    blRow.Properties.RowNames = {'Baseline'};
-    blRow.condition = condName;
-    blRow.alignedName = 'Baseline';
-    blRow.alignedTimeWin = {baselineWin};
-    % xCellSpikeTimes and yCellSpikeTimes to bo in alignedTimeWin:
-    blRow.xCellSpikeTimes = {fx_trimSpkTs(blRow.xCellSpikeTimes{1},baselineWin)};
-    blRow.yCellSpikeTimes = {fx_trimSpkTs(blRow.yCellSpikeTimes{1},baselineWin)};
-    % trim rasters
-    rastIdx = blRow.rasterBins{1} >= baselineWin(1) &  blRow.rasterBins{1} <= baselineWin(2);
-    blRow.rasterBins = {blRow.rasterBins{1}(rastIdx)};
-    blRow.xRasters = {blRow.xRasters{1}(:,rastIdx)};
-    blRow.yRasters = {blRow.yRasters{1}(:,rastIdx)};
-    outStruct.(condName) = [blRow;condJpsthTbl];
-end
-
-
-end
-
 function saveFile(oFn,varData)
     fprintf('Saving file %s\n',oFn);
     temp = varData;
@@ -223,7 +171,6 @@ end
 
 function [rho_pval,critRho10,critRho05,critRho01] = getCorrData(xMat,yMat,corrMethodStr)
     % Get rho, pval from matlab corr function
-
     if strcmpi(corrMethodStr,'Pearson')
         corrMethod = 'Pearson';
     elseif strcmpi(corrMethodStr,'Spearman')

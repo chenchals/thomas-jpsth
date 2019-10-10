@@ -1,6 +1,6 @@
 function [satJpsth] = getSatJpsthForPair(jpsthPair,xSpkTimes,ySpkTimes,evntTimes,trialTypes,...
-    conditions,alignNames,alignEvents,alignTimeWin,psthBinWidthMs,coincidenceBinWidthMs,...
-    trialsSortFirst,trialsSortNext)
+    conditions,alignNames,alignEvents,alignTimeWin,firstSortEvent,psthBinWidthMs,coincidenceBinWidthMs...
+)
 
 % jpsthPair : the pair row in the table JPSTH_PAIRS_CellInfoDB.mat
 % xSpkTimes : X-axis cell: spike times as cell array of nTrials
@@ -101,28 +101,6 @@ for cond = 1:numel(conditions)
         %% Sort selected trials based on the event
         selTrlsTbl = table();
         selTrlsTbl.selTrials = selTrials;
-        % first sort by
-        sortName = trialsSortFirst{cond};
-        firstSortName = ['firstSortBy_' sortName];
-        if isempty(sortName)
-            temp = zeros(numel(selTrials),1);
-        else
-            temp = double(evntTimes.(sortName){1}(selTrials));
-        end
-        selTrlsTbl.(firstSortName) = temp;
-        
-        % second sort by
-        sortName = trialsSortNext{cond};
-        secondSortName = ['secondSortBy_' sortName];
-        if isempty(sortName)
-            temp = zeros(numel(selTrials),1);
-        else
-            temp = double(evntTimes.(sortName){1}(selTrials));
-        end
-        selTrlsTbl.(secondSortName) = temp;
-        % do the sort
-        selTrlsTblSorted = sortrows(selTrlsTbl,{firstSortName,secondSortName});
-        selTrials = selTrlsTblSorted.selTrials;
         %% for each aligned event
         tempJpsth = table();
         opts = struct();
@@ -130,22 +108,36 @@ for cond = 1:numel(conditions)
             alignedEvent = alignEvents{evId};
             alignedTimeWin = alignTimeWin{evId};
             alignedName = alignNames{evId};
-            alignTime = evntTimes.CueOn{1};
-            if ~strcmp(alignedEvent,'CueOn')
-                alignTime = alignTime + evntTimes.(alignedEvent){1}(:);
+            if isempty(firstSortEvent{evId})
+                firstSortName = [];
+                selTrlsTbl.firstSortTime = -inf(size(selTrlsTbl,1),1);
+            else
+                firstSortName = firstSortEvent{evId};
+                firstSortTime = double(evntTimes.(firstSortName){1});
+                temp = firstSortTime(selTrlsTbl.selTrials);
+                temp(temp==0 | isnan(temp)) = -inf;
+                selTrlsTbl.firstSortTime = temp;
             end
-            alignTime = alignTime(selTrials);
-            XAligned = SpikeUtils.alignSpikeTimes(units.(XCellId)(selTrials),alignTime, alignedTimeWin);
-            YAligned = SpikeUtils.alignSpikeTimes(units.(YCellId)(selTrials),alignTime, alignedTimeWin);
+            selTrlsTblSorted = sortrows(selTrlsTbl,{'firstSortTime'});
+            selTrialsSorted = selTrlsTblSorted.selTrials;
+            alignTime = evntTimes.CueOn{1};        
+            if ~strcmp(alignedEvent,'CueOn')
+                alignTime = alignTime + double(evntTimes.(alignedEvent){1}(:));
+            end
+            alignTime = alignTime(selTrialsSorted);
+            XAligned = SpikeUtils.alignSpikeTimes(units.(XCellId)(selTrialsSorted),alignTime, alignedTimeWin);
+            YAligned = SpikeUtils.alignSpikeTimes(units.(YCellId)(selTrialsSorted),alignTime, alignedTimeWin);
             temp = SpikeUtils.jpsth(XAligned, YAligned, alignedTimeWin, psthBinWidthMs, coincidenceBinWidthMs);
             tempJpsth(evId,:) = struct2table(temp,'AsArray',true);
             %jer = SpikeUtils.jeromiahJpsth(XAligned, YAligned, alignedTimeWin, binWidth, coincidenceBins);
             opts(evId,1).xCellSpikeTimes = {XAligned}; %#ok<*AGROW>
             opts(evId,1).yCellSpikeTimes = {YAligned};
-            opts(evId,1).trialNosByCondition = selTrlsTblSorted.selTrials;
-            opts(evId,1).(firstSortName) = selTrlsTblSorted.(firstSortName);
-            opts(evId,1).(secondSortName) = selTrlsTblSorted.(secondSortName);
-            opts(evId,1).condition = {condition};
+            opts(evId,1).trialNosByCondition = selTrialsSorted;
+            opts(evId,1).firstSortByName = {firstSortName};
+            opts(evId,1).firstSortByTime = selTrlsTblSorted.firstSortTime;
+            opts(evId,1).secondSortByName = [];
+            opts(evId,1).secondSortByTime = [];
+             opts(evId,1).condition = {condition};
             opts(evId,1).alignedName = {alignedName};
             opts(evId,1).alignedEvent = {alignedEvent};
             opts(evId,1).alignedTimeWin = {alignedTimeWin};

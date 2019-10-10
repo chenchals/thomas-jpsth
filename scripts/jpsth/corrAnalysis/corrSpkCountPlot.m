@@ -84,7 +84,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 psthXTickLabel(2:end-1) = {''};
                 psthXTickLabel(psthXTicks==0) = {'0'};
                 psthXaxisLabel = ['Time from ', currSpkCorr.alignedEvent{1},' (s)'];
-                psthXaxisLabel = strrep(psthXaxisLabel,'SaccadePrimaryTempo','Saccade');
+                %psthXaxisLabel = strrep(psthXaxisLabel,'SaccadePrimaryTempo','Saccade');
 
                 %% H_Psth1
                 pos(1) = offsetsX(colNum) + startPos;
@@ -437,16 +437,20 @@ end
 
 function [sortMarkers] = getAlignedSortMarkers(thisTbl)
    % CueOn time is always 3500.
-    fx_getFirstSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'firstSortBy'));
-    fx_getSecondSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'secondSortBy'));
+    fx_getFirstSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'firstSortByTime'));
+    fx_getSecondSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'secondSortByTime'));
     alignTimeMinusCueOnTime = thisTbl.alignTime{1} - 3500;
     
     sortMarkers = cell(2,1);
     if ~isempty(fx_getFirstSortColIdx(thisTbl))
-        sortMarkers{1} = thisTbl{1,fx_getFirstSortColIdx(thisTbl)}{1} - alignTimeMinusCueOnTime;
+        temp = thisTbl{1,fx_getFirstSortColIdx(thisTbl)}{1};
+        temp(temp<=0 | isnan(temp)) = -Inf;
+        sortMarkers{1} = temp - alignTimeMinusCueOnTime;
     end
     if ~isempty(fx_getSecondSortColIdx(thisTbl))
-        sortMarkers{2} = thisTbl{1,fx_getSecondSortColIdx(thisTbl)}{1} - alignTimeMinusCueOnTime;
+        temp = thisTbl{1,fx_getSecondSortColIdx(thisTbl)}{1};
+        temp(temp<=0 | isnan(temp)) = -Inf;
+        sortMarkers{2} =  temp - alignTimeMinusCueOnTime;
     end
 end
 
