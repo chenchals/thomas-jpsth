@@ -4,7 +4,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
     %% Put this in the function....
     smoothBinWidthMs = 1;
     fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
-
+    fx_chanNo = @(x) str2double(char(regexp(x,'(^\d{1,2})','match')));
     conditionPairs = {
         {'FastErrorChoice','AccurateErrorChoice'};
         {'FastErrorTiming','AccurateErrorTiming'};
@@ -57,17 +57,17 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
         H_out = struct();
         ss = get(0,'ScreenSize');
         aspectRatio = ss(3)/ss(4);
-        offsetsX=[0.01 (1:3).*0.23]; % for 4 columns
+        offsetsX=[0.01 (1:4).*0.17]; % for 5 columns
         offsetsY = [0.88 0.45]; %[0.90 0.45]; % for 2 rows
-        startPos = 0.015; % top position of yPsth
-        psthH = 0.05; psthW = psthH*3.5;
+        startPos = 0.017; % top position of yPsth
+        psthH = 0.05; psthW = psthH*2.5;
         gutter = 0.01; % space between plots
 
         %% plot each condition in a row
         for rowNum = 1:2
             condition = conditions{rowNum};
             axColor = [0.5 0.5 0.5];
-            for colNum = 1:3
+            for colNum = 1:4
                 rhoPvalWin = rhoPvalWins{colNum};
                 currSpkCorr = spikeCorr(strcmp(spikeCorr.condition,condition) ...
                     & strcmp(spikeCorr.alignedName,alignNames{colNum}),:);
@@ -192,12 +192,12 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             end
             %% Draw static window spike count corr
             staticCols  = {'xSpkCount_win','ySpkCount_win','rho_pval_win','rho_pval_static'};
-            scatColrIdx = [6 2];
+            statColrIdx = [6 2];
             for z = 1:2
                 if z > 1
                     staticCols = strcat(staticCols,'_Z');
                 end
-                scatColr = colrs(scatColrIdx(z),:);
+                scatColr = colrs(statColrIdx(z),:);
                 % get min-max of spk counts for scaling
                 maxSpkCountX = max(cell2mat(spikeCorr.(staticCols{1})));
                 maxSpkCountY = max(cell2mat(spikeCorr.(staticCols{2})));
@@ -226,13 +226,13 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 spkCountTickLabelX(2:end-1) = repmat({' '},numel(spkCountTickLabelX)-2,1);
                 spkCountTickLabelY(2:end-1) = repmat({' '},numel(spkCountTickLabelY)-2,1);
 
-                pltW = psthW/3.2;
-                pltH = (psthW/3.7)*aspectRatio;
+                pltW = psthW/2.6;
+                pltH = pltW*aspectRatio;
 
-                for s = 1:3
+                for s = 1:4
                     % Draw 3 scatter plots across for Baseline, visual, postsac
-                    pos(1) = offsetsX(4) + (psthH + gutter*4)*(s-1);
-                    pos(2) = offsetsY(rowNum) - (psthH + gutter) - (pltH + gutter*4)*(z-1);
+                    pos(1) = offsetsX(5) + gutter + (pltW + gutter*3)*(s-1);
+                    pos(2) = offsetsY(rowNum) - (psthH + gutter) - (pltH + gutter*6)*(z-1);
                     pos(3:4) = [pltW pltH];
                     H_out.H_rscBl=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rscBl');
                     plotData = spikeCorr(strcmp(spikeCorr.condition,condition) ...,
@@ -261,7 +261,8 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                     title(titleStr,'Interpreter','tex')
                 end
             end
-            %% for each condition plot aggregated waveform for unitx and unit y
+            
+            %% for each condition get waveforms and wave Widths for unitx and unit y
             xyWf = spikeCorr(strcmp(spikeCorr.condition,condition),{'xWaves','yWaves'});
             unitsTxt = {cellPairInfo.X_unit{1} cellPairInfo.Y_unit{1}};
             wColrs = {'r','c'};
@@ -275,33 +276,35 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             wfXaxisLabel = 'Time (ms)';          
             wfYaxisLabel = 'AD Units';
              
-            pos(1) = offsetsX(4);
-            pos(2) = offsetsY(rowNum) - (pltH + gutter*4)*2.75;
-            pos(3:4) = [pltW*4 pltH*1.4];
+            %% for each condition plot aggregated waveform for unitx and unit y
+            pos(1) = offsetsX(5) + gutter;
+            pos(2) = offsetsY(rowNum) - (pltH + gutter*6)*2.5;
+            pos(3:4) = [pltW*2.9 pltH*1.3];
             H_out.H_wav=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_wav');
             plotWaveforms(cell2mat(xyWf.xWaves{1}),binSize,0,wColrs{1});
             hold on
             plotWaveforms(cell2mat(xyWf.yWaves{1}),binSize,0,wColrs{2});
-
-            doYLabel(gca,wfYaxisLabel)
-          
+            doYLabel(gca,wfYaxisLabel)          
             annotateAxis(gca,'x',wfXlim,wfXTicks,wfXTickLabel,0,axColor);
-            doXLabel(gca,wfXaxisLabel)
-            
+            doXLabel(gca,wfXaxisLabel)            
             legend(unitsTxt,'Location', 'northwest','Box','off')
            
         %% end rowNum
         end
-    addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile, [cellPairInfo.X_area{1} ' vs ' cellPairInfo.Y_area{1}],...
-        conditions,alignNames);
-    H_pairInfo = axes('parent',parentFig,'position',[0.01 0.01 0.98 0.06],...
-        'box','on','XTick',[],'YTick',[],'layer','top','Tag','H_jpsthInfo');
-    addPairInfo(H_pairInfo, cellPairInfo);
-    drawnow;
-    if savePdfFlag
-        saveFigAs(outPdfFile);
-        delete(parentFig);
-    end
+        chanStr = 'Different Channels';
+        if fx_chanNo(cellPairInfo.X_unit{1}) == fx_chanNo(cellPairInfo.Y_unit{1})
+            chanStr = 'Same Channel';
+        end
+        addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile, [cellPairInfo.X_area{1} ' vs ' cellPairInfo.Y_area{1}],...
+            chanStr,conditions,alignNames);
+        H_pairInfo = axes('parent',parentFig,'position',[0.01 0.01 0.98 0.06],...
+            'box','on','XTick',[],'YTick',[],'layer','top','Tag','H_jpsthInfo');
+        addPairInfo(H_pairInfo, cellPairInfo);
+        drawnow;
+        if savePdfFlag
+            saveFigAs(outPdfFile);
+            delete(parentFig);
+        end
     end
 end
 
@@ -334,20 +337,24 @@ function addPairInfo(H_axes,cellPairInfo)
   plotAddPairInfo(H_axes,cellInfo);
 end
 
-function addAnnotations(pairUid,pdfFile,xyAreas,rowNames,colNames)
-% 
-annotation('textbox',[0.10 0.95 0.05 0.05],'String',pairUid,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-[~,fn,ext] = fileparts(pdfFile);
-annotation('textbox',[0.35 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-annotation('textbox',[0.75 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-% conditions / alignNames
-annotation('textbox',[0.01 0.93 0.05 0.05],'String',rowNames{1},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
-annotation('textbox',[0.12 0.91 0.05 0.05],'String',colNames{1},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
-annotation('textbox',[0.32 0.91 0.05 0.05],'String',colNames{2},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
-annotation('textbox',[0.55 0.91 0.05 0.05],'String',colNames{3},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
-annotation('textbox',[0.01 0.48 0.05 0.05],'String',rowNames{2},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
-
+function addAnnotations(pairUid,pdfFile,xyAreas,chanStr,rowNames,colNames)
+    %
+    annotation('textbox',[0.10 0.95 0.05 0.05],'String',pairUid,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    [~,fn,ext] = fileparts(pdfFile);
+    annotation('textbox',[0.35 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    annotation('textbox',[0.70 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    h = annotation('textbox',[0.85 0.95 0.10 0.05],'String',chanStr,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none');
+    if contains(chanStr,'Same')
+        set(h,'Color','r');
+    end% conditions / alignNames
+    annotation('textbox',[0.01 0.93 0.05 0.05],'String',rowNames{1},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
+    annotation('textbox',[0.07 0.91 0.05 0.05],'String',colNames{1},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+    annotation('textbox',[0.22 0.91 0.05 0.05],'String',colNames{2},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+    annotation('textbox',[0.38 0.91 0.05 0.05],'String',colNames{3},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+    annotation('textbox',[0.56 0.91 0.05 0.05],'String',colNames{4},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+    annotation('textbox',[0.01 0.48 0.05 0.05],'String',rowNames{2},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
 end
+
 function doXLabel(H_axis,xLabel)
  yLim= get(H_axis,'Ylim');
  xPos = mean(get(H_axis,'Xlim')); % center in x
