@@ -2,7 +2,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 %CORRSPKCOUNTPLOT Summary of this function goes here
 
     %% Put this in the function....
-    smoothBinWidthMs = 1;
+    smoothBinWidthMs = 5;
     fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
     fx_chanNo = @(x) str2double(char(regexp(x,'(^\d{1,2})','match')));
     conditionPairs = {
@@ -93,7 +93,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 H_out.H_psth1=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth1');
 
                 rasters = currSpkCorr.xRasters{1};
-                plot(psthBins,fx_vecSmooth(mean(rasters)*1000,smoothBinWidthMs),'LineWidth',1.5);
+                plot(psthBins,fx_vecSmooth(mean(rasters)*1000,smoothBinWidthMs),'LineWidth',1);
                 annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,0,axColor);
                 annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
                 doYLabel(gca,{'X-Unit'; psthYaxisLabel})
@@ -109,7 +109,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 H_out.H_psth2=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_psth2');
 
                 rasters = currSpkCorr.yRasters{1};
-                plot(psthBins,fx_vecSmooth(mean(rasters)*1000,smoothBinWidthMs),'LineWidth',1.5);
+                plot(psthBins,fx_vecSmooth(mean(rasters)*1000,smoothBinWidthMs),'LineWidth',1);
                 annotateAxis(gca,'y',psthYLims,psthYTicks,psthYTickLabel,0,axColor);
                 annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
                 doYLabel(gca,{'Y-Unit'; psthYaxisLabel})

@@ -37,7 +37,7 @@ function [satJpsth] = getSatJpsthForPair(jpsthPair,xSpkTimes,ySpkTimes,evntTimes
 
 warning('off');
 % ignore processing if the sel. trials are below thisNum.
-nTrialsThreshold = 10;
+nTrialsThreshold = 5;
 
 units = struct();
 satJpsth = struct();
@@ -97,7 +97,6 @@ for cond = 1:numel(conditions)
             satJpsth.(condition) = [];
             continue;
         end
-        
         
         %% Sort selected trials based on the event
         selTrlsTbl = table();

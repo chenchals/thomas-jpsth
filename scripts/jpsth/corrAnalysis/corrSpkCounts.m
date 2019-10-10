@@ -13,7 +13,7 @@ jpsthDirs = {
     'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-NSEFN/mat'   
     'dataProcessed/analysis/JPSTH-5ms/jpsth_NSEFN-NSEFN/mat'
     };
-wavDir = 'dataProcessed/dataset/waves';
+wavDir = 'dataProcessedLocal/dataset/waves';
 outDirs = {
     'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
     'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
@@ -63,7 +63,7 @@ for d = 1:numel(jpsthDirs)
 
 %    dFiles{1} = 'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat/JPSTH-PAIR_0697.mat';
     %% For each file
-    parfor p = 1:numel(dFiles)
+    for p = 1:numel(dFiles)
         out = struct();
         colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
             'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
