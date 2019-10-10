@@ -2,30 +2,20 @@
 %%
 monkIdsToDo = {'D','E'};
 jpsthDirs = {
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SEF/mat' 
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-FEF/mat'    
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SC/mat'     
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat'    
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-SC/mat'     
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-SC/mat'      
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-NSEFN/mat'  
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-NSEFN/mat'  
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-NSEFN/mat'   
-    'dataProcessed/analysis/JPSTH-5ms/jpsth_NSEFN-NSEFN/mat'
+    'dataProcessedL/analysis/JPSTH-10ms/jpsth_SEF-SEF/mat' 
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-FEF/mat'    
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SC/mat'     
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat'    
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-SC/mat'     
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-SC/mat'      
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-NSEFN/mat'  
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-NSEFN/mat'  
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-NSEFN/mat'   
+%     'dataProcessed/analysis/JPSTH-5ms/jpsth_NSEFN-NSEFN/mat'
     };
-wavDir = 'dataProcessedLocal/dataset/waves';
-outDirs = {
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
-    'dataProcessed/analysis/spkCorr/spkCorr_FEF-FEF/mat'    
-    'dataProcessed/analysis/spkCorr/spkCorr_FEF-SC/mat'     
-    'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'      
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-NSEFN/mat'  
-    'dataProcessed/analysis/spkCorr/spkCorr_FEF-NSEFN/mat'  
-    'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
-    'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
-    };
+wavDir = 'dataProcessed/dataset/waves';
+outDirs = regexprep(jpsthDirs,'JPSTH-10ms/jpsth_','spkCorr/spkCorr_');
+
 %% do only for Da and Eu
 jpsthPairsDaEu = load('dataProcessed/dataset/JPSTH_PAIRS_CellInfoDB.mat');
 jpsthPairsDaEu = jpsthPairsDaEu.JpsthPairCellInfoDB;
@@ -73,16 +63,16 @@ for d = 1:numel(jpsthDirs)
         cellPairInfo = cellPairInfo.cellPairInfo;
         datStruct = load(dFiles{p},'-regexp','.*Error*');
         %% For each condition add a new row: Baseline derived from Visual row
-        try
-            datStruct = appendBaselineRowFromVisual(datStruct,baselineWin);
-        catch me
-            msg = sprintf('Error in processing pair_UID %s while call to appendBaselineRowFromVisual\n',cellPairInfo.Pair_UID{1});
-            fprintf(msg);
-            getReport(me);
-            oFn = fullfile(outputDir,['ERROR_PROCESSING_rscCorr_' cellPairInfo.Pair_UID{1} '.mat']);
-            fx_saveWorkspaceOnError(oFn);
-            continue
-        end               
+%         try
+%             datStruct = appendBaselineRowFromVisual(datStruct,baselineWin);
+%         catch me
+%             msg = sprintf('Error in processing pair_UID %s while call to appendBaselineRowFromVisual\n',cellPairInfo.Pair_UID{1});
+%             fprintf(msg);
+%             getReport(me);
+%             oFn = fullfile(outputDir,['ERROR_PROCESSING_rscCorr_' cellPairInfo.Pair_UID{1} '.mat']);
+%             fx_saveWorkspaceOnError(oFn);
+%             continue
+%         end               
         %% process, now that we have added the baseline row (Not all cols are valid       
         fns = fieldnames(datStruct);        
         dat = table();
@@ -291,7 +281,7 @@ function [xWaves,yWaves] = getWaveforms(wavDir,cellPairInfo,dat)
     wavsY = allWavs.(unitName).wavSearch{1};
 
     for jj = 1:size(dat,1)
-        selTrls = find(dat.trialNosByCondition{jj});
+        selTrls = dat.trialNosByCondition{jj};
         alignTime = dat.alignTime{jj};
         alignWin = dat.alignedTimeWin{jj};
         % align ts from waveform data

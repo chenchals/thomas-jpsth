@@ -107,7 +107,7 @@ for cond = 1:numel(conditions)
         if isempty(sortName)
             temp = zeros(numel(selTrials),1);
         else
-            temp = evntTimes.(sortName){1}(selTrials);
+            temp = double(evntTimes.(sortName){1}(selTrials));
         end
         selTrlsTbl.(firstSortName) = temp;
         
@@ -117,12 +117,12 @@ for cond = 1:numel(conditions)
         if isempty(sortName)
             temp = zeros(numel(selTrials),1);
         else
-            temp = evntTimes.(sortName){1}(selTrials);
+            temp = double(evntTimes.(sortName){1}(selTrials));
         end
         selTrlsTbl.(secondSortName) = temp;
         % do the sort
         selTrlsTblSorted = sortrows(selTrlsTbl,{firstSortName,secondSortName});
-        
+        selTrials = selTrlsTblSorted.selTrials;
         %% for each aligned event
         tempJpsth = table();
         opts = struct();

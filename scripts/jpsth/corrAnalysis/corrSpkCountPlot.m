@@ -98,7 +98,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
                 doYLabel(gca,{'X-Unit'; psthYaxisLabel})
                 hold on
-                sortMarkers = getSortMarkers(currSpkCorr);
+                sortMarkers = getAlignedSortMarkers(currSpkCorr);
                 PlotUtils.plotRasters(rasters,psthBins,sortMarkers);
                 addPatch(gca,rhoPvalWin);
                 
@@ -435,15 +435,18 @@ print(fn,'-dpdf','-painters')
 drawnow
 end
 
-function [sortMarkers] = getSortMarkers(thisTbl)
+function [sortMarkers] = getAlignedSortMarkers(thisTbl)
+   % CueOn time is always 3500.
     fx_getFirstSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'firstSortBy'));
     fx_getSecondSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'secondSortBy'));
+    alignTimeMinusCueOnTime = thisTbl.alignTime{1} - 3500;
+    
     sortMarkers = cell(2,1);
     if ~isempty(fx_getFirstSortColIdx(thisTbl))
-        sortMarkers{1} = thisTbl{1,fx_getFirstSortColIdx(thisTbl)}{1};
+        sortMarkers{1} = thisTbl{1,fx_getFirstSortColIdx(thisTbl)}{1} - alignTimeMinusCueOnTime;
     end
     if ~isempty(fx_getSecondSortColIdx(thisTbl))
-        sortMarkers{2} = thisTbl{1,fx_getSecondSortColIdx(thisTbl)}{1};
+        sortMarkers{2} = thisTbl{1,fx_getSecondSortColIdx(thisTbl)}{1} - alignTimeMinusCueOnTime;
     end
 end
 

@@ -20,13 +20,13 @@ function [] = createSatJpsthDataset(area1,area2)
 warning('off');
 
 %% Options for JPSTH computation
-psthBinWidthMs = 5;
+psthBinWidthMs = 10;
 % -25 to +25 ms
 coincidenceBinWidthMs = 25;
 
-rootAnalysisDir = ['dataProcessed/analysis/JPSTH-' num2str(psthBinWidthMs,'%dms')];
+rootAnalysisDir = ['dataProcessedL/analysis/JPSTH-' num2str(psthBinWidthMs,'%dms')];
 datasetDir = 'dataProcessed/dataset';
-jpsthResultsDir = fullfile(rootAnalysisDir,['jpsth_' area1 '-' area2]);
+jpsthResultsDir = fullfile(rootAnalysisDir,['jpsth_' area1 '-' area2],'mat');
 if ~exist(jpsthResultsDir, 'dir')
     mkdir(jpsthResultsDir);
 end
@@ -61,10 +61,10 @@ assert(isequal(sessions,unique(jpsthCellPairs.Y_sess)),'********Fatal: Error X-x
 %% alignment:
 % Setup time windows for different event time alignment, the field names
 % SHALL correspond to column names for trialEventTimes below.
-alignNames = {'Visual', 'PostSaccade', 'PostReward'};
-alignEvents = {'CueOn','SaccadePrimary', 'RewardTime'};
-alignTimeWin = {[-700 500], [-100 500], [-300 600]};
-
+alignNames = {'Baseline','Visual','PostSaccade','PostReward'};
+alignEvents = {'CueOn','CueOn','SaccadePrimary','RewardTime'};
+alignTimeWin = {[-600 100],[-200 400],[-100 500],[-200 700]};
+firstSortEvent = {'SaccadePrimary','SaccadePrimary','SaccadeSecond',[]};
 %%conditions
 % (Accurate|Fast)*(Correct|ErrorHold|ErrorChoice|ErrorTiming|ErrorNoSaccade)
 conditionsTbl = table();
@@ -87,7 +87,7 @@ conditionsTbl.trialsSortNext = {
 % see doc pctRunOnAll
 %pctRunOnAll warning off;
 nPairs = size(jpsthCellPairs,1);
-parfor p = 1:nPairs
+for p = 1:1 %nPairs
     jpsthPair = jpsthCellPairs(p,:); %#ok<*PFBNS>
     sess = jpsthPair.X_sess{1};
     % must be cell array of ntrials by 1

@@ -1,15 +1,15 @@
 
 corrDirs = {
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
-    'dataProcessed/analysis/spkCorr/spkCorr_FEF-FEF/mat'    
-    'dataProcessed/analysis/spkCorr/spkCorr_FEF-SC/mat'     
-    'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'      
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-NSEFN/mat'  
-    'dataProcessed/analysis/spkCorr/spkCorr_FEF-NSEFN/mat'  
-    'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
-    'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
+    'dataProcessedL/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
+%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
+%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
+%     'dataProcessed/analysis/spkCorr/spkCorr_FEF-FEF/mat'    
+%     'dataProcessed/analysis/spkCorr/spkCorr_FEF-SC/mat'     
+%     'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'      
+%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-NSEFN/mat'  
+%     'dataProcessed/analysis/spkCorr/spkCorr_FEF-NSEFN/mat'  
+%     'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
+%     'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
     };
 plotDirs = regexprep(corrDirs,'/mat$','/pdf');
 
