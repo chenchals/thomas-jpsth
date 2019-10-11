@@ -8,8 +8,9 @@ function plotAddPairInfo(H_axes, jpsthCellInfo)
     infoTable.SessionNotes = [];
     
     varNames=infoTable.Properties.VariableNames;
+    varNames(contains(varNames,'trRem'))=[];
     fontSize = 10;
-    columnGap = 0.012;
+    columnGap = 0.01;
     nCols = numel(varNames);
     % we are plotting this from bottom
     xPos=0.005;
@@ -17,7 +18,7 @@ function plotAddPairInfo(H_axes, jpsthCellInfo)
     for c = 1:nCols
         colName = varNames{c};
         hText{1} = text(xPos,yHPos,colName,'Interpreter','none',...
-            'FontWeight','bold','FontSize',fontSize*1.2,...
+            'FontWeight','bold','FontSize',fontSize,...
             'VerticalAlignment', 'top','HorizontalAlignment','left');
         vals = infoTable.(colName);
         valTxt = cell(2,1);

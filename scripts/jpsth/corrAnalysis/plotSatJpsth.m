@@ -4,7 +4,7 @@ function [] = plotSatJpsth(jpsthPairFile,pdfOutputDir,savePdfFlag)
         %plotSatJpsth(jpsthPairFile,pdfOutputDir,saveFigFlag);
 
 %% Put this in the function....
-smoothBinWidthMs = 5;
+smoothBinWidthMs = 20;
 fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
 fx_imgSmooth = @(img,w) conv2(img,ones(w)./(w^2),'same');
 
@@ -48,7 +48,7 @@ for cc = 1:numel(conditionPairs)
     %% compute the min-max for axis scaling
     % what are the binwidths used for JPSTH? (this is same for x,y psths)
     psthBinWidthMs = unique(diff(jpsthData.(conditions{1}).yPsthBins{1}));
-    smoothBinWidth = smoothBinWidthMs/psthBinWidthMs;
+    smoothBinWidth = ceil(smoothBinWidthMs/psthBinWidthMs);
     
     %#ok<*AGROW>
     for ii = 1:numel(conditions)
@@ -159,13 +159,14 @@ for cc = 1:numel(conditionPairs)
             doYLabel(gca,['Y-Unit - ' psthYaxisLabel])
             view([-90 90])
             hold on
-            sortMarkers = cell(2,1);
-            if ~isempty(fx_getFirstSortColIdx(currJpsths))
-                sortMarkers{1} = currJpsths{colNum,fx_getFirstSortColIdx(currJpsths)}{1};
-            end
-            if ~isempty(fx_getSecondSortColIdx(currJpsths))
-                sortMarkers{2} = currJpsths{colNum,fx_getSecondSortColIdx(currJpsths)}{1};
-            end          
+%             sortMarkers = cell(2,1);
+%             if ~isempty(fx_getFirstSortColIdx(currJpsths))
+%                 sortMarkers{1} = currJpsths{colNum,fx_getFirstSortColIdx(currJpsths)}{1};
+%             end
+%             if ~isempty(fx_getSecondSortColIdx(currJpsths))
+%                 sortMarkers{2} = currJpsths{colNum,fx_getSecondSortColIdx(currJpsths)}{1};
+%             end    
+            sortMarkers = getAlignedSortMarkers(currJpsths(colNum,:));
             PlotUtils.plotRasters(currJpsths.yRasters{colNum}, currJpsths.rasterBins{colNum}, sortMarkers);
                       
             %% H_jpsth
@@ -256,9 +257,11 @@ for cc = 1:numel(conditionPairs)
             %addPlotTitles(H_out);
         end
     end
-    chanStr = 'Different Channels';
-    if fx_chanNo(cellPairInfo.X_unit{1}) == fx_chanNo(cellPairInfo.Y_unit{1})
-        chanStr = 'Same Channel';
+    
+    if cellPairInfo.isOnSameChannel
+        chanStr = 'Same (dist: 0 mm)';
+    else
+        chanStr = sprintf('Different (dist: %0.3f mm)',cellPairInfo.XY_Dist{1});
     end
     addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile, [cellPairInfo.X_area{1} ' vs ' cellPairInfo.Y_area{1}],...
                    chanStr,conditions,alignWinNames);
@@ -276,6 +279,7 @@ end
 
 function addJpsthInfo(H_axes,cellPairInfo)
   cellInfo = cellPairInfo(1,contains(cellPairInfo.Properties.VariableNames,'X_'));
+  cellInfo.XY_Dist = cellPairInfo.XY_Dist;
   cellInfo.Properties.VariableNames = strrep(cellInfo.Properties.VariableNames,'X_','');
   cellInfo(2,:) = cellPairInfo(1,contains(cellPairInfo.Properties.VariableNames,'Y_'));
   plotAddPairInfo(H_axes,cellInfo);
@@ -285,9 +289,9 @@ function addAnnotations(pairUid,pdfFile,xyAreas,chanStr,rowNames,colNames)
 % 
 annotation('textbox',[0.10 0.95 0.05 0.05],'String',pairUid,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
 [~,fn,ext] = fileparts(pdfFile);
-annotation('textbox',[0.35 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-annotation('textbox',[0.70 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-h = annotation('textbox',[0.85 0.95 0.10 0.05],'String',chanStr,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none');
+annotation('textbox',[0.30 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+annotation('textbox',[0.65 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+h = annotation('textbox',[0.75 0.95 0.10 0.05],'String',chanStr,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none');
 if contains(chanStr,'Same')
     set(h,'Color','r');
 end
@@ -384,5 +388,26 @@ function [minVal, maxVal] = getMinMaxScale(minValues, maxValues)
     maxVal = round(max(maxValues(:))+0.005,2);
 end
 
-
+function [sortMarkers] = getAlignedSortMarkers(thisTbl)
+   % CueOn time is always 3500.
+    fx_getFirstSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'firstSortByTime'));
+    fx_getSecondSortColIdx = @(tbl) find(strcmp(tbl.Properties.VariableNames,'secondSortByTime'));
+    alignTimeMinusCueOnTime = thisTbl.alignTime{1} - 3500;
+    
+    sortMarkers = cell(2,1);
+    if ~isempty(fx_getFirstSortColIdx(thisTbl))
+        temp = thisTbl{1,fx_getFirstSortColIdx(thisTbl)}{1};
+        if ~isempty(temp)
+            temp(temp<=0 | isnan(temp)) = -Inf;
+            sortMarkers{1} = temp - alignTimeMinusCueOnTime;
+        end
+    end
+    if ~isempty(fx_getSecondSortColIdx(thisTbl))
+        temp = thisTbl{1,fx_getSecondSortColIdx(thisTbl)}{1};
+        if ~isempty(temp)
+            temp(temp<=0 | isnan(temp)) = -Inf;
+            sortMarkers{2} =  temp - alignTimeMinusCueOnTime;
+        end
+    end
+end
 

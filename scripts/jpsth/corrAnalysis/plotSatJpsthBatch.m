@@ -1,5 +1,5 @@
 
-jpsthDataBaseDir = 'dataProcessed/analysis/JPSTH-5ms';
+jpsthDataBaseDir = 'dataProcessed/analysis/JPSTH-10ms';
 
 pairDirs = {
     'jpsth_SEF-SEF'
