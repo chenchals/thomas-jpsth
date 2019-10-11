@@ -302,7 +302,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             yWavWidths = cell2mat(cellfun(@(x) cell2mat(x),xyWavWidths.yWaveWidths,'UniformOutput',false));
             xWavWidths = abs(xWavWidths)*sampleTime;
             yWavWidths = abs(yWavWidths)*sampleTime;
-            wWXlim = [0 max([max(xWavWidths),max(yWavWidths)])+50];
+            wWXlim = [0 max([max(xWavWidths),max(yWavWidths)])+100];
             wWXTicks = min(wWXlim):50:max(wWXlim);
             wWXTickLabel =  arrayfun(@(x) num2str(x,'%d'),wWXTicks','UniformOutput',false);
             wWXTickLabel(contains(wWXTickLabel,'50')) = {' '};
@@ -331,6 +331,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             yMean = mean(yWavWidths);
             yStd = std(yWavWidths);
             unitsTxt = categorical({cellPairInfo.X_unit{1},cellPairInfo.Y_unit{1}});
+            yLims = [0 max([xMean+xStd, yMean+yStd]+100)]; 
 
             pos(1) = pos(1) + pos(3) + gutter*2;
             pos(2) = pos(2);
@@ -338,12 +339,18 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             H_out.H_wavWidM=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_wavWidM');
             bar(unitsTxt(1),xMean,'FaceColor',wColrs{1});
             hold on
-            errorbar(unitsTxt(1),xMean,xStd,'.','Color',wColrs{1});
+            h_ex = errorbar(unitsTxt(1),xMean,xStd,'.','Color',[0 0 0]);
+            set(h_ex,'HandleVisibility','off');
             bar(unitsTxt(2),yMean,'FaceColor',wColrs{2});
-            errorbar(unitsTxt(2),yMean,yStd,'.','Color',wColrs{2});
+            h_ey = errorbar(unitsTxt(2),yMean,yStd,'.','Color',[0 0 0]);
+            set(h_ey,'HandleVisibility','off');
+ 
+            ylim(yLims);
             ylabel('SpkeWidth (microsec.)','VerticalAlignment','bottom',...
               'HorizontalAlignment','center','FontSize',8,'FontWeight','bold',...
               'FontAngle', 'italic','Color','black'); 
+           meanStd = {sprintf('\\mu %4.1f \\pm %4.1f',xMean,xStd), sprintf('\\mu %4.f\\pm %4.1f',yMean,yStd)};
+           legend(meanStd,'Location','northeast','Box','off','FontSize',7)
            
         %% end rowNum
         end
