@@ -2,16 +2,16 @@
 %%
 monkIdsToDo = {'D','E'};
 jpsthDirs = {
-    'dataProcessedL/analysis/JPSTH-10ms/jpsth_SEF-SEF/mat' 
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-FEF/mat'    
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-SC/mat'     
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat'    
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-SC/mat'     
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-SC/mat'      
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SEF-NSEFN/mat'  
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-NSEFN/mat'  
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_SC-NSEFN/mat'   
-%     'dataProcessed/analysis/JPSTH-5ms/jpsth_NSEFN-NSEFN/mat'
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_SEF-SEF/mat' 
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_SEF-FEF/mat'    
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_SEF-SC/mat'     
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_FEF-FEF/mat'    
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_FEF-SC/mat'     
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_SC-SC/mat'      
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_SEF-NSEFN/mat'  
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_FEF-NSEFN/mat'  
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_SC-NSEFN/mat'   
+    'dataProcessed/analysis/JPSTH-10ms/jpsth_NSEFN-NSEFN/mat'
     };
 wavDir = 'dataProcessed/dataset/waves';
 outDirs = regexprep(jpsthDirs,'JPSTH-10ms/jpsth_','spkCorr/spkCorr_');
@@ -37,8 +37,11 @@ for d = 1:numel(jpsthDirs)
     dFiles = dFiles(contains(dFiles,jpsthPairsDaEu));
     
     %% get rasters for all alignments, for each file in directory
-    availConds = {{'FastErrorChoice' 'AccurateErrorChoice'}
-        {'FastErrorTiming' 'AccurateErrorTiming'}};
+    %datStruct = load(dFiles{p},'-regexp','Accurate*|Fast*');
+%     availConds = {{'FastErrorChoice' 'AccurateErrorChoice'}
+%         {'FastErrorTiming' 'AccurateErrorTiming'}
+%         {'FastCorrect' 'AccurateCorrect'}
+%         };
     %% Baseline epoch to extract from Visual epoch
     baselineWin = [-600 50];
     
@@ -53,7 +56,7 @@ for d = 1:numel(jpsthDirs)
 
 %    dFiles{1} = 'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat/JPSTH-PAIR_0697.mat';
     %% For each file
-    for p = 1:numel(dFiles)
+    parfor p = 1:numel(dFiles)
         out = struct();
         colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
             'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
@@ -61,7 +64,8 @@ for d = 1:numel(jpsthDirs)
             };
         cellPairInfo = load(dFiles{p},'cellPairInfo');
         cellPairInfo = cellPairInfo.cellPairInfo;
-        datStruct = load(dFiles{p},'-regexp','.*Error*');
+        %datStruct = load(dFiles{p},'-regexp','.*Error*');
+        datStruct = load(dFiles{p},'-regexp','Accurate*|Fast*');
         %% process, now that we have added the baseline row (Not all cols are valid       
         fns = fieldnames(datStruct);        
         dat = table();
@@ -71,24 +75,10 @@ for d = 1:numel(jpsthDirs)
                 continue
             end
             rowNames = datStruct.(fn).Properties.RowNames;            
-            % add *SortBy_* fields to dat
             datFns = datStruct.(fn).Properties.VariableNames;
-            sortBys = datFns(contains(datFns,'SortBy_'));          
-            tempTbl =  datStruct.(fn)(rowNames,colNames);
-            for sb = 1:numel(sortBys)
-                sortBy = sortBys{sb};
-                sortByParts = split(sortBy,'_');
-                t = datStruct.(fn)(rowNames,sortBy);
-                t.Properties.RowNames = {};
-                tempTbl.(sortByParts{1}) =  t.(sortBy);
-                sortEvt = sortByParts{2};
-                if isempty(sortEvt)
-                    sortEvt = 'None';
-                end
-                tempTbl.([sortByParts{1} '_EventName']) =  repmat({sortEvt},numel(rowNames),1);               
-            end           
-            tempTbl.Properties.RowNames = {};
-            dat = [dat;tempTbl]; %#ok<*AGROW>
+             tempTbl =  datStruct.(fn)(rowNames,colNames);
+             tempTbl.Properties.RowNames = {};
+             dat = [dat;tempTbl]; %#ok<*AGROW>
         end
         xMatRaw = dat.xRasters;
         yMatRaw = dat.yRasters;
