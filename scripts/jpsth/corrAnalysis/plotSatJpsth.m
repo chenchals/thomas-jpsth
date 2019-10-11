@@ -19,9 +19,6 @@ pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_ERROR_CHOICE_';
 pdfPrefixMap(conditionPairs{3}{1}) = 'SAT_ERROR_TIMING_';
 
 load(jpsthPairFile,'cellPairInfo');
-fx_chanNo = @(x) str2double(char(regexp(x,'(^\d{1,2})','match')));
-fx_getFirstSortColIdx = @(tbl) find(contains(tbl.Properties.VariableNames,'firstSortBy_'));
-fx_getSecondSortColIdx = @(tbl) find(contains(tbl.Properties.VariableNames,'secondSortBy_'));
 
 %%
 [~,pdfBaseFile] = fileparts(jpsthPairFile);
@@ -159,13 +156,6 @@ for cc = 1:numel(conditionPairs)
             doYLabel(gca,['Y-Unit - ' psthYaxisLabel])
             view([-90 90])
             hold on
-%             sortMarkers = cell(2,1);
-%             if ~isempty(fx_getFirstSortColIdx(currJpsths))
-%                 sortMarkers{1} = currJpsths{colNum,fx_getFirstSortColIdx(currJpsths)}{1};
-%             end
-%             if ~isempty(fx_getSecondSortColIdx(currJpsths))
-%                 sortMarkers{2} = currJpsths{colNum,fx_getSecondSortColIdx(currJpsths)}{1};
-%             end    
             sortMarkers = getAlignedSortMarkers(currJpsths(colNum,:));
             PlotUtils.plotRasters(currJpsths.yRasters{colNum}, currJpsths.rasterBins{colNum}, sortMarkers);
                       
@@ -301,8 +291,8 @@ annotation('textbox',[0.10 0.90 0.05 0.05],'String',colNames{1},'FontSize',16,'F
 annotation('textbox',[0.45 0.90 0.05 0.05],'String',colNames{2},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
 annotation('textbox',[0.75 0.90 0.05 0.05],'String',colNames{3},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
 annotation('textbox',[0.01 0.46 0.05 0.05],'String',rowNames{2},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
-
 end
+
 function doXLabel(H_axis,xLabel)
  yLim= get(H_axis,'Ylim');
  xPos = mean(get(H_axis,'Xlim')); % center in x

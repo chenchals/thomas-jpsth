@@ -8,10 +8,12 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
     conditionPairs = {
         {'FastErrorChoice','AccurateErrorChoice'};
         {'FastErrorTiming','AccurateErrorTiming'};
+        {'FastCorrect','AccurateCorrect'};
         };
     pdfPrefixMap = containers.Map();
     pdfPrefixMap(conditionPairs{1}{1}) = 'SAT_ERROR_CHOICE_';
     pdfPrefixMap(conditionPairs{2}{1}) = 'SAT_ERROR_TIMING_';
+    pdfPrefixMap(conditionPairs{3}{1}) = 'SAT_CORRECT_';
 
     cellPairInfo = load(spkCountFile,'cellPairInfo');
     cellPairInfo = cellPairInfo.cellPairInfo;
@@ -262,10 +264,10 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 end
             end
             
-            %% for each condition get waveforms and wave Widths for unitx and unit y
+            %% for each condition get waveforms for unitx and unit y
             xyWf = spikeCorr(strcmp(spikeCorr.condition,condition),{'xWaves','yWaves'});
-            unitsTxt = {cellPairInfo.X_unit{1} cellPairInfo.Y_unit{1}};
-            wColrs = {'r','c'};
+            %wColrs = {'r','c'};
+            wColrs = {[1 0 0],[0 1 1]};
             % at 40Kz = 25 microsec/sample
             binSize = (1/40);
             wfBins = (0:size(xyWf.xWaves{1}{1},2))*binSize; % in millisecs
@@ -275,25 +277,79 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             wfXTickLabel(wfXTicks==0) = {'0'};
             wfXaxisLabel = 'Time (ms)';          
             wfYaxisLabel = 'AD Units';
-             
-            %% for each condition plot aggregated waveform for unitx and unit y
+            % waveforms across all alignments
+            xWaves = cell2mat(cellfun(@(x) cell2mat(x),xyWf.xWaves,'UniformOutput',false));
+            yWaves = cell2mat(cellfun(@(x) cell2mat(x),xyWf.yWaves,'UniformOutput',false));
+            unitsTxt = {sprintf('%s (%d)',cellPairInfo.X_unit{1},size(xWaves,1)),...
+                sprintf('%s (%d)',cellPairInfo.Y_unit{1},size(yWaves,1))};
+            % for each condition plot aggregated waveform for unitx and unit y
             pos(1) = offsetsX(5) + gutter;
             pos(2) = offsetsY(rowNum) - (pltH + gutter*6)*2.5;
-            pos(3:4) = [pltW*2.9 pltH*1.3];
+            pos(3:4) = [pltW*1.8 pltH*1.3];
             H_out.H_wav=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_wav');
-            plotWaveforms(cell2mat(xyWf.xWaves{1}),binSize,0,wColrs{1});
+            plotWaveforms(xWaves,binSize,0,wColrs{1});
             hold on
-            plotWaveforms(cell2mat(xyWf.yWaves{1}),binSize,0,wColrs{2});
+            plotWaveforms(yWaves,binSize,0,wColrs{2});
             doYLabel(gca,wfYaxisLabel)          
             annotateAxis(gca,'x',wfXlim,wfXTicks,wfXTickLabel,0,axColor);
             doXLabel(gca,wfXaxisLabel)            
             legend(unitsTxt,'Location', 'northwest','Box','off')
+            
+            %% for each condition get waveforms for unitx and unit y
+            sampleTime = 1000/40; % 40KHz, = 25 microSecs
+            xyWavWidths = spikeCorr(strcmp(spikeCorr.condition,condition),{'xWaveWidths','yWaveWidths'});
+            xWavWidths = cell2mat(cellfun(@(x) cell2mat(x),xyWavWidths.xWaveWidths,'UniformOutput',false));
+            yWavWidths = cell2mat(cellfun(@(x) cell2mat(x),xyWavWidths.yWaveWidths,'UniformOutput',false));
+            xWavWidths = abs(xWavWidths)*sampleTime;
+            yWavWidths = abs(yWavWidths)*sampleTime;
+            wWXlim = [0 max(max(xWavWidths),max(yWavWidths))+50];
+            wWXTicks = min(wWXlim):50:max(wWXlim);
+            wWXTickLabel =  arrayfun(@(x) num2str(x,'%d'),wWXTicks','UniformOutput',false);
+             wWXTickLabel(contains(wWXTickLabel,'50')) = {' '};
+            wWXTickLabel(wWXTicks==0) = {'0'};
+            wWXaxisLabel = 'Time (microsec)';          
+            wWYaxisLabel = 'Frequency';
+            unitsTxt = {cellPairInfo.X_unit{1},cellPairInfo.Y_unit{1}};
+  
+            pos(1) = pos(1) + pos(3) + gutter*2;
+            pos(2) = pos(2);
+            pos(3:4) = [pltW*1.8 pltH*1.3];
+            H_out.H_wavWid=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_wavWid');
+            h_x = histogram(xWavWidths,50,'BinLimits',wWXlim,'FaceColor',wColrs{1}); 
+            hold on
+            h_y = histogram(yWavWidths,50,'BinLimits',wWXlim,'FaceColor',wColrs{2});
+            hold off
+            doYLabel(gca,wWYaxisLabel)          
+            annotateAxis(gca,'x',wWXlim,wWXTicks,wWXTickLabel,0,axColor);
+            doXLabel(gca,wWXaxisLabel)            
+            legend(unitsTxt,'Location', 'northwest','Box','off')
+            
+            % Mean std of spike widths
+            xMean = mean(xWavWidths);
+            xStd = std(xWavWidths);
+            yMean = mean(yWavWidths);
+            yStd = std(yWavWidths);
+            unitsTxt = categorical({cellPairInfo.X_unit{1},cellPairInfo.Y_unit{1}});
+
+            pos(1) = pos(1) + pos(3) + gutter*2;
+            pos(2) = pos(2);
+            pos(3:4) = [pltW*1.8 pltH*1.3];
+            H_out.H_wavWidM=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_wavWidM');
+            bar(unitsTxt(1),xMean,'FaceColor',wColrs{1});
+            hold on
+            errorbar(unitsTxt(1),xMean,xStd,'.','Color',wColrs{1});
+            bar(unitsTxt(2),yMean,'FaceColor',wColrs{2});
+            errorbar(unitsTxt(2),yMean,yStd,'.','Color',wColrs{2});
+            ylabel('SpkeWidth (microsec.)','VerticalAlignment','bottom',...
+              'HorizontalAlignment','center','FontSize',8,'FontWeight','bold',...
+              'FontAngle', 'italic','Color','black'); 
            
         %% end rowNum
         end
-        chanStr = 'Different Channels';
-        if fx_chanNo(cellPairInfo.X_unit{1}) == fx_chanNo(cellPairInfo.Y_unit{1})
-            chanStr = 'Same Channel';
+        if cellPairInfo.isOnSameChannel
+            chanStr = 'Same (dist: 0 mm)';
+        else
+            chanStr = sprintf('Different (dist: %0.3f mm)',cellPairInfo.XY_Dist{1});
         end
         addAnnotations(cellPairInfo.Pair_UID{1},outPdfFile, [cellPairInfo.X_area{1} ' vs ' cellPairInfo.Y_area{1}],...
             chanStr,conditions,alignNames);
@@ -332,21 +388,23 @@ end
 
 function addPairInfo(H_axes,cellPairInfo)
   cellInfo = cellPairInfo(1,contains(cellPairInfo.Properties.VariableNames,'X_'));
+  cellInfo.XY_Dist = cellPairInfo.XY_Dist;
   cellInfo.Properties.VariableNames = strrep(cellInfo.Properties.VariableNames,'X_','');
   cellInfo(2,:) = cellPairInfo(1,contains(cellPairInfo.Properties.VariableNames,'Y_'));
-  plotAddPairInfo(H_axes,cellInfo);
+  plotAddPairInfo(H_axes,cellInfo);  
 end
 
 function addAnnotations(pairUid,pdfFile,xyAreas,chanStr,rowNames,colNames)
-    %
+    % 
     annotation('textbox',[0.10 0.95 0.05 0.05],'String',pairUid,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
     [~,fn,ext] = fileparts(pdfFile);
-    annotation('textbox',[0.35 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-    annotation('textbox',[0.70 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-    h = annotation('textbox',[0.85 0.95 0.10 0.05],'String',chanStr,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none');
+    annotation('textbox',[0.27 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    annotation('textbox',[0.67 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    h = annotation('textbox',[0.80 0.95 0.10 0.05],'String',chanStr,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none');
     if contains(chanStr,'Same')
         set(h,'Color','r');
-    end% conditions / alignNames
+    end
+    % conditions / alignNames
     annotation('textbox',[0.01 0.93 0.05 0.05],'String',rowNames{1},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
     annotation('textbox',[0.07 0.91 0.05 0.05],'String',colNames{1},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
     annotation('textbox',[0.22 0.91 0.05 0.05],'String',colNames{2},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
