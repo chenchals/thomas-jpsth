@@ -234,7 +234,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 for s = 1:4
                     % Draw 3 scatter plots across for Baseline, visual, postsac
                     pos(1) = offsetsX(5) + gutter + (pltW + gutter*3)*(s-1);
-                    pos(2) = offsetsY(rowNum) - (psthH + gutter) - (pltH + gutter*6)*(z-1);
+                    pos(2) = offsetsY(rowNum) - (psthH + gutter) - (pltH + gutter*4)*(z-1);
                     pos(3:4) = [pltW pltH];
                     H_out.H_rscBl=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rscBl');
                     plotData = spikeCorr(strcmp(spikeCorr.condition,condition) ...,
@@ -284,8 +284,8 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 sprintf('%s (%d)',cellPairInfo.Y_unit{1},size(yWaves,1))};
             % for each condition plot aggregated waveform for unitx and unit y
             pos(1) = offsetsX(5) + gutter;
-            pos(2) = offsetsY(rowNum) - (pltH + gutter*6)*2.5;
-            pos(3:4) = [pltW*1.8 pltH*1.3];
+            pos(2) = offsetsY(rowNum) - (pltH + gutter*5)*2.5;
+            pos(3:4) = [pltW*1.8 pltH*1.2];
             H_out.H_wav=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_wav');
             plotWaveforms(xWaves,binSize,0,wColrs{1});
             hold on
@@ -302,10 +302,10 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             yWavWidths = cell2mat(cellfun(@(x) cell2mat(x),xyWavWidths.yWaveWidths,'UniformOutput',false));
             xWavWidths = abs(xWavWidths)*sampleTime;
             yWavWidths = abs(yWavWidths)*sampleTime;
-            wWXlim = [0 max(max(xWavWidths),max(yWavWidths))+50];
+            wWXlim = [0 max([max(xWavWidths),max(yWavWidths)])+50];
             wWXTicks = min(wWXlim):50:max(wWXlim);
             wWXTickLabel =  arrayfun(@(x) num2str(x,'%d'),wWXTicks','UniformOutput',false);
-             wWXTickLabel(contains(wWXTickLabel,'50')) = {' '};
+            wWXTickLabel(contains(wWXTickLabel,'50')) = {' '};
             wWXTickLabel(wWXTicks==0) = {'0'};
             wWXaxisLabel = 'Time (microsec)';          
             wWYaxisLabel = 'Frequency';
@@ -315,13 +315,14 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             pos(2) = pos(2);
             pos(3:4) = [pltW*1.8 pltH*1.3];
             H_out.H_wavWid=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_wavWid');
-            h_x = histogram(xWavWidths,50,'BinLimits',wWXlim,'FaceColor',wColrs{1}); 
+            
+            histogram(xWavWidths,50,'BinLimits',wWXlim,'FaceColor',wColrs{1});
             hold on
-            h_y = histogram(yWavWidths,50,'BinLimits',wWXlim,'FaceColor',wColrs{2});
+            histogram(yWavWidths,50,'BinLimits',wWXlim,'FaceColor',wColrs{2});
             hold off
-            doYLabel(gca,wWYaxisLabel)          
+            doYLabel(gca,wWYaxisLabel)
             annotateAxis(gca,'x',wWXlim,wWXTicks,wWXTickLabel,0,axColor);
-            doXLabel(gca,wWXaxisLabel)            
+            doXLabel(gca,wWXaxisLabel)
             legend(unitsTxt,'Location', 'northwest','Box','off')
             
             % Mean std of spike widths
