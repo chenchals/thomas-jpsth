@@ -32,10 +32,24 @@ excelInfos = vertcat(excelInfos{:});
 %% Process info for all monks 
 db = load(ninfo_nstat_file); % contains ninfo and nstats structs
 cInfo = struct2table(db.ninfo);
+
+% convert grid location from ap-ml to 
+% +(plus) for anterior -(minus) for posterior
+% +(plus) for medial -(minus) for lateral
+fx_GridConvert = @(gloc) fliplr(eval([ '[' regexprep(fliplr(gloc),{'a','p','m','l'},{'+','-','+','-'}) ']']));
+gridLoc = regexprep(lower(excelInfos.Grid),{'-','nan',' '},{''});
+excelInfos.GridAP_ML = cellfun(@(x) fx_GridConvert(x),gridLoc,'UniformOutput',false);
+
+newDepth = str2double(excelInfos.Depth);
+d0Idx = isnan(str2double(excelInfos.Depth)) & ~isnan(str2double(excelInfos.Depth0));
+newDepth(d0Idx) = str2double(excelInfos.Depth0(d0Idx));
+excelInfos.newDepth = newDepth;
+
 % inner join with information from excel recoded
 cInfo = innerjoin(cInfo,excelInfos,'LeftKeys',{'sess','unit'},...
                   'RightKeys',{'MatSessionName','Unit'},...
-                  'RightVariables',{'MatSessionName','Hemi','Grid','SessionNotes'});
+                  'RightVariables',{'MatSessionName','Hemi','Grid','GridAP_ML',...
+                  'Depth','Depth0','newDepth','SessionNotes'});
 
 %% JPSTH summary --> how many cell pairs for each session?
 JpsthPairSummary=table();
@@ -117,6 +131,14 @@ for s=1:numel(cellsBySession)
             pairs.(['X_' cName]) = result.CellInfoTable.(cName)(pairRowIds(:,1));
             pairs.(['Y_' cName]) = result.CellInfoTable.(cName)(pairRowIds(:,2));
         end
+        pairs.XY_Dist = arrayfun(@(x)...
+            getElectrodeDistance(pairs.X_GridAP_ML{x},pairs.Y_GridAP_ML{x},...
+                                pairs.X_newDepth(x),pairs.Y_newDepth(x)),...
+                                (1:size(pairs,1))','UniformOutput',false);
+        pairs.isOnSameChannel = arrayfun(@(x) ...
+            isequal(regexp(pairs.X_unit{x},'(\d{1,2})','tokens'),...
+            regexp(pairs.Y_unit{x},'(\d{1,2})','tokens')), (1:size(pairs))');
+        
         pairs.matDatafile = repmat({matDatafile},nPairs,1);          
         pairs.plxDatafile = repmat({plxDatafile},nPairs,1);          
         JpsthPairCellInfoDB = [JpsthPairCellInfoDB;pairs]; %#ok<AGROW>
@@ -131,3 +153,19 @@ save(fullfile(inRootAnalysisDir,'JPSTH-PAIR-Summary.mat'), 'JpsthPairSummary');
 writetable(JpsthPairSummary,fullfile(inRootAnalysisDir,'JPSTH-PAIR-Summary.csv'))
 
 
+function [eDist] = getElectrodeDistance(xGridLoc,yGridLoc,xDepth,yDepth)
+% grid locs must be numeric [AP, ML]
+% [+1 = 1a, -1 = 1p] [+1 = 1m, -1 = 1L]
+% depth in microns --> convert to mm
+
+    if isempty(xGridLoc) || isempty(yGridLoc) || sum(isnan([xDepth yDepth]))
+        eDist = NaN;
+    elseif isequal(xGridLoc,yGridLoc)
+        eDist = 0;
+    else
+        pointA = [xGridLoc(:); xDepth/1000];
+        pointB = [yGridLoc(:); yDepth/1000];
+        eDist =  sqrt(sum((pointA-pointB).^2));
+    end
+
+end
