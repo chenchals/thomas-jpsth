@@ -98,7 +98,7 @@ for d = 1:numel(corrMatDirs)
 end
 rscSignalNoise = vertcat(rscSignalNoise.pDat);
 size(rscSignalNoise);
-save(oFilename,'rscSignalNoise');
+save(oFilename,'-v7.3','rscSignalNoise');
 
 
 
