@@ -107,7 +107,7 @@ for d = 1:numel(corrMatDirs)
     fprintf('Done %.3f sec.\n',toc)
 end
 size(rscSignalNoise);
-save(oFilename,'-v7.3','rscSignalNoise');
+save(oFilename,'-v7.3','-struct','rscSignalNoise');
 toc
 
 
