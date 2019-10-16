@@ -59,7 +59,7 @@ corrDatFields = {
     'alignedName'        
     'alignedEvent'       
     'alignedTimeWin'     
-    'trialNosByCondition'
+    %'trialNosByCondition'
     'critRho10'          
     'critRho05'          
     'critRho01'          
@@ -71,8 +71,11 @@ corrDatFields = {
     'rho_pval_static_Z'  
     };
 rscSignalNoise = struct();
+tic
 for d = 1:numel(corrMatDirs)
     areaPair = areaPairs{d};
+    fprintf('Doing pairs for %s...',areaPair);
+    areaPairField = strrep(areaPair,'-','_');
     srcFiles = dir([corrMatDirs{d},'/rscCorr_PAIR_*.mat']);
     srcFiles = strcat({srcFiles.folder}','/',{srcFiles.name}');
     nPairs = numel(srcFiles);
@@ -90,15 +93,22 @@ for d = 1:numel(corrMatDirs)
         pDat.pairAreas = repmat({areaPair},nRows,1);
         pDat.nTrials = cellfun(@(x) numel(x), temp.trialNosByCondition);
         temp.trialNosByCondition = [];
-        pDat = [pDat,...
-                temp(:,ismember(tempFns,corrDatFields))];                
-        outPairs(p).pDat= pDat;
+        fieldIdx = cellfun(@(x) find(strcmp(tempFns,x)),corrDatFields)
+        pDat = [pDat,temp(:,corrDatFields)];
+        pDat.XY_Dist = cell2mat(pDat.XY_Dist);
+        % split rho, pval
+        [pDat.rhoSignal,pDat.pvalSignal,pDat.signifSignal_05,pDat.signifSignal_01] = ...
+            cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),pDat.rho_pval_static);
+        [pDat.rhoNoise,pDat.pvalNoise,pDat.signifNoise_05,pDat.signifNoise_01] = ...
+            cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),pDat.rho_pval_static_Z);
+        outPairs(p).pDat = pDat;
     end
-    rscSignalNoise(d).pDat = vertcat(outPairs.pDat);    
+    rscSignalNoise.(areaPairField) = vertcat(outPairs.pDat); 
+    fprintf('Done %.3f sec.\n',toc)
 end
-rscSignalNoise = vertcat(rscSignalNoise.pDat);
 size(rscSignalNoise);
 save(oFilename,'-v7.3','rscSignalNoise');
+toc
 
 
 
