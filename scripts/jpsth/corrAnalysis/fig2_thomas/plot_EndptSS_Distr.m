@@ -14,7 +14,7 @@ xFinPP = [];
 yFinPP = [];
 conds = [3, 1];
 condColors = {[0 1 0] [1 0 0]};
-condAlphas = [0.8 0.2];
+condAlphas = [0.2 0.1];
 legTxt = {'Condition 3','Condition 1'};
 figure();
 for c = 1:2

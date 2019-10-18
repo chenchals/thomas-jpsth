@@ -5,6 +5,7 @@ function [ ] = plot_EndptSS_Distr_2(binfo, movesPP )
 %% filter criteria
 monks = {'D','E'};
 MIN_NUM_TRIALS = 500;
+fx_octant2angle = @(vect) (pi/4)*(double(vect)-1);
 
 %% convert to table for filtering
 binfo = struct2table(binfo);
@@ -33,15 +34,17 @@ xFinPP = [];
 yFinPP = [];
 conds = [3, 1];
 condColors = {[0 1 0] [1 0 0]};
-condAlphas = [0.8 0.2];
-legTxt = {'Condition 3','Condition 1'};
-figure(); polaraxes()
+condAlphas = [0.2 0.1];
+legTxt = {'3 - Fast','1 - Accurate'};
+figure();
 for c = 1:2
+    axesHandle = subplot(1,2,c);
+    polaraxes('Units',axesHandle.Units,'Position',axesHandle.Position);
+    delete(axesHandle);
     condition = conds(c);
     condColor = condColors{c};
-    condAlpha = condAlphas(c);
-    for kk = 1:NUM_SESS
-        
+    condAlpha = condAlphas(c);    
+    for kk = 1:NUM_SESS        
         %use a consistent target eccentricity
         if (binfo(kk).tgt_eccen(100) ~= TGT_ECCEN); continue; end
         
@@ -62,7 +65,8 @@ for c = 1:2
         yfinPP_ = movesPP(kk).y_fin(idxCond & idxErr & ~idxNoPP & ~idxClipped);
         
         %determine location of singleton relative to absolute right
-        th_tgt = convert_tgt_octant_to_angle(binfo(kk).tgt_octant((idxCond & idxErr & ~idxNoPP & ~idxClipped)));
+        th_tgt = fx_octant2angle(binfo(kk).tgt_octant((idxCond & idxErr & ~idxNoPP & ~idxClipped)));
+        
         %rotate post-primary saccade trajectory according to singleton loc.
         xtmp = cos(2*pi-th_tgt) .* xfinPP_ - sin(2*pi-th_tgt) .* yfinPP_;
         ytmp = sin(2*pi-th_tgt) .* xfinPP_ + cos(2*pi-th_tgt) .* yfinPP_;
@@ -84,7 +88,10 @@ for c = 1:2
     rlim([0 8]); thetaticks([])
     %ppretty([5,5])
     hold on
+    legend(legTxt{c},'Location','northeastoutside')
+    
 end
-legend(legTxt,'Location','northeastoutside')
+%legend(legTxt,'Location','northeastoutside')
 
 end%fxn:plot_EndptSS_Distr()
+
