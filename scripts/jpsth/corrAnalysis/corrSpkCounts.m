@@ -13,8 +13,8 @@ jpsthDirs = {
     'dataProcessed/analysis/JPSTH-10ms/jpsth_SC-NSEFN/mat'   
     'dataProcessed/analysis/JPSTH-10ms/jpsth_NSEFN-NSEFN/mat'
     };
-wavDir = 'dataProcessed/dataset/waves';
-outDirs = regexprep(jpsthDirs,'JPSTH-10ms/jpsth_','spkCorr/spkCorr_');
+% wavDir = 'dataProcessed/dataset/waves';
+% outDirs = regexprep(jpsthDirs,'JPSTH-10ms/jpsth_','spkCorr/spkCorr_');
 
 %% do only for Da and Eu
 jpsthPairsDaEu = load('dataProcessed/dataset/JPSTH_PAIRS_CellInfoDB.mat');
@@ -235,38 +235,6 @@ function [xWaves,yWaves] = getWaveforms(wavDir,cellPairInfo,dat)
         spkIdxByTrlY = cellfun(@(aUts,aWts) fx_matchedSpkIdx(aUts,aWts),alindUnitTsYWin,alindWfTsYWin,'UniformOutput',false);
         yWaves{jj} = cellfun(@(wfByTrl,idxByTrl) wfByTrl(cell2mat(idxByTrl'),:),wavsY(selTrls),spkIdxByTrlY,'UniformOutput',false);
 
-    end
-end
-
-
-function [wavWidths] = getWaveformWidths(wavforms)
-    % given a matrix of waveforms, find width by interpolating with a
-    % cubic-spline at 10x sampling
-    fx_spkWid = @(spks,magFactor) ...
-        arrayfun(@(s) (find(spks(s,:)==max(spks(s,:),[],2),1) ...
-                    - find(spks(s,:)==min(spks(s,:),[],2),1))/magFactor,...
-                      (1:size(spks,1))');
-    wavWidths = cell(numel(wavforms),1);
-    interpolateAt = 10; % 10x
-    for ro = 1:numel(wavforms)
-        w = wavforms{ro};
-        if isempty(w)
-            continue;
-        end      
-        x = size(w{1},2);
-        x = (1:x)';
-        xq = (1:1/interpolateAt:max(x))';
-        % there could be trials with no spikes
-        notEmptyIdx = find(~cellfun(@isempty,w));
-        % interpolated waveforms for trials with spikes
-        wq = cellfun(@(s) interp1(x,s',xq,'pchip')',w(notEmptyIdx),'UniformOutput',false);
-        % waveform widths in sampling space
-        wqWideTemp = cellfun(@(s) fx_spkWid(s,interpolateAt),wq,'UniformOutput',false);
-        % put back widths for correct trials
-        wqWide = cell(size(w,1),1);
-        wqWide(notEmptyIdx) = wqWideTemp;
-        wavWidths{ro} = wqWide;
-        
     end
 end
 

@@ -187,9 +187,9 @@ classdef SpikeUtils
             %   fx:  Built-in function-handle to be used for PSTH. Valid
             %        args are: @nanmean, @nanstd, @nanvar
             
-            binCenters = min(timeWin):binWidth:max(timeWin);
+            binEdges = min(timeWin)-binWidth/2:binWidth:max(timeWin)+binWidth/2;
             outArg.psthBins = min(timeWin):binWidth:max(timeWin);
-            outArg.spikeCounts = cell2mat(cellfun(@(x) hist(x,binCenters),...
+            outArg.spikeCounts = cell2mat(cellfun(@(x) histcounts(x,binEdges),...
                 cellSpikeTimes,'UniformOutput',false));
             outArg.psth = mean(outArg.spikeCounts);
             outArg.psthStd = std(outArg.spikeCounts);
