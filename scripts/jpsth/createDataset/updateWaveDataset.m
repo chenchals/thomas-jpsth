@@ -3,7 +3,7 @@ function [] = updateWaveDataset(waveformDir)
 
 wavFiles = dir(fullfile(waveformDir,'Unit_*'));
 wavFiles = strcat({wavFiles.folder}','/',{wavFiles.name}');
-for ii = 1:numel(wavFiles)
+parfor ii = 1:numel(wavFiles)
     wavFile = wavFiles{ii};
     wavTbl = load(wavFile);
     fns = fieldnames(wavTbl);
