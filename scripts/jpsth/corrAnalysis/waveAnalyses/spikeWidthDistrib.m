@@ -96,6 +96,82 @@ txt = {sprintf('%s(n=%d) %3d\\pm%2d', 'D', units(idxD), means(idxD), stds(idxD))
 yl=get(gca,'YLim');
 h_tsc =text(min(xLims)+0.05*range(xLims),max(yl)-0.25*range(yl),txt,'Interpreter','tex','FontWeight','bold');
 
+%% fit a mixture of gaussians to the distribution. Below is a copy from >>doc fitgmdist
+% use fitgmdist: doc fitgmdist
+% Fit four models to the data, each with an increasing number of
+% components, and compare the Akaike Information Criterion (AIC) values. 
+
+sefUnitWidths = wavWidthsTbl.wavWidthSearchMs(strcmp(wavWidthsTbl.area,'SEF'));
+
+
+
+
+
+X = sefUnitWidths{1};
+X = X(:);
+AIC = zeros(1,4);
+gm = cell(1,4);
+parfor k = 1:4
+    gm{k} = fitgmdist(X,k);
+    AIC(k)= gm{k}.AIC;
+end
+% Display the number of components that minimizes the AIC value.
+
+[minAIC,numComponents] = min(AIC);
+numComponents
+
+% Display the two-component GMM.
+
+gm2 = gm{numComponents};
+
+% Both the AIC and Bayesian information criteria (BIC) are likelihood-based
+% measures of model fit that include a penalty for complexity
+% (specifically, the number of parameters). You can use them to determine
+% an appropriate number of components for a model when the number of
+% components is unspecified.
+
+%% gm 2 table
+nModels = numel(gm);
+fns = fieldnames(gm{1});
+multiValFns = {'ComponentProportion','mu','Sigma'};
+singleValueFns = setdiff(fns,multiValFns);
+gmmTbl = table();
+for ii = 1:nModels
+    nComponents = ii;
+    modelName = num2str(nComponents,'GMM_%d');
+    model = gm{ii};
+    % make rows for multivalue properties
+    temp = table();
+    temp.modelName = repmat(modelName,ii,1);
+    temp.nComponents = repmat(nComponents,ii,1);
+    for jj = 1:ii
+        temp.mu(jj) = model.mu(jj);
+        temp.Sigma(jj) = squeeze(model.Sigma(:,:,jj));
+        temp.ComponentProportion(jj) = model.ComponentProportion(jj);       
+    end
+    
+    for kk = 1:numel(singleValueFns)
+        temp.(singleValueFns{kk}) = repmat(model.(singleValueFns{kk}),ii,1);
+    end
+    gmmTbl = [gmmTbl;temp];
+end
+ gmmTbl = sortrows(gmmTbl,{'nComponents','ComponentProportion'},{'ascend','descend'});
+ 
+ 
+ 
+ 
+    
+
+
+
+
+
+
+
+
+
+
+
 
 
 
