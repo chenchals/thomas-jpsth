@@ -107,7 +107,7 @@ sefUnitWidths = wavWidthsTbl.wavWidthSearchMs(strcmp(wavWidthsTbl.area,'SEF'));
 
 
 
-X = sefUnitWidths{1};
+X = sefUnitWidths{10};
 X = X(:);
 AIC = zeros(1,4);
 gm = cell(1,4);
