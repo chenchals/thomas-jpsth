@@ -20,7 +20,7 @@ for p = 1:numel(plotDirs)
 end
 
 tic
-for d = 1:numel(corrDirs)
+for d = 2:numel(corrDirs)
     scFiles = dir([corrDirs{d},'/rscCorr*.mat']);
     scFiles = strcat({scFiles.folder}',filesep,{scFiles.name}');
     pdfDir = plotDirs{d};
