@@ -1,19 +1,22 @@
-% Needs ninfo_nstats_SAT.mat created by Thomas
-%       and all recoded xlsx files from Rich's SAT summary excel files 
-%       [monk]_SAT_colorRecode.xlsx
-% Criteria for Pairs:
-%      1. Only use Units the satisfy: abs(unit.visGrade) > 1 | abs(unit.moveGrade) > 1
-%      2  There has to atleast 2 units in the session
-% The data for all units and their criteria is in file ninfo_nstats_SAT.mat
 % 
-% Run createTrialTypesEventTimesDB after running this script.
+% Needs 'dataNeurophys_SAT.mat' created by Thomas(10/29/2019)
+%       and '[monk]_SAT_colorRecode.xlsx' that are color recoded versions
+%       of Rich's SAT summary excel files
+% Criteria for Pairs:
+%      1. There has to be atleast 2 units in the session
+%      2. The data for all units and their criteria is in file
+%      'dataNeurophys_SAT.mat'  
+% 
+% After running this script, run createTrialTypesEventTimesDB 
 % see also: CREATETRIALTYPESEVENTTIMESDB, PARSESATEXCEL
 
 % Modifications:
 % 10/03/2019 : Removed the criteria for filtering for only vis/mov units
+% 10/29/2019 : Using new file 'dataNeurophys_SAT.mat' for ninfo and nstats
+%              instead of 'ninfo_nstats_SAT.mat'
 
 useVizMovUnits = false;
-ninfo_nstat_file = 'dataProcessed/dataset/ninfo_nstats_SAT.mat';
+unitInfoStats_file = 'dataProcessed/dataset/dataNeurophys_SAT.mat';
 xlsxDir = 'dataProcessed/excel';
 matAndPlxFiles = 'dataProcessed/dataset/SessionFiles_SAT.mat';
 inRootAnalysisDir = fullfile('dataProcessed/dataset');
@@ -30,8 +33,8 @@ excelInfos = cellfun(@(x) parseSatExcel(fullfile(xlsxDir,[x '_SAT_colorRecode.xl
 excelInfos = vertcat(excelInfos{:});
 
 %% Process info for all monks 
-db = load(ninfo_nstat_file); % contains ninfo and nstats structs
-cInfo = struct2table(db.ninfo);
+db = load(unitInfoStats_file); % contains ninfo and nstats structs
+cInfo = db.unitInfo;
 
 % convert grid location from ap-ml to 
 % +(plus) for anterior -(minus) for posterior
@@ -130,11 +133,25 @@ for s=1:numel(cellsBySession)
             cName = varsForPairs{v};
             pairs.(['X_' cName]) = result.CellInfoTable.(cName)(pairRowIds(:,1));
             pairs.(['Y_' cName]) = result.CellInfoTable.(cName)(pairRowIds(:,2));
+            if strcmp(cName,'errGrade')
+               pairs.('X_isErrGrade') = abs(pairs.(['X_' cName]))>=2;
+               pairs.('Y_isErrGrade') = abs(pairs.(['Y_' cName]))>=2;
+            end
+            if strcmp(cName,'rewGrade')
+               pairs.('X_isRewGrade') = abs(pairs.(['X_' cName]))>=2;
+               pairs.('Y_isRewGrade') = abs(pairs.(['Y_' cName]))>=2;
+            end
+            
         end
-        pairs.XY_Dist = arrayfun(@(x)...
+        XY_Dist = arrayfun(@(x)...
             getElectrodeDistance(pairs.X_GridAP_ML{x},pairs.Y_GridAP_ML{x},...
                                 pairs.X_newDepth(x),pairs.Y_newDepth(x)),...
                                 (1:size(pairs,1))','UniformOutput',false);
+        % set cross area distances to be NaN as the distance computation is
+        % invalid across chambers
+        XY_Dist(cellfun(@(a1,a2) ~strcmp(a1,a2),pairs.X_area,pairs.Y_area)) = {NaN};
+        pairs.XY_Dist = XY_Dist;
+        
         pairs.isOnSameChannel = arrayfun(@(x) ...
             isequal(regexp(pairs.X_unit{x},'(\d{1,2})','tokens'),...
             regexp(pairs.Y_unit{x},'(\d{1,2})','tokens')), (1:size(pairs))');
