@@ -69,10 +69,15 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
         for rowNum = 1:2
             condition = conditions{rowNum};
             axColor = [0.5 0.5 0.5];
+            % it is possible that a particular condition may not exist
+            % example FastErrorTiming for SEF-SC --> PAIR_0590
+            if sum(strcmp(spikeCorr.condition,condition)) == 0
+                continue;
+            end
             for colNum = 1:4
                 rhoPvalWin = rhoPvalWins{colNum};
                 currSpkCorr = spikeCorr(strcmp(spikeCorr.condition,condition) ...
-                    & strcmp(spikeCorr.alignedName,alignNames{colNum}),:);
+                    & strcmp(spikeCorr.alignedName,alignNames{colNum}),:);             
                 unitSumm ={
                     sprintf('%10s %10s %10s','Unit','nTrials','nSpikes')
                     sprintf('%10s %10d %10d','X-Unit',size(currSpkCorr.xRasters{1},1),sum(currSpkCorr.xRasters{1}(:)))

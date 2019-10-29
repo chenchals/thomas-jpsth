@@ -5,12 +5,13 @@ corrDirs = {
     'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
     'dataProcessed/analysis/spkCorr/spkCorr_FEF-FEF/mat'    
     'dataProcessed/analysis/spkCorr/spkCorr_FEF-SC/mat'     
-    'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'      
-    'dataProcessed/analysis/spkCorr/spkCorr_SEF-NSEFN/mat'  
-    'dataProcessed/analysis/spkCorr/spkCorr_FEF-NSEFN/mat'  
-    'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
-    'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
+    'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'  
     };
+%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-NSEFN/mat'  
+%     'dataProcessed/analysis/spkCorr/spkCorr_FEF-NSEFN/mat'  
+%     'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
+%     'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
+%     };
 plotDirs = regexprep(corrDirs,'/mat$','/pdf');
 
 for p = 1:numel(plotDirs)
@@ -20,7 +21,7 @@ for p = 1:numel(plotDirs)
 end
 
 tic
-for d = 2:numel(corrDirs)
+for d = 3:numel(corrDirs)
     scFiles = dir([corrDirs{d},'/rscCorr*.mat']);
     scFiles = strcat({scFiles.folder}',filesep,{scFiles.name}');
     pdfDir = plotDirs{d};
