@@ -24,7 +24,7 @@ psthBinWidthMs = 10;
 % -25 to +25 ms
 coincidenceBinWidthMs = 25;
 
-rootAnalysisDir = ['dataProcessedL/analysis/JPSTH-' num2str(psthBinWidthMs,'%dms')];
+rootAnalysisDir = ['dataProcessed/analysis/JPSTH-' num2str(psthBinWidthMs,'%dms')];
 datasetDir = 'dataProcessed/dataset';
 jpsthResultsDir = fullfile(rootAnalysisDir,['jpsth_' area1 '-' area2],'mat');
 if ~exist(jpsthResultsDir, 'dir')
@@ -52,8 +52,8 @@ sessionEventTimes = sessionEventTimes.TrialEventTimesDB;
 
 %% Filter cell pairs for the areas of interest
 jpsthCellPairs = jpsthCellPairs(...
-    ((contains(jpsthCellPairs.X_area,area1) & contains(jpsthCellPairs.Y_area,area2)) ...
-   | (contains(jpsthCellPairs.X_area,area2) & contains(jpsthCellPairs.Y_area,area1))),...
+    ((strcmp(jpsthCellPairs.X_area,area1) & strcmp(jpsthCellPairs.Y_area,area2)) ...
+   | (strcmp(jpsthCellPairs.X_area,area2) & strcmp(jpsthCellPairs.Y_area,area1))),...
      :);
 sessions = unique(jpsthCellPairs.X_sess);
 assert(isequal(sessions,unique(jpsthCellPairs.Y_sess)),'********Fatal: Error X-xell sessions and Y-cell sessions do not match');

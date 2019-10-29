@@ -2,13 +2,13 @@ areaPairs ={
     'SEF','SEF'
     'SEF','FEF'
     'SEF','SC'
-    'SEF','NSEFN'
     'FEF','FEF'
     'FEF','SC'
-    'FEF','NSEFN'
     'SC','SC'
-    'SC','NSEFN'
+    'SEF','NSEFN'
+    'FEF','NSEFN'
     'NSEFN','NSEFN'
+    'SC','NSEFN'
     };
 tic
 for aa = 1:size(areaPairs,1)
