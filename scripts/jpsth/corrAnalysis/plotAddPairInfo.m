@@ -9,8 +9,8 @@ function plotAddPairInfo(H_axes, jpsthCellInfo)
     
     varNames=infoTable.Properties.VariableNames;
     varNames(contains(varNames,'trRem'))=[];
-    fontSize = 10;
-    columnGap = 0.01;
+    fontSize = 8;
+    columnGap = 0.005;
     nCols = numel(varNames);
     % we are plotting this from bottom
     xPos=0.005;
@@ -42,13 +42,13 @@ function plotAddPairInfo(H_axes, jpsthCellInfo)
                 valTxt{ii,1} = char(value);
             end
         end
-        hText{2} = text(xPos,yHPos-0.4,valTxt,'Interpreter','none',...
+        hText{2} = text(xPos,yHPos-0.26,valTxt,'Interpreter','none',...
             'FontWeight','normal','FontSize',fontSize,...
             'VerticalAlignment', 'top','HorizontalAlignment','left');
         xPos = getNextXPos(hText, columnGap);
     end
     text(xPos,yHPos,'SessionNotes','Interpreter','none',...
-        'FontWeight','bold','FontSize',fontSize*1.2,...
+        'FontWeight','bold','FontSize',fontSize,...
         'VerticalAlignment', 'top','HorizontalAlignment','left');
     if numel(unique(sessionNotes)) > 1
         fontSize = fontSize*0.6;
@@ -58,7 +58,7 @@ function plotAddPairInfo(H_axes, jpsthCellInfo)
 
     % write Analysis date
     annotation('textbox','Position',[0.01 0.012 0.16 0.01],'String', char(datetime),...
-        'FontSize',10*0.6,'FitBoxToText','off','EdgeColor','none','Interpreter','none');
+        'FontSize',fontSize*0.75,'FitBoxToText','off','EdgeColor','none','Interpreter','none');
 
 end
 

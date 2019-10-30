@@ -64,7 +64,7 @@ classdef PlotUtils
                 timebins = timebins';
                 x = [ rasterBins(timebins);rasterBins(timebins);NaN(size(timebins)) ];
                 y = [ trialNos - tickHeight/2;trialNos + tickHeight/2;NaN(size(trialNos)) ];
-                plot(x(:),y(:)+rasterOffset,'color',[0.4 0.4 0.4]);
+                plot(x(:),y(:)+rasterOffset,'color',[0.4 0.4 0.4 0.4]);
                 hold on
                 if numel(varargin)>0
                     sortMarkers = varargin{1};

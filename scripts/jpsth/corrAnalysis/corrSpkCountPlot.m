@@ -2,6 +2,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 %CORRSPKCOUNTPLOT Summary of this function goes here
 
     %% Put this in the function....
+    plot400MsMovingWin = false;
     smoothBinWidthMs = 5;
     fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
     fx_chanNo = @(x) str2double(char(regexp(x,'(^\d{1,2})','match')));
@@ -60,9 +61,14 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
         ss = get(0,'ScreenSize');
         aspectRatio = ss(3)/ss(4);
         offsetsX=[0.01 (1:4).*0.17]; % for 5 columns
-        offsetsY = [0.88 0.45]; %[0.90 0.45]; % for 2 rows
+        offsetsY = [0.86 0.42]; %[0.90 0.45]; % for 2 rows
         startPos = 0.017; % top position of yPsth
-        psthH = 0.05; psthW = psthH*2.5;
+        % For 4 timewins 
+        if plot400MsMovingWin
+          psthH = 0.05; psthW = psthH*2.5; %#ok<*UNRCH>
+        else
+          psthH = 0.07; psthW = 0.125;
+        end
         gutter = 0.01; % space between plots
 
         %% plot each condition in a row
@@ -175,6 +181,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 addPatch(gca,rhoPvalWin);
 
                 %% H_rsc400
+                if (plot400MsMovingWin)
                 %pos(1) = offsetsX(colNum) + startPos;
                 pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*5;
                 pos(3:4) = [psthW psthH];
@@ -195,7 +202,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 % Add unit summary annotation here
                 annotation('textbox','Position',[pos(1) pos(2)-(psthH+gutter*2) 0.02 0.05],'String',char(unitSumm),...
                     'FontSize',8,'FontWeight','bold','FitBoxToText','on','Interpreter','none','EdgeColor','none');
-
+                end
             end
             %% Draw static window spike count corr
             staticCols  = {'xSpkCount_win','ySpkCount_win','rho_pval_win','rho_pval_static'};
@@ -409,21 +416,22 @@ end
 
 function addAnnotations(pairUid,pdfFile,xyAreas,chanStr,rowNames,colNames)
     % 
-    annotation('textbox',[0.10 0.95 0.05 0.05],'String',pairUid,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    fontSize = 18;%24
+    annotation('textbox',[0.10 0.95 0.05 0.05],'String',pairUid,'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
     [~,fn,ext] = fileparts(pdfFile);
-    annotation('textbox',[0.27 0.95 0.05 0.05],'String',[fn ext],'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-    annotation('textbox',[0.67 0.95 0.05 0.05],'String',xyAreas,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-    h = annotation('textbox',[0.80 0.95 0.10 0.05],'String',chanStr,'FontSize',24,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none');
+    annotation('textbox',[0.20 0.95 0.05 0.05],'String',[fn ext],'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    annotation('textbox',[0.60 0.95 0.05 0.05],'String',xyAreas,'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    h = annotation('textbox',[0.75 0.95 0.10 0.05],'String',chanStr,'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none');
     if contains(chanStr,'Same')
         set(h,'Color','r');
     end
     % conditions / alignNames
-    annotation('textbox',[0.01 0.93 0.05 0.05],'String',rowNames{1},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
-    annotation('textbox',[0.07 0.91 0.05 0.05],'String',colNames{1},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
-    annotation('textbox',[0.22 0.91 0.05 0.05],'String',colNames{2},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
-    annotation('textbox',[0.38 0.91 0.05 0.05],'String',colNames{3},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
-    annotation('textbox',[0.56 0.91 0.05 0.05],'String',colNames{4},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
-    annotation('textbox',[0.01 0.48 0.05 0.05],'String',rowNames{2},'FontSize',20,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
+    annotation('textbox',[0.01 0.93 0.05 0.05],'String',rowNames{1},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','green')
+    annotation('textbox',[0.07 0.91 0.05 0.05],'String',colNames{1},'FontSize',12,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+    annotation('textbox',[0.22 0.91 0.05 0.05],'String',colNames{2},'FontSize',12,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+    annotation('textbox',[0.38 0.91 0.05 0.05],'String',colNames{3},'FontSize',12,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+    annotation('textbox',[0.56 0.91 0.05 0.05],'String',colNames{4},'FontSize',12,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','black')
+    annotation('textbox',[0.01 0.50 0.05 0.05],'String',rowNames{2},'FontSize',16,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','color','red')
 end
 
 function doXLabel(H_axis,xLabel)
@@ -436,7 +444,7 @@ function doXLabel(H_axis,xLabel)
  end
  
  xlabel(xLabel,'Position',[xPos yPos],'VerticalAlignment','top',...
-     'HorizontalAlignment','center','FontSize',8,'FontWeight','bold',...
+     'HorizontalAlignment','center','FontSize',6,'FontWeight','bold',...
      'FontAngle', 'italic','Color','black'); 
 end
 
@@ -454,7 +462,7 @@ function doYLabel(H_axis,yLabel)
      end
  end
  ylabel(yLabel,'Position',[xPos yPos],'VerticalAlignment','bottom',...
-     'HorizontalAlignment','center','FontSize',8,'FontWeight','bold',...
+     'HorizontalAlignment','center','FontSize',6,'FontWeight','bold',...
      'FontAngle', 'italic','Color','black'); 
 end
 
