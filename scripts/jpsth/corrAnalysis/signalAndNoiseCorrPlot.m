@@ -1,5 +1,5 @@
 % load extracted data
-%dat = load('dataProcessed/analysis/spkCorr/rscSignalNoiseStatic.mat');
+dat = load('dataProcessed/analysis/spkCorr/rscSignalNoiseStatic.mat');
 saveFigFlag = 1;
 outDir = 'dataProcessed/analysis/spkCorr';
 fns = fieldnames(dat);
@@ -74,8 +74,13 @@ end
 
 
 function [] = plotRscScatterStats(H_axes,x,y,xmu,ymu,ystd,sig05,sig01)
+    if isempty(x) | isempty(y)
+        return;
+    end
+    
     col_k = [0 0 0]; col_m = [1 0 1]; col_c = [0 1 1]; col_b=[0 0 1]; col_r = [1 0 0];
     axes(H_axes);
+
     scatter(x,y,'o','filled','MarkerFaceColor',col_k,'MarkerFaceAlpha',0.3)
     hold on
     xlim([min(x)-0.5 max(x)+0.5])
