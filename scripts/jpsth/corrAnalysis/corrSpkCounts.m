@@ -13,8 +13,8 @@ jpsthDirs = {
     'dataProcessed/analysis/JPSTH-10ms/jpsth_SC-NSEFN/mat'   
     'dataProcessed/analysis/JPSTH-10ms/jpsth_NSEFN-NSEFN/mat'
     };
-% wavDir = 'dataProcessed/dataset/waves';
-% outDirs = regexprep(jpsthDirs,'JPSTH-10ms/jpsth_','spkCorr/spkCorr_');
+ wavDir = 'dataProcessed/dataset/wavesNew';
+ outDirs = regexprep(jpsthDirs,'JPSTH-10ms/jpsth_','spkCorr/spkCorr_');
 
 %% do only for Da and Eu
 jpsthPairsDaEu = load('dataProcessed/dataset/JPSTH_PAIRS_CellInfoDB.mat');
@@ -36,25 +36,15 @@ for d = 1:numel(jpsthDirs)
     % restrict to Da, Eu pairs
     dFiles = dFiles(contains(dFiles,jpsthPairsDaEu));
     
-    %% get rasters for all alignments, for each file in directory
-    %datStruct = load(dFiles{p},'-regexp','Accurate*|Fast*');
-%     availConds = {{'FastErrorChoice' 'AccurateErrorChoice'}
-%         {'FastErrorTiming' 'AccurateErrorTiming'}
-%         {'FastCorrect' 'AccurateCorrect'}
-%         };
-    %% Baseline epoch to extract from Visual epoch
-    baselineWin = [-600 50];
-    
     %% Static r_sc
     movingWins = [50, 100, 200, 400];
-    staticWins.Baseline = [-500 -100];
-    staticWins.Visual = [50 250];
-    staticWins.PostSaccade = [0 400];
-    staticWins.PostReward = [0 600];
+    staticWins.Baseline = [-500 -100];%[-500 -100];
+    staticWins.Visual = [50 200];%[50 250];
+    staticWins.PostSaccade = [100 300];%[0 400];
+    staticWins.PostReward = [100 300];%[0 600];
     fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win,2),rasters,'UniformOutput',false);
     fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
 
-%    dFiles{1} = 'dataProcessed/analysis/JPSTH-5ms/jpsth_FEF-FEF/mat/JPSTH-PAIR_0697.mat';
     %% For each file
     parfor p = 1:numel(dFiles)
         out = struct();
