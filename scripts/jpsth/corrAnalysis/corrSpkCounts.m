@@ -58,7 +58,7 @@ for d = 1:numel(jpsthDirs)
     staticWins.PostReward = [100 300];%[0 600];
 
     %% For each file
-    for p = 1:numel(dFiles)
+    parfor p = 1:numel(dFiles)
         out = struct();
         colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
             'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
