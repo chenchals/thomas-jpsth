@@ -36,17 +36,29 @@ for d = 1:numel(jpsthDirs)
     % restrict to Da, Eu pairs
     dFiles = dFiles(contains(dFiles,jpsthPairsDaEu));
     
-    %% Static r_sc
-    movingWins = [50, 100, 200, 400];
+    %% Dynamic spk corr across the trial 
+    movingWins = [50, 100, 200, 10];
+    % Rasters are got from jpsth data:
+    % alignTimeWin = {[-600 100],[-200 400],[-100 500],[-200 700]};
+    % when spkCorr is computed: for each moving window:
+    % Fill NaN for window times min(alignWin)-movingWin/2 
+    % Fill NaN for window times min(alignWin)-movingWin/2 
+    fx_mvsum = @(rasters,win) cellfun(@(x) movsum(double(x),win,2,'Endpoints','fill'),rasters,'UniformOutput',false);
+    % Z-Score each trial
+    % see: https://www.nature.com/articles/s41593-019-0477-1
+    % Ruff & Cohen Simultaneous multi-area recordings suggest that
+    % attention improves performance by reshaping stimulus
+    % representations 2019, Nature Neuroscience 22:1669-1676
+    fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
+
+    %% Static spk corr windows for computing spike corr
     staticWins.Baseline = [-500 -100];%[-500 -100];
     staticWins.Visual = [50 200];%[50 250];
     staticWins.PostSaccade = [100 300];%[0 400];
     staticWins.PostReward = [100 300];%[0 600];
-    fx_mvsum = @(rasters,win) cellfun(@(x) movsum(x,win,2),rasters,'UniformOutput',false);
-    fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
 
     %% For each file
-    parfor p = 1:numel(dFiles)
+    for p = 1:numel(dFiles)
         out = struct();
         colNames = {'condition','alignedName','alignedEvent','alignedTimeWin',...
             'trialNosByCondition','alignTime','xCellSpikeTimes','yCellSpikeTimes',...
@@ -72,19 +84,14 @@ for d = 1:numel(jpsthDirs)
         end
         xMatRaw = dat.xRasters;
         yMatRaw = dat.yRasters;
-        % Z-Score each trial
-        % see: https://www.nature.com/articles/s41593-019-0477-1
-        % Ruff & Cohen Simultaneous multi-area recordings suggest that
-        % attention improves performance by reshaping stimulus
-        % representations 2019, Nature Neuroscience 22:1669-1676
         [xMatZ,xMatMean,xMatStd] = fx_zscoreTrls(xMatRaw);
         [yMatZ,yMatMean,yMatStd] = fx_zscoreTrls(yMatRaw);
+        dat.xRastersTrlMean = xMatMean;
+        dat.xRastersTrlStd = xMatStd;
         dat.xRasters_Z = xMatZ;
-        dat.xRastersMean = xMatMean;
-        dat.xRastersStd = xMatStd;
+        dat.yRastersTrlMean = yMatMean;
+        dat.yRastersTrlStd = yMatStd;
         dat.yRasters_Z = yMatZ;
-        dat.yRastersMean = yMatMean;
-        dat.yRastersStd = yMatStd;
         
         %%
         for w = movingWins
