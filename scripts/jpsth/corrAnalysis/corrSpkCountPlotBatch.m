@@ -1,12 +1,19 @@
 
 corrDirs = {
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/mat/CHOICE_ERR_PAIRS'
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/mat/TIMING_ERR_PAIRS'
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
+    'dataProcessed/analysis/spkCorr/spkCorr_FEF-FEF/mat'    
+    'dataProcessed/analysis/spkCorr/spkCorr_FEF-SC/mat'     
+    'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'  
     };
-plotDirs = {
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/pdf/CHOICE_ERR_PAIRS'
-    'dataProcessed/analysis/SEF-PAPER/rSpkCounts2/pdf/TIMING_ERR_PAIRS'
-    };
+%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-NSEFN/mat'  
+%     'dataProcessed/analysis/spkCorr/spkCorr_FEF-NSEFN/mat'  
+%     'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
+%     'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
+%     };
+plotDirs = regexprep(corrDirs,'/mat$','/pdf');
+
 for p = 1:numel(plotDirs)
     if ~exist(plotDirs{p},'dir')
         mkdir(plotDirs{p})
@@ -14,7 +21,7 @@ for p = 1:numel(plotDirs)
 end
 
 tic
-for d = 1:2
+for d = 1:numel(corrDirs)
     scFiles = dir([corrDirs{d},'/rscCorr*.mat']);
     scFiles = strcat({scFiles.folder}',filesep,{scFiles.name}');
     pdfDir = plotDirs{d};

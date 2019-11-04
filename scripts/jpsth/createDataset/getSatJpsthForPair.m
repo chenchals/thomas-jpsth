@@ -1,5 +1,6 @@
-function [satJpsth] = getSatJpsth(jpsthPair,xSpkTimes,ySpkTimes,evntTimes,trialTypes,...
-    conditions,alignNames,alignEvents,alignTimeWin,psthBinWidthMs,coincidenceBinWidthMs)
+function [satJpsth] = getSatJpsthForPair(jpsthPair,xSpkTimes,ySpkTimes,evntTimes,trialTypes,...
+    conditions,alignNames,alignEvents,alignTimeWin,firstSortEvent,psthBinWidthMs,coincidenceBinWidthMs...
+)
 
 % jpsthPair : the pair row in the table JPSTH_PAIRS_CellInfoDB.mat
 % xSpkTimes : X-axis cell: spike times as cell array of nTrials
@@ -8,6 +9,10 @@ function [satJpsth] = getSatJpsth(jpsthPair,xSpkTimes,ySpkTimes,evntTimes,trialT
 % trialTypes : trial types for session from TrialTypesDB.mat
 % conditions : Trial type names: AccurateCorrect, FastCorrect... from
 %              TrialTypesDB
+%   Example:  conditions = {
+%            'AccurateCorrect';'AccurateErrorChoice';'AccurateErrorTiming';
+%            'FastCorrect';    'FastErrorChoice';    'FastErrorTiming'
+%             };
 % alignNames : Name of the aligned event window : Baseline, Visual,
 %              postSaccade
 % alignEvents : Name of the event to align on ... from
@@ -16,10 +21,23 @@ function [satJpsth] = getSatJpsth(jpsthPair,xSpkTimes,ySpkTimes,evntTimes,trialT
 %                align events
 % psthBinWidthMs : binwidth for PSTH, Same bins will be used for JPSTH mat
 % coincidenceBinWidthMs: binwidth for coincidence histogram.
+% trialsSortFirst: Event names in evntTimes for sorting selected trials
+%                  first. The number of elements must map to conditions
+%   Example:  trialsSortFirst = {
+%                  'SaccadePrimary';'SaccadePrimary';'SaccadePrimary';
+%                  'SaccadePrimary';'SaccadePrimary';'SaccadePrimary';
+%                    };
+% trialsSortNext : Event names in evntTimes for sorting selected trials
+%                  second time. The number of elements must map to conditions
+%   Example:   trialsSortNext = {
+%                  'RewardTime';'SaccadeSecond';[];
+%                  'RewardTime';'SaccadeSecond';[];
+%               };
+%
 
 warning('off');
 % ignore processing if the sel. trials are below thisNum.
-nTrialsThreshold = 10;
+nTrialsThreshold = 5;
 
 units = struct();
 satJpsth = struct();
@@ -35,7 +53,7 @@ for cond = 1:numel(conditions)
     try
         % incase something breaks continue...
         condition = conditions{cond};
-        selTrials = trialTypes.(condition){:};
+        selTrials = trialTypes.(condition){:};        
         if isempty(selTrials)
             satJpsth.(condition) = [];
             continue;
@@ -53,7 +71,9 @@ for cond = 1:numel(conditions)
         if ~isempty(otherCondition)
             selTrials(trialTypes.(otherCondition){:}) = 0;
         end
-        if isempty(selTrials) || numel(selTrials) < nTrialsThreshold
+        
+         % first check for nTrials
+       if isempty(selTrials) || numel(selTrials) < nTrialsThreshold
             satJpsth.(condition) = [];
             continue;
         end
@@ -71,7 +91,16 @@ for cond = 1:numel(conditions)
             satJpsth.(condition) = [];
             continue;
         end
+        % second check for nTrials
+        selTrials = find(selTrials);
+        if numel(selTrials) <= nTrialsThreshold
+            satJpsth.(condition) = [];
+            continue;
+        end
         
+        %% Sort selected trials based on the event
+        selTrlsTbl = table();
+        selTrlsTbl.selTrials = selTrials;
         %% for each aligned event
         tempJpsth = table();
         opts = struct();
@@ -79,20 +108,36 @@ for cond = 1:numel(conditions)
             alignedEvent = alignEvents{evId};
             alignedTimeWin = alignTimeWin{evId};
             alignedName = alignNames{evId};
-            alignTime = evntTimes.CueOn{1};
-            if ~strcmp(alignedEvent,'CueOn')
-                alignTime = alignTime + evntTimes.(alignedEvent){1}(:);
+            if isempty(firstSortEvent{evId})
+                firstSortName = [];
+                selTrlsTbl.firstSortTime = -inf(size(selTrlsTbl,1),1);
+            else
+                firstSortName = firstSortEvent{evId};
+                firstSortTime = double(evntTimes.(firstSortName){1});
+                temp = firstSortTime(selTrlsTbl.selTrials);
+                temp(temp==0 | isnan(temp)) = -inf;
+                selTrlsTbl.firstSortTime = temp;
             end
-            alignTime = alignTime(selTrials);
-            XAligned = SpikeUtils.alignSpikeTimes(units.(XCellId)(selTrials),alignTime, alignedTimeWin);
-            YAligned = SpikeUtils.alignSpikeTimes(units.(YCellId)(selTrials),alignTime, alignedTimeWin);
+            selTrlsTblSorted = sortrows(selTrlsTbl,{'firstSortTime'});
+            selTrialsSorted = selTrlsTblSorted.selTrials;
+            alignTime = evntTimes.CueOn{1};        
+            if ~strcmp(alignedEvent,'CueOn')
+                alignTime = alignTime + double(evntTimes.(alignedEvent){1}(:));
+            end
+            alignTime = alignTime(selTrialsSorted);
+            XAligned = SpikeUtils.alignSpikeTimes(units.(XCellId)(selTrialsSorted),alignTime, alignedTimeWin);
+            YAligned = SpikeUtils.alignSpikeTimes(units.(YCellId)(selTrialsSorted),alignTime, alignedTimeWin);
             temp = SpikeUtils.jpsth(XAligned, YAligned, alignedTimeWin, psthBinWidthMs, coincidenceBinWidthMs);
             tempJpsth(evId,:) = struct2table(temp,'AsArray',true);
             %jer = SpikeUtils.jeromiahJpsth(XAligned, YAligned, alignedTimeWin, binWidth, coincidenceBins);
             opts(evId,1).xCellSpikeTimes = {XAligned}; %#ok<*AGROW>
             opts(evId,1).yCellSpikeTimes = {YAligned};
-            opts(evId,1).trialNosByCondition = {selTrials};
-            opts(evId,1).condition = {condition};
+            opts(evId,1).trialNosByCondition = selTrialsSorted;
+            opts(evId,1).firstSortByName = {firstSortName};
+            opts(evId,1).firstSortByTime = selTrlsTblSorted.firstSortTime;
+            opts(evId,1).secondSortByName = [];
+            opts(evId,1).secondSortByTime = [];
+             opts(evId,1).condition = {condition};
             opts(evId,1).alignedName = {alignedName};
             opts(evId,1).alignedEvent = {alignedEvent};
             opts(evId,1).alignedTimeWin = {alignedTimeWin};
@@ -103,7 +148,7 @@ for cond = 1:numel(conditions)
         tempJpsth.Properties.RowNames = alignNames;
         satJpsth.(condition) = [tempJpsth struct2table(opts,'AsArray',true)];
     catch mE
-        disp(mE)
+        getReport(mE)
         continue
     end
 end % for conditions

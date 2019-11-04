@@ -1,5 +1,5 @@
 
-wavOutputDir = 'dataProcessed/dataset/waves2';
+wavOutputDir = 'dataProcessed/dataset/waves__';
 if ~exist(wavOutputDir,'dir')
     mkdir(wavOutputDir);
 end
