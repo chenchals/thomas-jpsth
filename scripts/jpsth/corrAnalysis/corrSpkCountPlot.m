@@ -429,13 +429,13 @@ function [txt] = isTFTxt(flag)
 
 
     if flag
-        if ispc
+        if ispc || ismac
             txt ='\color{green} YES';
         elseif ismac
             txt = ['\fontname{wingdings} \fontsize{30} \color{green}' char(252)];
         end
     else
-        if ispc
+        if ispc || ismac
             txt ='\color{red} NO';
         elseif ismac
             txt = ['\fontname{wingdings} \fontsize{30} \color{red}' char(251)];
@@ -561,15 +561,21 @@ end
 
 function saveFigAs(fn)
 
-set(gcf,'Units','inches');
-screenposition = get(gcf,'Position');
-set(gcf,...
-    'PaperPosition',[0 0 screenposition(3:4)],...
-    'PaperSize',screenposition(3:4),...
-    'PaperOrientation','landscape');
-fprintf('Saving figure to: %s\n',fn);
-print(fn,'-dpdf','-painters')
-drawnow
+    set(gcf,'Units','inches');
+    screenposition = get(gcf,'Position');
+    set(gcf,...
+        'PaperPosition',[0 0 screenposition(3:4)],...
+        'PaperSize',screenposition(3:4),...
+        'PaperOrientation','landscape');
+    tic
+    fprintf('Saving figure to: %s...',fn);
+    if ispc
+        print(fn,'-dpdf','-painters')
+    elseif ismac
+        print(fn,'-dpdf','-opengl')
+    end
+    fprintf('%d\n',toc)
+    drawnow
 end
 
 function [sortMarkers] = getAlignedSortMarkers(thisTbl)

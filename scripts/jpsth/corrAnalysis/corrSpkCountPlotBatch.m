@@ -25,7 +25,7 @@ for d = 1:numel(corrDirs)
     scFiles = dir([corrDirs{d},'/rscCorr*.mat']);
     scFiles = strcat({scFiles.folder}',filesep,{scFiles.name}');
     pdfDir = plotDirs{d};
-    savePdfFlag = 0;
+    savePdfFlag = 1;
     for f = 1:numel(scFiles)      
         corrSpkCountPlot(scFiles{f},pdfDir,savePdfFlag);       
     end

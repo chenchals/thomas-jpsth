@@ -1,7 +1,7 @@
 % load extracted data
-dat = load('dataProcessed/analysis/spkCorr/rscSignalNoiseStatic.mat');
+dat = load('dataProcessed/analysis/spkCorr_TimeWin_Z/rscSignalNoiseStatic.mat');
 saveFigFlag = 1;
-outDir = 'dataProcessed/analysis/spkCorr';
+outDir = 'dataProcessed/analysis/spkCorr_TimeWin_Z';
 fns = fieldnames(dat);
 % area pairs to plot (in-order). Do not change the order below
 pairAreas = {
