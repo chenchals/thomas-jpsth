@@ -1,20 +1,36 @@
-
+%% 11/04/2019: 
+%   1. Modification to Z-scoring to use supplied mu and sigma, so as to
+%      use either Baseline period or entire trial to pre-compute these
+%      values and use in place os sample-data's mean and std
+%   2. Computing spkCorr is now independent of JPSTH
+%   
 %%
 monkIdsToDo = {'D','E'};
-jpsthDirs = {
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_SEF-SEF/mat' 
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_SEF-FEF/mat'    
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_SEF-SC/mat'     
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_FEF-FEF/mat'    
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_FEF-SC/mat'     
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_SC-SC/mat'      
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_SEF-NSEFN/mat'  
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_FEF-NSEFN/mat'  
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_SC-NSEFN/mat'   
-    'dataProcessed/analysis/JPSTH-10ms/jpsth_NSEFN-NSEFN/mat'
+areaPairs ={
+    'SEF','SEF'
+    'SEF','FEF'
+    'SEF','SC'
+    'FEF','FEF'
+    'FEF','SC'
+    'SC','SC'
+%     'SEF','NSEFN'
+%     'FEF','NSEFN'
+%     'NSEFN','NSEFN'
+%     'SC','NSEFN'
+    };
+outDirs = {
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
+    'dataProcessed/analysis/spkCorr/spkCorr_SEF-SC/mat'     
+    'dataProcessed/analysis/spkCorr/spkCorr_FEF-FEF/mat'    
+    'dataProcessed/analysis/spkCorr/spkCorr_FEF-SC/mat'     
+    'dataProcessed/analysis/spkCorr/spkCorr_SC-SC/mat'      
+%     'dataProcessed/analysis/spkCorr/spkCorr_SEF-NSEFN/mat'  
+%     'dataProcessed/analysis/spkCorr/spkCorr_FEF-NSEFN/mat'  
+%     'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
+%     'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
     };
  wavDir = 'dataProcessed/dataset/wavesNew';
- outDirs = regexprep(jpsthDirs,'JPSTH-10ms/jpsth_','spkCorr/spkCorr_');
 
 %% do only for Da and Eu
 jpsthPairsDaEu = load('dataProcessed/dataset/JPSTH_PAIRS_CellInfoDB.mat');
@@ -44,12 +60,6 @@ for d = 1:numel(jpsthDirs)
     % Fill NaN for window times min(alignWin)-movingWin/2 
     % Fill NaN for window times min(alignWin)-movingWin/2 
     fx_mvsum = @(rasters,win) cellfun(@(x) movsum(double(x),win,2,'Endpoints','fill'),rasters,'UniformOutput',false);
-    % Z-Score each trial
-    % see: https://www.nature.com/articles/s41593-019-0477-1
-    % Ruff & Cohen Simultaneous multi-area recordings suggest that
-    % attention improves performance by reshaping stimulus
-    % representations 2019, Nature Neuroscience 22:1669-1676
-    fx_zscoreTrls = @(matCellArr) cellfun(@(x) zscore(x,0,2),matCellArr,'UniformOutput',false);
 
     %% Static spk corr windows for computing spike corr
     staticWins.Baseline = [-500 -100];%[-500 -100];
@@ -235,3 +245,16 @@ function [xWaves,yWaves] = getWaveforms(wavDir,cellPairInfo,dat)
     end
 end
 
+function [zscoredTrls] = zscoreTrls(matCellArr,mu,sigma)
+    % matlab's zscore coputes the sample's mean and std, however we want the
+    % zcoring to be done with given mean and std, for example to zscore with
+    % respect to basleline or to zscore with restect to the entire trial's
+    % mean and std
+    % Z-Score each trial
+    % see: https://www.nature.com/articles/s41593-019-0477-1
+    % Ruff & Cohen Simultaneous multi-area recordings suggest that
+    % attention improves performance by reshaping stimulus
+    % representations 2019, Nature Neuroscience 22:1669-1676
+    zscoredTrls = cellfun(@(x) (x-mu)./sigma,matCellArr,'UniformOutput',false);
+
+end

@@ -91,6 +91,23 @@ classdef SpikeUtils
             outArg.yCounts = yCounts;
         end
         
+        function outArg = getTrialMeanStd(spikeTsCellArr)
+            % Spike times must be positive integers
+            outArg = cell(numel(spikeTsCellArr,1));
+            for ii = 1:numel(spikeTsCellArr)
+                if isempty(spikeTsCellArr{ii})
+                    outArg{ii,1} = [0 0];
+                    continue;
+                end
+                temp = spikeTsCellArr{ii};
+                temp = round(temp);
+                z(temp) = 1;
+                z(1:min(temp)-1) = NaN;
+                outArg{ii,1} = [nanmean(z) nanstd(z)];
+                clear z;
+            end            
+        end
+        
         function outArg = alignSpikeTimes(spikes, alignTime, varargin)
             %ALIGNSPIKETIMES Returns aligned spiketime cell array.  If a
             %timeWindow [-t t] is given, trims the output to the time
