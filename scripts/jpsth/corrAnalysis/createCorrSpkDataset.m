@@ -1,4 +1,4 @@
-function [] = createCorrSpkDataset(area1,area2)
+function [] = createCorrSpkDataset(area1,area2,wavDir)
 % CREATESATJPSTHDATASET Create complete dataset for all the pairs matching the criteria for
 % area1, area2
 % Expects the following files in specified location:
@@ -95,9 +95,8 @@ for p = 1:nPairs
     trialTypes = sessionTrialTypes(strcmp(sessionTrialTypes.session,sess),:);
     spkCorr = getSpkCorrForPair(cellPair,xSpkTimes,ySpkTimes,...
                             evntTimes,trialTypes,conditionsTbl.conditions,...
-                            alignNames,alignEvents,alignTimeWin,firstSortEvent...
-                            );
-    
+                            alignNames,alignEvents,alignTimeWin,firstSortEvent,...
+                            wavDir);    
     oFn = fullfile(resultsDir,['spkCorr_' cellPair.Pair_UID{1} '.mat']);
     saveSpkCorrData(oFn,spkCorr);
 end
@@ -105,8 +104,8 @@ end
 end
 
 function [] = saveSpkCorrData(oFn,varToSave)
-fprintf('Saving file : %s\n',oFn)
-tempConditions = varToSave;
-save(oFn,'-v7.3','-struct','tempConditions');
+    fprintf('Saving file : %s\n',oFn)
+    tempConditions = varToSave;
+    save(oFn,'-v7.3','-struct','tempConditions');
 end
 
