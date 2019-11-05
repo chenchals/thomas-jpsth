@@ -1,4 +1,4 @@
-function [] = createCorrSpkDataset(area1,area2,wavDir)
+function [] = createCorrSpkDataset(area1,area2)
 % CREATESATJPSTHDATASET Create complete dataset for all the pairs matching the criteria for
 % area1, area2
 % Expects the following files in specified location:
@@ -13,8 +13,6 @@ function [] = createCorrSpkDataset(area1,area2,wavDir)
 % Spike time data for all units of all sessions:
 %         'dataProcessed/dataset/spikes_SAT.mat'
 % To generate pairs use:
-%   for SEF-SEF pairs --> createSatJpsthDataset('SEF','FEF')
-%   for SEF-SC pairs --> createSatJpsthDataset('SEF','SC')
 
 %%
 warning('off');
@@ -23,6 +21,7 @@ monkIdsToDo = {'D','E'};
 %% Options for Spk Corr computation
 rootAnalysisDir = 'dataProcessed/analysis/spkCorr';
 datasetDir = 'dataProcessed/dataset';
+wavDir = 'dataProcessed/dataset/wavesNew';
 resultsDir = fullfile(rootAnalysisDir,['spkCorr_' area1 '-' area2],'mat');
 if ~exist(resultsDir, 'dir')
     mkdir(resultsDir);
@@ -83,9 +82,10 @@ conditionsTbl.conditions = {
 
 %% For each JPSH cell pair do JPSTH
 % see doc pctRunOnAll
+tic
 pctRunOnAll warning off;
 nPairs = size(cellPairs,1);
-for p = 1:nPairs
+parfor p = 1:nPairs
     cellPair = cellPairs(p,:); %#ok<*PFBNS>
     sess = cellPair.X_sess{1};
     % must be cell array of ntrials by 1
@@ -100,12 +100,14 @@ for p = 1:nPairs
     oFn = fullfile(resultsDir,['spkCorr_' cellPair.Pair_UID{1} '.mat']);
     saveSpkCorrData(oFn,spkCorr);
 end
-
+toc
 end
 
 function [] = saveSpkCorrData(oFn,varToSave)
-    fprintf('Saving file : %s\n',oFn)
+    tic
+    fprintf('Saving file : %s ...',oFn)
     tempConditions = varToSave;
     save(oFn,'-v7.3','-struct','tempConditions');
+    fprintf('%5.2d\n',toc);
 end
 
