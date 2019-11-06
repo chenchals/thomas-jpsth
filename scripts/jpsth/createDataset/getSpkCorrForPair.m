@@ -112,7 +112,6 @@ function [outSpkCorr] = getSpkCorrForPair(cellPair,xSpkTimes,ySpkTimes,evntTimes
             selTrlsTbl = table();
             selTrlsTbl.selTrials = selTrials;
             %% for each aligned event
-            tempSpkCorr = table();
             opts = struct();
             for evId = 1:numel(alignEvents)
                 alignedEvent = alignEvents{evId};
@@ -177,29 +176,30 @@ function [outSpkCorr] = getSpkCorrForPair(cellPair,xSpkTimes,ySpkTimes,evntTimes
                 opts(evId,1).yRasters_Z_trial = {yRasters_Z_trial};
                 
                 %% Compute spike corrs across trial using different moving windows for each aligned event
-                for w = movingWins
+                for ww = 1:numel(movingWins)
+                    w = movingWins(ww);
                     movWinStr = num2str(w,'%dms');
                     % spike corrs for raw spk count
-                    xMat = fx_mvsum(XRasters,w);
-                    yMat = fx_mvsum(YRasters,w);
-                    opts(evId,1).(['xSpkCount_' movWinStr]) = xMat;
-                    opts(evId,1).(['ySpkCount_' movWinStr]) = yMat;
-                    [rho_pval,opts(evId,1).critRho10,opts(evId,1).critRho05,opts(evId,1).critRho01] = getCorrData(xMat,yMat,'Pearson');
-                    opts(evId,1).(['rho_pval_' movWinStr]) = rho_pval;
+                    xMat1 = fx_mvsum(XRasters,w);
+                    yMat1 = fx_mvsum(YRasters,w);
+                    opts(evId,1).(['xSpkCount_' movWinStr]) = xMat1;
+                    opts(evId,1).(['ySpkCount_' movWinStr]) = yMat1;
+                    [rho_pval1,opts(evId,1).critRho10,opts(evId,1).critRho05,opts(evId,1).critRho01] = getCorrData(xMat1,yMat1,'Pearson');
+                    opts(evId,1).(['rho_pval_' movWinStr]) = rho_pval1;
                     % spike corrs for Z scored (using Baseline mean/std) counts
-                    xMat = fx_mvsum(xRasters_Z_baseline,w);
-                    yMat = fx_mvsum(yRasters_Z_baseline,w);
-                    opts(evId,1).(['xSpkCount_' movWinStr '_Z_baseline']) = xMat;
-                    opts(evId,1).(['ySpkCount_' movWinStr '_Z_baseline']) = yMat;
-                    [rho_pval,opts(evId,1).critRho10_Z_baseline,opts(evId,1).critRho05_Z_baseline,opts(evId,1).critRho01_Z_baseline] = getCorrData(xMat,yMat,'Pearson');
-                    opts(evId,1).(['rho_pval_' movWinStr '_Z_baseline']) = rho_pval;
+                    xMat2 = fx_mvsum(xRasters_Z_baseline,w);
+                    yMat2 = fx_mvsum(yRasters_Z_baseline,w);
+                    opts(evId,1).(['xSpkCount_' movWinStr '_Z_baseline']) = xMat2;
+                    opts(evId,1).(['ySpkCount_' movWinStr '_Z_baseline']) = yMat2;
+                    [rho_pval2,opts(evId,1).critRho10_Z_baseline,opts(evId,1).critRho05_Z_baseline,opts(evId,1).critRho01_Z_baseline] = getCorrData(xMat2,yMat2,'Pearson');
+                    opts(evId,1).(['rho_pval_' movWinStr '_Z_baseline']) = rho_pval2;
                     % spike corrs for Z scored (using Whole Trial mean/std) counts
-                    xMat = fx_mvsum(xRasters_Z_trial,w);
-                    yMat = fx_mvsum(yRasters_Z_trial,w);
-                    opts(evId,1).(['xSpkCount_' movWinStr '_Z_trial']) = xMat;
-                    opts(evId,1).(['ySpkCount_' movWinStr '_Z_trial']) = yMat;
-                    [rho_pval,opts(evId,1).critRho10_Z_trial,opts(evId,1).critRho05_Z_trial,opts(evId,1).critRho01_Z_trial] = getCorrData(xMat,yMat,'Pearson');
-                    opts(evId,1).(['rho_pval_' movWinStr '_Z_trial']) = rho_pval;
+                    xMat3 = fx_mvsum(xRasters_Z_trial,w);
+                    yMat3 = fx_mvsum(yRasters_Z_trial,w);
+                    opts(evId,1).(['xSpkCount_' movWinStr '_Z_trial']) = xMat3;
+                    opts(evId,1).(['ySpkCount_' movWinStr '_Z_trial']) = yMat3;
+                    [rho_pval3,opts(evId,1).critRho10_Z_trial,opts(evId,1).critRho05_Z_trial,opts(evId,1).critRho01_Z_trial] = getCorrData(xMat3,yMat3,'Pearson');
+                    opts(evId,1).(['rho_pval_' movWinStr '_Z_trial']) = rho_pval3;
                 end
                 
                 %% Compute spike corrs for static windows for each aligned event

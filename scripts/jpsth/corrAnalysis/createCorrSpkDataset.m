@@ -19,7 +19,7 @@ warning('off');
 monkIdsToDo = {'D','E'};
 
 %% Options for Spk Corr computation
-rootAnalysisDir = 'dataProcessed/analysis/spkCorr';
+rootAnalysisDir = 'dataProcessed/analysis/spkCorr2';
 datasetDir = 'dataProcessed/dataset';
 wavDir = 'dataProcessed/dataset/wavesNew';
 resultsDir = fullfile(rootAnalysisDir,['spkCorr_' area1 '-' area2],'mat');
@@ -85,7 +85,7 @@ conditionsTbl.conditions = {
 tic
 pctRunOnAll warning off;
 nPairs = size(cellPairs,1);
-parfor p = 1:nPairs
+for p = 1:nPairs
     cellPair = cellPairs(p,:); %#ok<*PFBNS>
     sess = cellPair.X_sess{1};
     % must be cell array of ntrials by 1
