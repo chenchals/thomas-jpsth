@@ -6,7 +6,6 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
     doErrorRewardGrade = true;
     smoothBinWidthMs = 5;
     fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
-    fx_chanNo = @(x) str2double(char(regexp(x,'(^\d{1,2})','match')));
     conditionPairs = {
         {'FastErrorChoice','AccurateErrorChoice'};
         {'FastErrorTiming','AccurateErrorTiming'};
@@ -19,8 +18,8 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 
     cellPairInfo = load(spkCountFile,'cellPairInfo');
     cellPairInfo = cellPairInfo.cellPairInfo;
-    spikeCorr = load(spkCountFile,'spikeCorr');
-    spikeCorr = spikeCorr.spikeCorr;
+    spikeCorr = load(spkCountFile,'spkCorr');
+    spikeCorr = spikeCorr.spkCorr;
 
     %% compute the min-max for axis scaling
     % common for all psth plots
@@ -31,17 +30,18 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
     psthYTicks = [0 maxSpkPerSec];
     psthYTickLabel =  arrayfun(@(x) num2str(x,'%d'),psthYTicks','UniformOutput',false);
     psthYTickLabel(psthYTicks==0) = {'0'};
-    psthYaxisLabel = 'Spk/s';
+    psthYaxisLabel = 'Spk. Count';
     % common for all Rsc plots
-    rho_pval_idx = find(~cellfun(@isempty,regexp(spikeCorr.Properties.VariableNames,'rho_pval*','match')));
+    rho_pval_idx = find(~cellfun(@isempty,regexp(spikeCorr.Properties.VariableNames,'rho_pval_(50|100|200)ms_Z_trial','match')));
+    rho_pval_cols = spikeCorr.Properties.VariableNames(rho_pval_idx)';
     allRsc = {};
     allRsc = arrayfun(@(x) [allRsc{:};spikeCorr{:,x}],rho_pval_idx(:),'UniformOutput',false);
     allRsc = vertcat(allRsc{:});
     minMaxRsc = cell2mat(cellfun(@(x) minmax(x(:,1)'),allRsc,'UniformOutput',false));
     minMaxRsc(minMaxRsc<-1 | minMaxRsc > 1) = NaN;
     minMaxRsc = minmax(minMaxRsc(:)');
-    rscYlims(1) = round(minMaxRsc(1),1);
-    rscYlims(2) = round(minMaxRsc(2),1);
+    rscYlims(1) = round(minMaxRsc(1)-0.05,1);
+    rscYlims(2) = round(minMaxRsc(2)+0.05,1);
     rscYTicks = [rscYlims(1) 0 rscYlims(2)];
     rscYTickLabel =  arrayfun(@(x) num2str(x,'%0.1f'),rscYTicks','UniformOutput',false);
     rscYTickLabel(rscYTicks==0) = {'0'};
@@ -130,92 +130,43 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 hold on
                 PlotUtils.plotRasters(rasters,psthBins,sortMarkers);
                 addPatch(gca,rhoPvalWin);
-
-                %% H_rsc50
-                %pos(1) = offsetsX(colNum) + startPos;
-                pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*2;
-                pos(3:4) = [psthW psthH];
-                H_out.H_rsc50=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc50');
-
-                rho_pval = currSpkCorr.rho_pval_50ms{1};
-                rho_pvalZ = currSpkCorr.rho_pval_50ms_Z{1};
-                plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
-
-                annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
-                annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
-                doYLabel(gca,'r_{sc} 50ms')
-                line(get(gca,'XLim'),[0 0],'Color','k')
-                addPatch(gca,rhoPvalWin);
-
-                %% H_rsc100
-                %pos(1) = offsetsX(colNum) + startPos;
-                pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*3;
-                pos(3:4) = [psthW psthH];
-                H_out.H_rsc100=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc100');
-
-                rho_pval = currSpkCorr.rho_pval_100ms{1};
-                rho_pvalZ = currSpkCorr.rho_pval_100ms_Z{1};
-                plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
-
-                annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
-                annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
-                doYLabel(gca,'r_{sc} 100ms')
-                hold on
-                line(get(gca,'XLim'),[0 0],'Color','k')
-                addPatch(gca,rhoPvalWin);
-
-                %% H_rsc200
-                %pos(1) = offsetsX(colNum) + startPos;
-                pos(2) = pos(2) - (psthH + gutter); % offsetsY(rowNum) - (psthH + gutter)*4;
-                pos(3:4) = [psthW psthH];
-                H_out.H_rsc200=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc200');
-
-                rho_pval = currSpkCorr.rho_pval_200ms{1};
-                rho_pvalZ = currSpkCorr.rho_pval_200ms_Z{1};
-                plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
-
-                annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
-                annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
-                doYLabel(gca,'r_{sc} 200ms')
-                hold on
-                line(get(gca,'XLim'),[0 0],'Color','k')
-                addPatch(gca,rhoPvalWin);
-
-                %% H_rsc400
-                if (plot400MsMovingWin)
-                    %pos(1) = offsetsX(colNum) + startPos;
-                    pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*5;
+                
+                %% Plot rho-spike counts Z-scored by trial
+                for n = 1:3 % 3 plots [50ms, 100ms,200ms]
+                    pos(2) = pos(2) - (psthH + gutter); %offsetsY(rowNum) - (psthH + gutter)*2;
                     pos(3:4) = [psthW psthH];
-                    H_out.H_rsc400=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rsc400');
-                    
-                    rho_pval = currSpkCorr.rho_pval_400ms{1};
-                    rho_pvalZ = currSpkCorr.rho_pval_400ms_Z{1};
-                    plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
-                    
+                    colName = rho_pval_cols{n};
+                    suff = regexp(colName,'\d*ms','match');
+                    tag = strcat('H_rsc_',suff{1});
+                    ylabelTxt = {'\rho Spk.Count', suff{1}};
+                    H_out.(tag) = axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag',tag);
+                    rho_pvalZ = currSpkCorr.(colName){1};
+                    plotRhoPvals(psthBins,[],rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
                     annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
-                    annotateAxis(gca,'x',psthXLims,psthXTicks,psthXTickLabel,0,axColor);
-                    doYLabel(gca,'r_{sc} 400ms')
-                    hold on
+                    annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
+                    doYLabel(gca,ylabelTxt)
                     line(get(gca,'XLim'),[0 0],'Color','k')
                     addPatch(gca,rhoPvalWin);
+                    
                 end
                 doXLabel(gca,psthXaxisLabel);
                 % Add unit summary annotation here
                 annotation('textbox','Position',[pos(1) pos(2)-(psthH*0.9) 0.02 0.04],'String',char(unitSumm),...
                     'FontSize',7,'FontWeight','bold','FitBoxToText','on','Interpreter','none','EdgeColor','none');
-
+                
             end
             %% Draw static window spike count corr
             staticCols  = {'xSpkCount_win','ySpkCount_win','rho_pval_win','rho_pval_static'};
+            currSpkCorr = spikeCorr(strcmp(spikeCorr.condition,condition),:);
             statColrIdx = [6 2];
             for z = 1:2
                 if z > 1
-                    staticCols = strcat(staticCols,'_Z');
+                    staticCols = strcat(staticCols,'_Z_trial');
                 end
                 scatColr = colrs(statColrIdx(z),:);
                 % get min-max of spk counts for scaling
-                maxSpkCountX = max(cell2mat(spikeCorr.(staticCols{1})));
-                maxSpkCountY = max(cell2mat(spikeCorr.(staticCols{2})));
+                maxSpkCountX = max(cell2mat(currSpkCorr.(staticCols{1})));
+                maxSpkCountY = max(cell2mat(currSpkCorr.(staticCols{2})));
                 if z == 1
                     maxSpkCountX = maxSpkCountX + mod(maxSpkCountX,2);
                     maxSpkCountY = maxSpkCountY + mod(maxSpkCountY,2);
@@ -444,15 +395,20 @@ function [txt] = isTFTxt(flag)
 end
 
 function [] = plotRhoPvals(psthBins,rho_pval,rho_pvalZ,smoothBinWidthMs,fx_handle,colrs)
-    yVals = fx_handle(rho_pval(:,1),smoothBinWidthMs);
-    p = plot(psthBins,yVals,'Color',colrs(6,:));
-    hold on
-    yVals(rho_pval(:,2)>0.05) = NaN;
-    plot(psthBins,yVals,'Color',p.Color,'LineWidth',5);
-    yValsZ = fx_handle(rho_pvalZ(:,1),smoothBinWidthMs);
-    p = plot(psthBins,yValsZ,'Color',colrs(2,:));
-    yValsZ(rho_pvalZ(:,2)>0.05) = NaN;
-    plot(psthBins,yValsZ,'Color',p.Color ,'LineWidth',5);
+    if ~isempty(rho_pval)
+        yVals = fx_handle(rho_pval(:,1),smoothBinWidthMs);
+        p = plot(psthBins,yVals,'Color',colrs(6,:));
+        hold on
+        yVals(rho_pval(:,2)>0.05) = NaN;
+        plot(psthBins,yVals,'Color',p.Color,'LineWidth',5);
+    end
+    if ~isempty(rho_pvalZ)
+        yValsZ = fx_handle(rho_pvalZ(:,1),smoothBinWidthMs);
+        hold on
+        p = plot(psthBins,yValsZ,'Color',colrs(2,:));
+        yValsZ(rho_pvalZ(:,2)>0.05) = NaN;
+        plot(psthBins,yValsZ,'Color',p.Color ,'LineWidth',5);
+    end
 end
 
 function [] = addPatch(H_ax,winMs)

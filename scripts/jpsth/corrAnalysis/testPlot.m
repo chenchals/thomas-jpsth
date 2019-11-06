@@ -34,7 +34,7 @@ figure
 
 binStr = {'10ms','50ms','100ms','200ms'};
 lineColors = {'b','g','c','r'};
-epochNameIdx = 4; % 1-4 = baseline, visual, postSacc, postRew
+epochNameIdx = 2; % 1-4 = baseline, visual, postSacc, postRew
 epochNames = {'Baseline','Visual','PostSaccade','PostReward'}; % 1= baseline
 alignedOnNames = {'''Cue On''', '''Cue On''', '''Saccade Primary''', '''Reward Time''', };
 xVals = {-600:100,-200:400,-100:500,-200:700}; % 1=[-600:100],2=[-200:400]
@@ -67,6 +67,17 @@ for rz = 1:3
     legend(strcat(binStr,' moving-win.'),'Location','northwest')
 end
 
+
+figure
+subplot(2,1,1)
+plot(spikeCorr.xBaselineMeanStd{1}(:,1))
+hold on
+plot(spikeCorr.xTrialMeanStd{1}(:,1))
+
+subplot(2,1,2)
+plot(spikeCorr.yBaselineMeanStd{1}(:,1))
+hold on
+plot(spikeCorr.yTrialMeanStd{1}(:,1))
 
 
 
