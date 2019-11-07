@@ -1,6 +1,12 @@
 function plotAddPairInfo(H_axes, jpsthCellInfo)
 %ADDCELLPAIRINFO Summary of this function goes here
 %   Detailed explanation goes here
+
+    fs = 8;
+    if ismac
+        fs = 10;
+    end
+
     axes(H_axes)
     infoTable = jpsthCellInfo;
     sessionNotes = infoTable.SessionNotes;
@@ -9,7 +15,7 @@ function plotAddPairInfo(H_axes, jpsthCellInfo)
     
     varNames=infoTable.Properties.VariableNames;
     varNames(contains(varNames,'trRem'))=[];
-    fontSize = 8;
+    fontSize = fs;
     columnGap = 0.005;
     nCols = numel(varNames);
     % we are plotting this from bottom

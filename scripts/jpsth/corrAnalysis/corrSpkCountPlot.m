@@ -1,7 +1,11 @@
 function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 %CORRSPKCOUNTPLOT Summary of this function goes here
 
-    %% Put this in the function....
+    %% ....
+    fs = 6;
+    if ismac
+        fs = 8;
+    end
     plot400MsMovingWin = false;
     doErrorRewardGrade = true;
     smoothBinWidthMs = 5;
@@ -32,7 +36,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
     psthYTickLabel(psthYTicks==0) = {'0'};
     psthYaxisLabel = 'Spk. Count';
     % common for all Rsc plots
-    rho_pval_idx = find(~cellfun(@isempty,regexp(spikeCorr.Properties.VariableNames,'rho_pval_(50|100|200)ms_Z_trial','match')));
+    rho_pval_idx = find(~cellfun(@isempty,regexp(spikeCorr.Properties.VariableNames,'rho_pval_(50|100|200)ms','match')));
     rho_pval_cols = spikeCorr.Properties.VariableNames(rho_pval_idx)';
     allRsc = {};
     allRsc = arrayfun(@(x) [allRsc{:};spikeCorr{:,x}],rho_pval_idx(:),'UniformOutput',false);
@@ -138,10 +142,10 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                     colName = rho_pval_cols{n};
                     suff = regexp(colName,'\d*ms','match');
                     tag = strcat('H_rsc_',suff{1});
-                    ylabelTxt = {'\rho Spk.Count', suff{1}};
+                    ylabelTxt = {['\fontsize{12} \rho \fontsize{' num2str(fs) '} Spk.Corr.'], suff{1}};
                     H_out.(tag) = axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag',tag);
-                    rho_pvalZ = currSpkCorr.(colName){1};
-                    plotRhoPvals(psthBins,[],rho_pvalZ,smoothBinWidthMs,fx_vecSmooth,colrs);
+                    rho_pval = currSpkCorr.(colName){1};
+                    plotRhoPvals(psthBins,rho_pval,[],smoothBinWidthMs,fx_vecSmooth,colrs);
                     annotateAxis(gca,'y',rscYlims,rscYTicks,rscYTickLabel,0,axColor);
                     annotateAxis(gca,'x',psthXLims,psthXTicks,{},0,axColor);
                     doYLabel(gca,ylabelTxt)
@@ -150,16 +154,19 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                     
                 end
                 doXLabel(gca,psthXaxisLabel);
+                
+                set(gca,'XTickLabel',psthXTickLabel);
+                
                 % Add unit summary annotation here
                 annotation('textbox','Position',[pos(1) pos(2)-(psthH*0.9) 0.02 0.04],'String',char(unitSumm),...
-                    'FontSize',7,'FontWeight','bold','FitBoxToText','on','Interpreter','none','EdgeColor','none');
+                    'FontSize',fs,'FontWeight','bold','FitBoxToText','on','Interpreter','none','EdgeColor','none');
                 
             end
             %% Draw static window spike count corr
             staticCols  = {'xSpkCount_win','ySpkCount_win','rho_pval_win','rho_pval_static'};
             currSpkCorr = spikeCorr(strcmp(spikeCorr.condition,condition),:);
             statColrIdx = [6 2];
-            for z = 1:2
+            for z = 1:1
                 if z > 1
                     staticCols = strcat(staticCols,'_Z_trial');
                 end
@@ -196,9 +203,10 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 pltH = pltW*aspectRatio;
 
                 for s = 1:4
-                    % Draw 3 scatter plots across for Baseline, visual, postsac
+                    % Draw scatter plots across for Baseline, visual,
+                    % postsac, postRew
                     pos(1) = offsetsX(5) + gutter + (pltW + gutter*3)*(s-1);
-                    pos(2) = offsetsY(rowNum) - (psthH*.5) - (pltH + gutter*4)*(z-1);
+                    pos(2) = offsetsY(rowNum) - (psthH*.5) - (pltH + gutter*4)*(z-1) - pltH*0.5;
                     pos(3:4) = [pltW pltH];
                     H_out.H_rscBl=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_rscBl');
                     plotData = spikeCorr(strcmp(spikeCorr.condition,condition) ...,
@@ -214,17 +222,25 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 
                     doYLabel(gca,spkCountYAxisLabel)
                     doXLabel(gca,spkCountXAxisLabel)
+                    
+                    if plotData.(staticCols{4}){1}(2) <= 0.05
+                        signif = '^*';
+                        titleColor = 'r';
+                    else
+                        signif = '';
+                        titleColor = 'k';
+                    end                  
                     if z == 1
                         titleStr = {alignNames{s}...
                             ['[' num2str(plotData.(staticCols{3}){1},'%d ') ']' ]...
-                            sprintf('\\rho = %0.2f, p = %0.2e', ...
+                             sprintf(['\\rho = %0.2f, p = %0.2e' signif], ...
                             plotData.(staticCols{4}){1}(1),plotData.(staticCols{4}){1}(2))};
                     else
                         titleStr = {...
-                            sprintf('\\rho = %0.2f, p = %0.2e', ...
+                            sprintf(['\\rho = %0.2f, p = %0.2e' signif], ...
                             plotData.(staticCols{4}){1}(1),plotData.(staticCols{4}){1}(2))};
                     end
-                    title(titleStr,'Interpreter','tex')
+                    title(titleStr,'Interpreter','tex','Color',titleColor)
                 end
             end
             
@@ -251,7 +267,8 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
                 sprintf('%s (%d)',cellPairInfo.Y_unit{1},size(yWaves,1))};
             % for each condition plot aggregated waveform for unitx and unit y
             pos(1) = offsetsX(5) + gutter;
-            pos(2) = offsetsY(rowNum) - (pltH + gutter*4)*2.5;
+            pos(2) = offsetsY(rowNum) - (pltH + gutter*4)*2.5 + pltH*0.5;
+
             pos(3:4) = [pltW*1.6 pltH*1.3];
             H_out.H_wav=axes('parent',parentFig,'position',pos,'box','on', 'layer','top','Tag','H_wav');
             plotWaveforms(xWaves,binSize,0,wColrs{1});
@@ -319,11 +336,15 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             
             ylim(yLims);
             ylabel('SpkeWidth (microsec.)','VerticalAlignment','bottom',...
-                'HorizontalAlignment','center','FontSize',6,'FontWeight','bold',...
+                'HorizontalAlignment','center','FontSize',fs,'FontWeight','bold',...
                 'FontAngle', 'italic','Color','black');
             
-            meanStd = {sprintf('\\mu %4.1f \\pm %4.1f',xMean,xStd), sprintf('\\mu %4.f\\pm %4.1f',yMean,yStd)};
-            legend(meanStd,'Location','northeast','Box','off','FontSize',5)
+            meanStd = {sprintf('\\mu%4.1f\\pm %4.1f',xMean,xStd), sprintf('\\mu%4.f\\pm%4.1f',yMean,yStd)};
+            %legend(meanStd,'Location','northeast','Box','off','FontSize',5)
+            xTicks = get(gca,'XTick');
+            yLocs = [xMean+1.2*xStd, yMean+1.2*yStd];
+            text(xTicks,yLocs,meanStd,'Interpreter','tex','HorizontalAlignment','center','VerticalAlignment','bottom','FontSize',fs,'FontWeight','bold'); 
+            
             ticklabels = get(gca,'YTickLabel');
             ticklabels(2:end-1) = {' '};
             set(gca,'YTickLabel',ticklabels);
@@ -351,6 +372,10 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
     end
 end
 function [] = annotateErrorRewardGrade(cellPairInfo)
+        fs = 8;
+        if ismac
+            fs = 10;
+        end
         errorRewardlabel1 ={
             sprintf('%15s ','Unit')
             sprintf('%15s ','\color{black} X-Unit')
@@ -368,17 +393,15 @@ function [] = annotateErrorRewardGrade(cellPairInfo)
             };
         % Add errorRewardlabel summary annotation here
         annotation('textbox','Position',[0.80 0.96 0.10 0.04],'String',char(errorRewardlabel1),...
-            'Interpreter','tex','EdgeColor','none','FontWeight','bold','FitBoxToText','on');
+            'Interpreter','tex','EdgeColor','none','FontWeight','bold','FitBoxToText','on','FontSize', fs);
         annotation('textbox','Position',[0.85 0.96 0.10 0.04],'String',char(errorRewardlabel2),...
-            'Interpreter','tex','EdgeColor','none','FontWeight','bold','FitBoxToText','on');
+            'Interpreter','tex','EdgeColor','none','FontWeight','bold','FitBoxToText','on', 'FontSize', fs);
         annotation('textbox','Position',[0.90 0.96 0.10 0.04],'String',char(errorRewardlabel3),...
-            'Interpreter','tex','EdgeColor','none','FontWeight','bold','FitBoxToText','on');
+            'Interpreter','tex','EdgeColor','none','FontWeight','bold','FitBoxToText','on','FontSize', fs);
 
 end
 
 function [txt] = isTFTxt(flag)
-
-
     if flag
         if ispc || ismac
             txt ='\color{green} YES';
@@ -449,6 +472,11 @@ function addAnnotations(pairUid,pdfFile,xyAreas,chanStr,rowNames,colNames)
 end
 
 function doXLabel(H_axis,xLabel)
+ fs = 6;
+ if ismac
+     fs = 8;
+ end
+
  yLim= get(H_axis,'Ylim');
  xPos = mean(get(H_axis,'Xlim')); % center in x
  if strcmp(get(H_axis,'YDir'),'reverse')
@@ -458,11 +486,15 @@ function doXLabel(H_axis,xLabel)
  end
  
  xlabel(xLabel,'Position',[xPos yPos],'VerticalAlignment','top',...
-     'HorizontalAlignment','center','FontSize',6,'FontWeight','bold',...
+     'HorizontalAlignment','center','FontSize',fs,'FontWeight','bold',...
      'FontAngle', 'italic','Color','black'); 
 end
 
 function doYLabel(H_axis,yLabel)
+ fs = 6;
+ if ismac
+     fs = 8;
+ end
  xLim= get(H_axis,'Xlim');
  yPos = mean(get(H_axis,'Ylim')); % center in y
  if strcmp(get(H_axis,'YAxisLocation'),'right')
@@ -476,7 +508,7 @@ function doYLabel(H_axis,yLabel)
      end
  end
  ylabel(yLabel,'Position',[xPos yPos],'VerticalAlignment','bottom',...
-     'HorizontalAlignment','center','FontSize',6,'FontWeight','bold',...
+     'HorizontalAlignment','center','FontSize',fs,'FontWeight','bold',...
      'FontAngle', 'italic','Color','black'); 
 end
 
@@ -496,10 +528,14 @@ end
 %%
 function [H_Figure] = getFigHandle()
 %set(0, 'DefaultFigureColormap', jet(64));
+ fs = 6;
+ if ismac
+     fs = 8;
+ end
 set(0,'units','pixels');
-set(0,'defaulttextfontsize',6,...
+set(0,'defaulttextfontsize',fs,...
     'defaulttextfontname','Arial',...
-    'defaultaxesfontsize',6,...
+    'defaultaxesfontsize',fs,...
     'defaultaxeslinewidth',0.05);
 margin = 10; %pixels
 %ss=get(0,'ScreenSize');

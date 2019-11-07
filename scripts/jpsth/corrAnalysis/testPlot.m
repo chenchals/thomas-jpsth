@@ -80,4 +80,28 @@ hold on
 plot(spikeCorr.yTrialMeanStd{1}(:,1))
 
 
+xVar='xSpkCount_win';
+yVar='ySpkCount_win';
+rpVar='rho_pval_static';
+
+X=spkCorr.(xVar){1};
+Y=spkCorr.(yVar){1};
+rho_pval=spkCorr.(rpVar){1};
+
+fx_scale = @(x) (x-min(x))./range(x);
+Y = fx_scale(Y);
+X = fx_scale(X);
+
+ [b,bint] = regress(Y,X);
+ xval = min(X):0.01:max(X);
+ yhat = b(1)*xval;
+ ylow = bint(1)*xval;
+ yupp = bint(2)*xval;
+ figure
+ scatter(X,Y,'*');
+ hold on;
+ plot(xval,ylow,'b-.');
+ plot(xval,yupp,'r-.');
+ plot(xval,yhat,'b','linewidth',2);
+
 
