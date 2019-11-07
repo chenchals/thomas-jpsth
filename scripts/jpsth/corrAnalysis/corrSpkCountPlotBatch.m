@@ -22,7 +22,7 @@ end
 
 tic
 for d = 1:numel(corrDirs)
-    scFiles = dir([corrDirs{d},'/rscCorr*.mat']);
+    scFiles = dir([corrDirs{d},'/spkCorr*.mat']);
     scFiles = strcat({scFiles.folder}',filesep,{scFiles.name}');
     pdfDir = plotDirs{d};
     savePdfFlag = 1;
