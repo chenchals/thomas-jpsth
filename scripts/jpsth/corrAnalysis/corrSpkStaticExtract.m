@@ -63,13 +63,26 @@ corrDatFields = {
     'critRho10'          
     'critRho05'          
     'critRho01'          
-    'critRho10_Z'        
-    'critRho05_Z'        
-    'critRho01_Z'        
+    'critRho10_Z_baseline'        
+    'critRho05_Z_baseline'        
+    'critRho01_Z_baseline'        
+    'critRho10_Z_trial'        
+    'critRho05_Z_trial'        
+    'critRho01_Z_trial'        
+    'rho_pval_win'     
     'rho_pval_static'    
-    'rho_pval_win_Z'     
     'rho_pval_static_Z_baseline'  
-    'rho_pval_static_Z_trial'  
+    'rho_pval_static_Z_trial' 
+    'xWaves'
+    'yWaves'
+    'xWaveWidths'
+    'yWaveWidths'
+    };
+cols2Remove = {
+    'xWaves'
+    'yWaves'
+    'xWaveWidths'
+    'yWaveWidths'
     };
 spkCorrStatic = struct();
 tic
@@ -87,14 +100,14 @@ for d = 1:numel(corrMatDirs)
         pDatStruct = load(srcFile);
         [~,fn,ext] = fileparts(srcFile);
         srcFile = [fn ext]; 
-        nRows = size(pDatStruct.spikeCorr,1);
+        nRows = size(pDatStruct.spkCorr,1);
         temp = [repmat(pDatStruct.cellPairInfo,nRows,1) pDatStruct.spkCorr];
         tempFns = temp.Properties.VariableNames';
         pDat.srcFile = repmat({srcFile},nRows,1);
         pDat.pairAreas = repmat({areaPair},nRows,1);
         pDat.nTrials = cellfun(@(x) numel(x), temp.trialNosByCondition);
         temp.trialNosByCondition = [];
-        fieldIdx = cellfun(@(x) find(strcmp(tempFns,x)),corrDatFields)
+        fieldIdx = cell2mat(cellfun(@(x) find(strcmp(tempFns,x)),corrDatFields,'UniformOutput',false));
         pDat = [pDat,temp(:,corrDatFields)];
         pDat.XY_Dist = cell2mat(pDat.XY_Dist);
         % split rho, pval
@@ -104,9 +117,22 @@ for d = 1:numel(corrMatDirs)
             cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),pDat.rho_pval_static_Z_baseline);
         [pDat.rhoZTrial,pDat.pvalZTrial,pDat.signifZTrial_05,pDat.signifZTrial_01] = ...
             cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),pDat.rho_pval_static_Z_trial);
+        % xwaveforms...
+        [pDat.xWaveMean,pDat.xWaveStd] = ...
+            cellfun(@(w) deal(mean(cell2mat(w)),std(cell2mat(w))),pDat.xWaves, 'UniformOutput', false);
+        [pDat.xWaveWidthMean,pDat.xWaveWidthStd] = ...
+            cellfun(@(w) deal(mean(cell2mat(w)),std(cell2mat(w))),pDat.xWaveWidths, 'UniformOutput', false);
+        % ywaveforms...
+        [pDat.yWaveMean,pDat.yWaveStd] = ...
+            cellfun(@(w) deal(mean(cell2mat(w)),std(cell2mat(w))),pDat.yWaves, 'UniformOutput', false);
+        [pDat.yWaveWidthMean,pDat.yWaveWidthStd] = ...
+            cellfun(@(w) deal(mean(cell2mat(w)),std(cell2mat(w))),pDat.yWaveWidths, 'UniformOutput', false);
+        
         outPairs(p).pDat = pDat;
     end
+    
     spkCorrStatic.(areaPairField) = vertcat(outPairs.pDat); 
+    spkCorrStatic.(areaPairField)(:,cols2Remove)=[];
     fprintf('Done %.3f sec.\n',toc)
 end
 size(spkCorrStatic);
