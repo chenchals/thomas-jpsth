@@ -1,5 +1,6 @@
 % load extracted data
 %dat = load('dataProcessed/analysis/spkCorr/spkCorrAllPairsStatic.mat');
+plotUnsignedCorr = 1;
 saveFigFlag = 1;
 outDir = 'dataProcessed/analysis/spkCorr';
 fns = fieldnames(dat);
@@ -24,9 +25,13 @@ alignedOnTimeWinsStr = cellfun(@(x,y) ['[' sprintf('Aligned on: %s',x) ', Spike 
 % for epochs (fig1) Baseline, (fig2) Visual, (fig3) PostSaccade, (fig4)
 % PostReward
 warning('off')
+suff = ' ';
+if plotUnsignedCorr
+    suff = '(abs.) ';
+end
 for figNo = 1:numel(alignedOn)
     epoch = alignedNames{figNo};
-    figTitleStr = [epoch ' : ' alignedOnTimeWinsStr{figNo}];
+    figTitleStr = [epoch ' : ' alignedOnTimeWinsStr{figNo} suff];
     [aspectRatio,H_figure] = getFigHandle();
     [H_plots] = getPlotHandles(H_figure, numel(pairAreas));
     annotation('textbox','Position',[0.05 0.97 0.80 0.05],'String',figTitleStr,...
@@ -51,6 +56,11 @@ for figNo = 1:numel(alignedOn)
                   & strcmp(currDat.condition,[plotRowName plotColName]) ...
                   & strcmp(currDat.pairAreas,plotPairArea);
               currDat = currDat(filteredFlag,:);
+              
+              if plotUnsignedCorr
+                  currDat.rhoRaw = abs(currDat.rhoRaw);
+              end
+                     
               % round XY_Dist to nearest microns
               roundToMs = 200;
               currDat.XY_DistBinned = round(currDat.XY_Dist*1000/roundToMs).*(roundToMs/1000);
@@ -60,7 +70,7 @@ for figNo = 1:numel(alignedOn)
               plotRscScatterStats(H_plots(H_plot_Idx),currDat.XY_DistBinned,currDat.rhoRaw,...
                   currDatStats.XY_DistBinned,currDatStats.mean_rhoRaw,currDatStats.std_rhoRaw,...
                   currDat.signifRaw_05,currDat.signifRaw_01);
-              ylabel(['\rho ' plotPairArea ' pairs'],'Interpreter','tex','FontWeight','bold','FontAngle','italic');
+              ylabel(['\rho ' suff plotPairArea ' pairs'],'Interpreter','tex','FontWeight','bold','FontAngle','italic');
               xlabel('Distance between units (mm)','Interpreter','tex','FontWeight','bold','FontAngle','italic');
               if ar==1
                   title([plotRowName plotColName],'Color',titleColor,'FontSize',14,'FontWeight','bold','FontAngle','italic');
@@ -69,7 +79,17 @@ for figNo = 1:numel(alignedOn)
          end
          drawnow;
      end
+     if saveFigFlag
+         suff2 = '';
+         if plotUnsignedCorr
+             suff2 = '_Unsigned';
+         end
+         fn = fullfile(outDir,['Summary_' epoch '_SpkCorr' suff2 '.pdf']);
+         saveFigPdf(fn);
+         delete(gcf)
+     end
 end
+
 
 function [] = plotRscScatterStats(H_axes,x,y,xmu,ymu,ystd,sig05,sig01)
 % x = x values for y = raw spkcorr-rho value
