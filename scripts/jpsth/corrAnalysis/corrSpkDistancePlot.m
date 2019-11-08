@@ -7,8 +7,11 @@ fns = fieldnames(dat);
 pairAreas = {
     'SEF_SEF'
     'FEF_FEF'
-    'SC_SC'
+    %'SC_SC'
     };
+assert(numel(pairAreas)== 2|numel(pairAreas)== 3 ,...
+    sprintf('The number of area-pairs [%d] must be [2 or 3]',numel(pairAreas))); 
+
 [alignedNames,idx] = unique(dat.(pairAreas{1}).alignedName,'stable');
 conditions = unique(dat.(pairAreas{1}).condition);
 alignedOn = dat.(pairAreas{1}){idx,{'alignedEvent'}};
@@ -23,18 +26,24 @@ alignedOnTimeWinsStr = cellfun(@(x,y) ['[' sprintf('Aligned on: %s',x) ', Spike 
 warning('off')
 for figNo = 1:numel(alignedOn)
     epoch = alignedNames{figNo};
-    titleStr = [epoch ' : ' alignedOnTimeWinsStr{figNo}];
+    figTitleStr = [epoch ' : ' alignedOnTimeWinsStr{figNo}];
     [aspectRatio,H_figure] = getFigHandle();
-    [H_plots] = getPlotHandles(H_figure);
+    [H_plots] = getPlotHandles(H_figure, numel(pairAreas));
+    annotation('textbox','Position',[0.05 0.97 0.80 0.05],'String',figTitleStr,...
+               'Interpreter','tex','EdgeColor','none','FontWeight','bold',...
+               'FitBoxToText','on','HorizontalAlignment','center',...
+               'VerticalAlignment','baseline','FontSize',18);    
     H_plot_Idx = 0;
     % col1: {AccurateCorrect-SEF,FEF,SC; FastCorrect-SEF,FEF,SC
      plotColConds = {'Correct','ErrorChoice','ErrorTiming'};
+     titleColors ={'g','r'};% Fast/Accurate
      for co = 1:numel(plotColConds)
          plotRowConds = {'Fast','Accurate'};
          plotColName = plotColConds{co};
          for ro = 1:numel(plotRowConds)
+          titleColor = titleColors{ro};
           plotRowName = plotRowConds{ro};
-          plotPairAreas = {'SEF-SEF','FEF-FEF','SC-SC'};
+          plotPairAreas = strrep(pairAreas,'_','-');
           for ar = 1:numel(plotPairAreas)
               plotPairArea = plotPairAreas{ar};
               currDat = dat.(strrep(plotPairArea,'-','_'));
@@ -51,90 +60,62 @@ for figNo = 1:numel(alignedOn)
               plotRscScatterStats(H_plots(H_plot_Idx),currDat.XY_DistBinned,currDat.rhoRaw,...
                   currDatStats.XY_DistBinned,currDatStats.mean_rhoRaw,currDatStats.std_rhoRaw,...
                   currDat.signifRaw_05,currDat.signifRaw_01);
-              ylabel(['\rho ' plotPairArea ' pairs'],'Interpreter','tex');
-           end
+              ylabel(['\rho ' plotPairArea ' pairs'],'Interpreter','tex','FontWeight','bold','FontAngle','italic');
+              xlabel('Distance between units (mm)','Interpreter','tex','FontWeight','bold','FontAngle','italic');
+              if ar==1
+                  title([plotRowName plotColName],'Color',titleColor,'FontSize',14,'FontWeight','bold','FontAngle','italic');
+              end
+          end
          end
          drawnow;
      end
 end
 
-
-% 
-% 
-% 
-% for cond = 1:numel(conditions)
-%     condition = conditions{cond};  
-%     for an = 1:numel(alignedNames)
-%         epoch = alignedNames{an};
-%         [aspectRatio,H_figure] = getFigHandle();
-%         [H_plots] = getPlotHandles(H_figure);
-%         H_plot_Idx = 0;
-%         for pa = 1:numel(pairAreas)
-%             pairArea = pairAreas{pa};
-%             currDat = dat.(pairArea);
-%             currDat = currDat(~isnan(currDat.XY_Dist),:);
-%             filteredFlag = strcmp(currDat.condition,condition) ...
-%                 & strcmp(currDat.alignedName,epoch)...
-%                 & strcmp(currDat.pairAreas,strrep(pairArea,'_','-'));
-%             currDat = currDat(filteredFlag,:);
-%             % round XY_Dist to nearest 100 microns
-%             roundToMs = 200;
-%             currDat.XY_DistBinned = round(currDat.XY_Dist*1000/roundToMs).*(roundToMs/1000);
-%             currDatStats = grpstats(currDat(:,{'XY_DistBinned','rhoSignal','rhoNoise'}),'XY_DistBinned',{'mean','std'});
-% 
-%             % plot signal corr
-%             H_plot_Idx = H_plot_Idx + 1;            
-%             plotRscScatterStats(H_plots(H_plot_Idx),currDat.XY_DistBinned,currDat.rhoSignal,...
-%                                 currDatStats.XY_DistBinned,currDatStats.mean_rhoSignal,currDatStats.std_rhoSignal,...
-%                                 currDat.signifSignal_05,currDat.signifSignal_01);
-%             ylabel('\rho Signal','Interpreter','tex'); 
-%             % plot noise corr
-%             H_plot_Idx = H_plot_Idx + 1;            
-%             plotRscScatterStats(H_plots(H_plot_Idx),currDat.XY_DistBinned,currDat.rhoNoise,...
-%                                 currDatStats.XY_DistBinned,currDatStats.mean_rhoNoise,currDatStats.std_rhoNoise,...
-%                                 currDat.signifNoise_05,currDat.signifNoise_01);
-%             ylabel('\rho Noise','Interpreter','tex'); 
-%             xlabel('Distance between units (mm)')
-%             %title(sprintf('%s, %s, %s',pairArea,condition,epoch),'Interpreter','none')
-%         end
-%         a = annotation('textbox',[0.25 0.95 0.5 0.05],'String',[condition '  -  ' epoch '   ' alignedOnTimeWinsStr{an}],...
-%             'HorizontalAlignment','center','VerticalAlignment','middle',...
-%             'FontSize',30,'FontWeight','bold','FontAngle','italic','FitBoxToText','on',...
-%             'EdgeColor','none','Interpreter','none');
-%         if saveFigFlag
-%         fn = fullfile(outDir,['Summary_' condition '_' epoch '.pdf']);
-%         saveFigPdf(fn);
-%         delete(gcf)
-%         end
-%     end
-%    
-%end
-
-
 function [] = plotRscScatterStats(H_axes,x,y,xmu,ymu,ystd,sig05,sig01)
+% x = x values for y = raw spkcorr-rho value
+% xmu = x values for ymu = mean spkcorr-rho value
+% ystd = std of raw spkcorr-rho values (for plotting +/-std around mean
+% sig05 = boolean, raw spkcorr values <= pval of 0.05
+% sig01 = boolean, raw spkcorr values <= pval of 0.01
+    yScaleFixed = false;
+    yLims = [-1 1]; % set to min/max for Pearson corr-coeff
+    if ~yScaleFixed
+        yLims = minmax(y(:)');% row
+        % round to 2 decimals
+        yLims = round((yLims + [-0.05 +0.05]),2);
+    end
+
     if isempty(x) | isempty(y)
         return;
     end
     
     col_k = [0 0 0]; col_m = [1 0 1]; col_c = [0 1 1]; col_b=[0 0 1]; col_r = [1 0 0];
     axes(H_axes);
-
-    scatter(x,y,'o','filled','MarkerFaceColor',col_k,'MarkerFaceAlpha',0.3)
+    notSignif = ~or(sig01,sig05);
+    scatter(x(notSignif),y(notSignif),'o','filled','MarkerFaceColor',col_k,'MarkerFaceAlpha',0.4)
     hold on
     xlim([min(x)-0.5 max(x)+0.5])
-    ylim([-1 1])
+    ylim(yLims)
     scatter(x(sig05),y(sig05),'o','filled','MarkerFaceColor',col_b,'MarkerFaceAlpha',0.4)
     scatter(x(sig01),y(sig01),'o','filled','MarkerFaceColor',col_r,'MarkerFaceAlpha',0.4)
     % fit linear model
     mdl = fitlm(x,y,'linear');
     [ypred,ci05] = predict(mdl,xmu(:),'Alpha',0.05);
-    plot(xmu,ypred,'Color',col_k,'LineWidth',1.5);
+    plot(xmu,ypred,'Color',col_k,'LineWidth',1.5,'HandleVisibility','off');
     fill([xmu(:)' fliplr(xmu(:)')],[ci05(:,1)' fliplr(ci05(:,2)')],col_k,'FaceAlpha',0.1,'LineStyle','none','HandleVisibility','off');
     %plot(xmu(:),ci05,'Color',col_b,'HandleVisibility','off');
     % draw the mean scatter
-    plot(xmu,ymu,'d','Color',col_k,'LineStyle','--','HandleVisibility','off');
+    scatter(xmu,ymu,60,'Marker','diamond','LineWidth',1,'MarkerEdgeColor',col_k)
+    plot(xmu,ymu,'Marker','none','Color',col_k,'LineStyle','--','HandleVisibility','off');
     
-    hold off
+    % annotate counts for each plot
+    legTxt = {sprintf('%d pairs p>0.05',sum(notSignif)),...
+        sprintf('%d pairs  p<=0.05',sum(sig05)),...
+        sprintf('%d pairs  p<=0.01',sum(sig01)),...
+        sprintf('%d all pairs mean corr.',numel(y))...
+        };
+     legend(legTxt,'Location','northeast','Interpreter','tex','Box','off');
+     hold off
 end
     
     
@@ -163,20 +144,33 @@ ss = get(0,'ScreenSize');
 aspectRatio = ss(3)/ss(4);
 end
 
-function  [H_plots] = getPlotHandles(H_Figure)
-    % a 6 by 3 grid; each Cell will have 1 plot    
-    pltW = 0.26;
-    pltH = 0.12;
-    gutter = 0.03;
-    offsetsX = 0.05:(pltW+gutter*2):1-gutter; % for 3 column-starts
-    %offsetsY = [ 0.90 fliplr((0:4).*(pltH+gutter))+0.05]; % for 6 row-starts  
-    offsetsY = 0.97-pltH:-(pltH+gutter):gutter; % for 6 row-starts  
-    offsetsY(4:end) = offsetsY(4:end) - 0.03;
+function  [H_plots] = getPlotHandles(H_Figure,nAreas)
+    % number of plot rows per column = nAreas for fast, nAreas for accurate
+    % Hence nRows = nAreas * 2 (example, plot SEF-SEF,FEF-FEF,SC-SC)
+    % A 4 by 3 grid; Each Cell will have 1 plot
+    % Or a 6 by 3 grid; Each Cell will have 1 plot 
+    nRows = nAreas*2;
+    if nRows == 6
+        pltH = 0.12;
+        pltW = 0.26;
+        gutter = 0.03;
+        offsetsX = 0.05:(pltW+gutter*2):1-gutter; % for 3 column-starts
+        offsetsY = 0.95-pltH:-(pltH+gutter):gutter; % for 6 row-starts
+        offsetsY(4:end) = offsetsY(4:end) - gutter;
+    elseif nRows == 4
+        pltH = 0.18;
+        pltW = 0.275;
+        gutter = 0.04;
+        offsetsX = 0.05:(pltW+gutter):1-gutter; % for 3 column-starts
+        offsetsY = 0.95-pltH:-(pltH+gutter):gutter; % for 4 row-starts
+        offsetsY(3:end) = offsetsY(3:end) - gutter;
+    end   
+    
     pltCount = 0;
     for cols = 1:3
         pos(1) = offsetsX(cols);
         pos(3:4) = [pltW pltH];
-        for ros = 1:6
+        for ros = 1:nRows
             pos(2) = offsetsY(ros);
             pltCount = pltCount + 1;
             H_plots(pltCount) = axes('parent',H_Figure,'position',pos,'box','on', 'layer','top','Tag',sprintf('H_plot%d',pltCount)); %#ok<AGROW>
@@ -192,7 +186,7 @@ function saveFigPdf(fn)
         'PaperSize',screenposition(3:4),...
         'PaperOrientation','landscape');
     fprintf('Saving figure to: %s\n',fn);
-    print(fn,'-dpdf','-painters')
+    print(fn,'-dpdf','-opengl')
     drawnow
 end
 
