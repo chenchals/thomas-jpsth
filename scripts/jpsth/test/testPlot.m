@@ -1,3 +1,4 @@
+%% For spike distribution plot
 figure
 subplot(3,1,1)
 plot(-600:100,spikeCorr.rho_pval_200ms{1}(:,1),'LineWidth',1.5,'LineStyle','--','Color','b')
@@ -67,7 +68,7 @@ for rz = 1:3
     legend(strcat(binStr,' moving-win.'),'Location','northwest')
 end
 
-
+%%
 figure
 subplot(2,1,1)
 plot(spikeCorr.xBaselineMeanStd{1}(:,1))
@@ -103,5 +104,55 @@ X = fx_scale(X);
  plot(xval,ylow,'b-.');
  plot(xval,yupp,'r-.');
  plot(xval,yhat,'b','linewidth',2);
+ 
+ 
+ %% histogram...
+ figure
+ subplot(1,2,1)
+ rawDat = double(currDat.rhoRaw);
+ minMaxRho = round(minmax(rawDat(:)'),1); % to 1st decimal
+ binWidth = 0.05;
+ bins = minMaxRho(1):binWidth:minMaxRho(2);
+ y = histcounts(rawDat,bins);
+ y(y==0) = NaN;
+ ypercent = y.*100/nansum(y);
+ x = bins(1:end-1) + binWidth/2;
+ h = bar(x,ypercent,'BarWidth',1);
+ hold on
+ h1 = text(double(x),ypercent,num2str(y(:),'%d'),...
+     'VerticalAlignment','bottom','HorizontalAlignment','center',...
+     'FontSize',10); 
+ ylim([0 max(ypercent)+2])
+ ylabel('Percentage of Pairs')
+ xlabel('Spike Count Correlation (r_{sc})','Interpreter','tex')
+ yrange = range(get(gca,'ylim'));
+ xrange = range(get(gca,'xlim'));
+ % annotate
+ scatter(nanmean(rawDat),yrange*0.9,100,'v','filled','MarkerEdgeColor','r','MarkerFaceColor','r'); 
+ line([nanmean(rawDat),nanmean(rawDat)],[0 yrange*0.9],'color','r','LineStyle','--','LineWidth',1);
+ text(nanmean(rawDat),yrange*0.95,sprintf('%0.2f (%d)',nanmean(rawDat),numel(rawDat)),'FontSize',12,'FontWeight','bold');
+ hold off
+ subplot(1,2,2)
+ rawxDat = double(currDat.XY_Dist);
+ rawyDat = double(currDat.rhoRaw);
+ minMaxDist = round(minmax(rawxDat(:)'),1); % to 1st decimal
+ binWidth = 1.0;%mm
+ %bins = (-binWidth:binWidth:minMaxDist(2))'; 
+ bins = (minMaxDist(1):binWidth:ceil(minMaxDist(2)))';
+ y = arrayfun(@(x) mean(rawyDat(rawxDat>=bins(x) & rawxDat<bins(x+1))), (1:numel(bins)-1)');
+ ystd = arrayfun(@(x) std(rawyDat(rawxDat>=bins(x) & rawxDat<bins(x+1))), (1:numel(bins)-1)');
+ ycounts = arrayfun(@(x) sum(rawxDat>=bins(x) & rawxDat<bins(x+1)), (1:numel(bins)-1)');
+ x = bins(1:end-1);
+ h = bar(x,y,'BarWidth',1);
+ hold on
+he = errorbar(x,y,ystd,'Marker','o','MarkerSize',10,'LineStyle',...
+    'none','LineWidth',1.5,'MarkerFaceColor','w','MarkerEdgeColor','k') 
+%set(he,'YPositiveDelta',[])
+set(gca,'YLim',[0 max(y)*1.1])
+  %mustdn = [num2str(y(:),'%0.2f\\pm') num2str(ystd(:),'%0.2f') repmat(' ',numel(y),1)  num2str(ycounts(:),'n=%d')]
+  mustdn = [num2str(ycounts(:),'%d')]
+      h1 = text(x+0.1,y+0.005,mustdn,'VerticalAlignment','top','HorizontalAlignment','left',...
+         'FontSize',10); 
 
+ 
 
