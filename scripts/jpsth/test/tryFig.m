@@ -95,3 +95,42 @@ aspectRatio = ss(3)/ss(4);
             H_plots(pltCount) = axes('parent',H_Figure,'position',pos,'box','on', 'layer','top','Tag',sprintf('H_plot%d',pltCount)); %#ok<AGROW>
         end
     end
+    
+    %% for spike corr comparision among areas
+    % 3 rows : correct, errorChoice, errorTiming
+    % 4 cols : baseline, visual, postSaccade, postReward
+    ss = [20 20 1500 990];
+    margin = 10;
+    FigPos=[margin margin ss(3)-(2*margin) ss(4)-(2*margin)];
+    %Main figure window
+    H_Figure=figure('Position',FigPos,...
+        'color',[1 1 1],'numbertitle','off','renderer','painters',...
+        'renderermode','manual','menubar','none',...
+        'Tag','H_Figure');
+    orient landscape
+    set(H_Figure,'units','normalized')
+    ss = get(0,'ScreenSize');
+    aspectRatio = ss(3)/ss(4);
+    
+    nRows = 3;
+    nCols = 4;
+    
+    pltH = 0.25;
+    pltW = 0.20;
+    gutter = 0.04;
+    offsetsX = 0.06:(pltW+gutter):1-gutter; % for 4 column-starts
+    offsetsY = 0.95-pltH:-(pltH+gutter+0.01):gutter; % for 3 row-starts
+    
+    pltCount = 0;
+    for cols = 1:nCols
+        pos(1) = offsetsX(cols);
+        pos(3:4) = [pltW pltH];
+        for ros = 1:nRows
+            pos(2) = offsetsY(ros);
+            pltCount = pltCount + 1;
+            H_plots(pltCount) = axes('parent',H_Figure,'position',pos,'box','on', 'layer','top','Tag',sprintf('H_plot%d',pltCount)); %#ok<AGROW>
+        end
+    end
+    
+
+    
