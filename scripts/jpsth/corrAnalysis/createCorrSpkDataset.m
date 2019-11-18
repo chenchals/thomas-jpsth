@@ -17,11 +17,26 @@ function [] = createCorrSpkDataset(area1,area2)
 %%
 warning('off');
 monkIdsToDo = {'D','E'};
-
 %% Options for Spk Corr computation
-rootAnalysisDir = 'dataProcessed/analysis/spkCorr2';
+rootAnalysisDir = 'dataProcessed/analysis/11-19-2019/spkCorr';
 datasetDir = 'dataProcessed/dataset';
 wavDir = 'dataProcessed/dataset/wavesNew';
+
+%% alignment:
+% Setup time windows for different event time alignment, the field names
+% SHALL correspond to column names for trialEventTimes below.
+alignNames = {'Baseline','Visual','PostSaccade','PostReward'};
+alignEvents = {'CueOn','CueOn','SaccadePrimary','RewardTime'};
+alignTimeWin = {[-600 100],[-200 400],[-100 500],[-200 700]};
+% first sort by accurate/fast?
+firstSortEvent = {'SaccadePrimary','SaccadePrimary','SaccadeSecond',[]};
+%%conditions
+conditionsTbl = table();
+conditionsTbl.conditions = {
+     'AccurateCorrect';'AccurateErrorChoice';'AccurateErrorTiming';
+     'FastCorrect';    'FastErrorChoice';    'FastErrorTiming'
+     };
+
 resultsDir = fullfile(rootAnalysisDir,['spkCorr_' area1 '-' area2],'mat');
 if ~exist(resultsDir, 'dir')
     mkdir(resultsDir);
@@ -39,7 +54,7 @@ cellPairs = cellPairs.JpsthPairCellInfoDB;
 cellPairs = cellPairs(ismember([cellPairs.X_monkey],monkIdsToDo),:);
 % Load data variable: spike times
 spikesSat = load(spikeTimesFile);
-spikesSat = {spikesSat.spikes.SAT};
+spikesSat = spikesSat.spikesSAT;
 % Load data variable: TrialTypes 
 sessionTrialTypes = load(trialTypesFile);
 sessionTrialTypes = sessionTrialTypes.TrialTypesDB;
@@ -55,37 +70,12 @@ cellPairs = cellPairs(...
 sessions = unique(cellPairs.X_sess);
 assert(isequal(sessions,unique(cellPairs.Y_sess)),'********Fatal: Error X-Unit sessions and Y-Unit sessions do not match');
 
-%% alignment:
-% Setup time windows for different event time alignment, the field names
-% SHALL correspond to column names for trialEventTimes below.
-alignNames = {'Baseline','Visual','PostSaccade','PostReward'};
-alignEvents = {'CueOn','CueOn','SaccadePrimary','RewardTime'};
-alignTimeWin = {[-600 100],[-200 400],[-100 500],[-200 700]};
-% first sort by accurate/fast?
-firstSortEvent = {'SaccadePrimary','SaccadePrimary','SaccadeSecond',[]};
-%%conditions
-conditionsTbl = table();
-conditionsTbl.conditions = {
-     'AccurateCorrect';'AccurateErrorChoice';'AccurateErrorTiming';
-     'FastCorrect';    'FastErrorChoice';    'FastErrorTiming'
-     };
-% % sort trials first event
-% conditionsTbl.trialsSortFirst = {
-%     'SaccadePrimary';'SaccadePrimary';'SaccadePrimary';
-%     'SaccadePrimary';'SaccadePrimary';'SaccadePrimary';
-%     };
-% % sort trials next event
-% conditionsTbl.trialsSortNext = {
-%     'RewardTime';'SaccadeSecond';[];
-%     'RewardTime';'SaccadeSecond';[];
-%     };
-
-%% For each JPSH cell pair do JPSTH
+%% For each JPSTH cell pair do SpikeCorr
 % see doc pctRunOnAll
 tic
 pctRunOnAll warning off;
 nPairs = size(cellPairs,1);
-for p = 1:nPairs
+parfor p = 1:nPairs
     cellPair = cellPairs(p,:); %#ok<*PFBNS>
     sess = cellPair.X_sess{1};
     % must be cell array of ntrials by 1
@@ -108,6 +98,6 @@ function [] = saveSpkCorrData(oFn,varToSave)
     fprintf('Saving file : %s ...',oFn)
     tempConditions = varToSave;
     save(oFn,'-v7.3','-struct','tempConditions');
-    fprintf('%5.2d\n',toc);
+    fprintf('%d\n',toc);
 end
 

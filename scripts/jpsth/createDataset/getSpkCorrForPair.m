@@ -28,11 +28,22 @@ function [outSpkCorr] = getSpkCorrForPair(cellPair,xSpkTimes,ySpkTimes,evntTimes
     % Fill NaN for window times min(alignWin)-movingWin/2
     fx_mvsum = @(rasters,win) movsum(double(rasters),win,2,'Endpoints','fill');
     %% Static spk corr windows for computing spike corr
-    staticWins.Baseline = [-500 -100];%[-500 -100];
-    staticWins.Visual = [50 200];%[50 250];
-    staticWins.PostSaccade = [100 300];%[0 400];
-    staticWins.PostReward = [100 300];%[0 600];
-
+    % count spikes in this window : delta = 200 ms
+    staticWinsAlignTs(1).Baseline = [-200 0];
+    staticWinsAlignTs(1).Visual = [0 200];
+    staticWinsAlignTs(1).PostSaccade = [0 200];
+    staticWinsAlignTs(1).PostReward = [0 200];
+    % count spikes in this window : delta = 150 ms
+    staticWinsAlignTs(2).Baseline = [-150 0];
+    staticWinsAlignTs(2).Visual = [0 150];
+    staticWinsAlignTs(2).PostSaccade = [0 150];
+    staticWinsAlignTs(2).PostReward = [0 150];
+       % count spikes in this window : delta = 50 ms
+    staticWinsAlignTs(3).Baseline = [-50 0];
+    staticWinsAlignTs(3).Visual = [100 150];
+    staticWinsAlignTs(3).PostSaccade = [50 100];
+    staticWinsAlignTs(3).PostReward = [50 100];
+ %%
     warning('off');
     % ignore processing if the sel. trials are below thisNum.
     nTrialsThreshold = 5;
@@ -203,29 +214,46 @@ function [outSpkCorr] = getSpkCorrForPair(cellPair,xSpkTimes,ySpkTimes,evntTimes
                 end
                 
                 %% Compute spike corrs for static windows for each aligned event
-                % Static windows spike corr for Raw counts
-                opts(evId,1).rho_pval_win = {staticWins.(alignedName)};
-                opts(evId,1).xSpkCount_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
-                    {rasterBins},{XRasters},opts(evId,1).rho_pval_win,'UniformOutput',false);
-                opts(evId,1).ySpkCount_win = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
-                    {rasterBins},{YRasters},opts(evId,1).rho_pval_win,'UniformOutput',false);
-                opts(evId,1).rho_pval_static = {getCorrData(opts(evId,1).xSpkCount_win{1},opts(evId,1).ySpkCount_win{1},'Pearson')};
-                
-                % Static windows spike corr for - Z-scored (using Baseline mean/std) count
-                opts(evId,1).rho_pval_win_Z_baseline = {staticWins.(alignedName)};
-                opts(evId,1).xSpkCount_win_Z_baseline = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
-                    {rasterBins},{xRasters_Z_baseline},opts(evId,1).rho_pval_win_Z_baseline,'UniformOutput',false);
-                opts(evId,1).ySpkCount_win_Z_baseline = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
-                    {rasterBins},{yRasters_Z_baseline},opts(evId,1).rho_pval_win_Z_baseline,'UniformOutput',false);
-                opts(evId,1).rho_pval_static_Z_baseline = {getCorrData(opts(evId,1).xSpkCount_win_Z_baseline{1},opts(evId,1).ySpkCount_win_Z_baseline{1},'Pearson')};
+                for sWin = 1:numel(staticWinsAlignTs)
+                    staticWin = staticWinsAlignTs(sWin).(alignedName);
+                    fieldSuffix = num2str(range(staticWin),'_%dms'); 
+                    
+                    % Static windows spike corr for Raw counts
+                    opts(evId,1).(['rho_pval_win' fieldSuffix]) = {staticWin};
+                    xSpkCounts = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+                        {rasterBins},{XRasters},{staticWin},'UniformOutput',false);
+                    ySpkCounts = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+                        {rasterBins},{YRasters},{staticWin},'UniformOutput',false);
+                    rho_pval = {getCorrData(xSpkCounts{1},ySpkCounts{1},'Pearson')};
+                    
+                    opts(evId,1).(['xSpkCount_win' fieldSuffix]) = xSpkCounts;
+                    opts(evId,1).(['ySpkCount_win' fieldSuffix]) = ySpkCounts;
+                    opts(evId,1).(['rho_pval_static' fieldSuffix]) = rho_pval;
+                    
+                    % Static windows spike corr for - Z-scored (using Baseline mean/std) count
+                    xSpkCounts = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+                        {rasterBins},{xRasters_Z_baseline},{staticWin},'UniformOutput',false);
+                    ySpkCounts = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+                        {rasterBins},{yRasters_Z_baseline},{staticWin},'UniformOutput',false);                    
+                    rho_pval = {getCorrData(xSpkCounts{1},ySpkCounts{1},'Pearson')};
+                    
+                    opts(evId,1).(['xSpkCount_win_Z_baseline' fieldSuffix]) = xSpkCounts;
+                    opts(evId,1).(['ySpkCount_win_Z_baseline' fieldSuffix]) = ySpkCounts;
+                    opts(evId,1).(['rho_pval_static_Z_baseline' fieldSuffix]) = rho_pval;
+                    
+                    % Static windows spike corr for - Z-scored (using Baseline mean/std) count
+                    xSpkCounts = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+                        {rasterBins},{xRasters_Z_trial},{staticWin},'UniformOutput',false);
+                    ySpkCounts = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
+                        {rasterBins},{yRasters_Z_trial},{staticWin},'UniformOutput',false);
+                    rho_pval = {getCorrData(xSpkCounts{1},ySpkCounts{1},'Pearson')};
 
-                % Static windows spike corr for - Z-scored (using Baseline mean/std) count
-                opts(evId,1).rho_pval_win_Z_trial = {staticWins.(alignedName)};
-                opts(evId,1).xSpkCount_win_Z_trial = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
-                    {rasterBins},{xRasters_Z_trial},opts(evId,1).rho_pval_win_Z_baseline,'UniformOutput',false);
-                opts(evId,1).ySpkCount_win_Z_trial = cellfun(@(r,x,w) sum(x(:,r>=w(1) & r<=w(2)),2),...
-                    {rasterBins},{yRasters_Z_trial},opts(evId,1).rho_pval_win_Z_baseline,'UniformOutput',false);
-                opts(evId,1).rho_pval_static_Z_trial = {getCorrData(opts(evId,1).xSpkCount_win_Z_trial{1},opts(evId,1).ySpkCount_win_Z_trial{1},'Pearson')};
+                    opts(evId,1).(['xSpkCount_win_Z_trial' fieldSuffix]) = xSpkCounts;
+                    opts(evId,1).(['ySpkCount_win_Z_trial' fieldSuffix]) = ySpkCounts;
+                    opts(evId,1).(['rho_pval_static_Z_trial' fieldSuffix]) = rho_pval;
+                end
+                
+                
                 %% get waveforms
                 [opts(evId,1).xWaves,opts(evId,1).yWaves] = getWaveforms(wavDir,cellPair,opts(evId,1));
                 opts(evId,1).xWaveWidths = getWaveformWidths(opts(evId,1).xWaves);
