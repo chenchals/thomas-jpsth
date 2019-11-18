@@ -1,4 +1,4 @@
-oFilename = 'dataProcessed/analysis/spkCorr/spkCorrAllPairsStatic.mat';
+oFilename = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat';
 areaPairs = {
     'SEF-SEF' 
     'SEF-FEF'    
@@ -7,7 +7,7 @@ areaPairs = {
     'FEF-SC'     
     'SC-SC'      
     };
-corrMatDirs = strcat('dataProcessed/analysis/spkCorr/spkCorr_',areaPairs,'/mat');
+corrMatDirs = strcat('dataProcessed/analysis/11-18-2019/spkCorr/spkCorr_',areaPairs,'/mat');
 corrDatFields = {
     'Pair_UID'        
     'X_monkey'        
@@ -62,22 +62,28 @@ corrDatFields = {
     %'trialNosByCondition'
     'critRho10'          
     'critRho05'          
-    'critRho01'          
-    'critRho10_Z_baseline'        
-    'critRho05_Z_baseline'        
-    'critRho01_Z_baseline'        
-    'critRho10_Z_trial'        
-    'critRho05_Z_trial'        
-    'critRho01_Z_trial'        
-    'rho_pval_win'     
-    'rho_pval_static'    
-    'rho_pval_static_Z_baseline'  
-    'rho_pval_static_Z_trial' 
+    'critRho01'                  
+    'rho_pval_win_50ms'     
+    'rho_pval_static_50ms'    
+    'rho_pval_static_Z_baseline_50ms'  
+    'rho_pval_static_Z_trial_50ms' 
+    'rho_pval_win_150ms'     
+    'rho_pval_static_150ms'    
+    'rho_pval_static_Z_baseline_150ms'  
+    'rho_pval_static_Z_trial_150ms' 
+    'rho_pval_win_200ms'     
+    'rho_pval_static_200ms'    
+    'rho_pval_static_Z_baseline_200ms'  
+    'rho_pval_static_Z_trial_200ms' 
     'xWaves'
     'yWaves'
     'xWaveWidths'
     'yWaveWidths'
     };
+
+t = regexp(corrDatFields,'rho_pval_static_(\d*)ms$','tokens');
+staticWinSizes = sort(cellfun(@(x) str2double(x{1}),t(~cellfun(@isempty,t))));
+
 cols2Remove = {
     'xWaves'
     'yWaves'
@@ -110,19 +116,39 @@ for d = 1:numel(corrMatDirs)
         fieldIdx = cell2mat(cellfun(@(x) find(strcmp(tempFns,x)),corrDatFields,'UniformOutput',false));
         pDat = [pDat,temp(:,corrDatFields)];
         pDat.XY_Dist = cell2mat(pDat.XY_Dist);
-        % split rho, pval
-        [pDat.rhoRaw,pDat.pvalRaw,pDat.signifRaw_05,pDat.signifRaw_01] = ...
-            cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),pDat.rho_pval_static);
-        [pDat.rhoZBaseline,pDat.pvalZBaseline,pDat.signifZBaseline_05,pDat.signifZBaseline_01] = ...
-            cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),pDat.rho_pval_static_Z_baseline);
-        [pDat.rhoZTrial,pDat.pvalZTrial,pDat.signifZTrial_05,pDat.signifZTrial_01] = ...
-            cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),pDat.rho_pval_static_Z_trial);
-        % xwaveforms...
+        %% split rho, pval
+        for sW = 1:numel(staticWinSizes)
+            staticWin = staticWinSizes(sW);
+            swSuffix = num2str(staticWin,'_%dms');
+            % Use rho/pval from raw counts            
+            swRhoPval = pDat.(['rho_pval_static' swSuffix]);
+            [rho,pval,sig05,sig01] = cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),swRhoPval);            
+            [pDat.(['rhoRaw' swSuffix]),...
+            pDat.(['pvalRaw' swSuffix]),...
+            pDat.(['signifRaw_05' swSuffix]),...
+            pDat.(['signifRaw_01' swSuffix])] = deal(rho,pval,sig05,sig01);
+            % Use rhp/pval from Z-scored (with mean and std from) Baseline period
+            swRhoPval = pDat.(['rho_pval_static_Z_baseline' swSuffix]);
+            [rho,pval,sig05,sig01] = cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),swRhoPval);            
+            [pDat.(['rhoZBaseline' swSuffix]),...
+            pDat.(['pvalZBaseline' swSuffix]),...
+            pDat.(['signifZBaseline_05' swSuffix]),...
+            pDat.(['signifZBaseline_01' swSuffix])] = deal(rho,pval,sig05,sig01);
+            % Use rhp/pval from Z-scored (with mean and std from) whole Trial period
+            swRhoPval = pDat.(['rho_pval_static_Z_trial' swSuffix]);
+            [rho,pval,sig05,sig01] = cellfun(@(x) deal(x(1),x(2),x(2)<=0.05,x(2)<=0.01),swRhoPval);            
+            [pDat.(['rhoZTrial' swSuffix]),...
+            pDat.(['pvalZTrial' swSuffix]),...
+            pDat.(['signifZTrial_05' swSuffix]),...
+            pDat.(['signifZTrial_01' swSuffix])] = deal(rho,pval,sig05,sig01);
+        end
+        
+        %% xwaveforms...
         [pDat.xWaveMean,pDat.xWaveStd] = ...
             cellfun(@(w) deal(mean(cell2mat(w)),std(cell2mat(w))),pDat.xWaves, 'UniformOutput', false);
         [pDat.xWaveWidthMean,pDat.xWaveWidthStd] = ...
             cellfun(@(w) deal(mean(cell2mat(w)),std(cell2mat(w))),pDat.xWaveWidths, 'UniformOutput', false);
-        % ywaveforms...
+        %% ywaveforms...
         [pDat.yWaveMean,pDat.yWaveStd] = ...
             cellfun(@(w) deal(mean(cell2mat(w)),std(cell2mat(w))),pDat.yWaves, 'UniformOutput', false);
         [pDat.yWaveWidthMean,pDat.yWaveWidthStd] = ...
@@ -136,6 +162,12 @@ for d = 1:numel(corrMatDirs)
     fprintf('Done %.3f sec.\n',toc)
 end
 size(spkCorrStatic);
+[d,~,~]=fileparts(oFilename);
+if ~exist(d,'dir')
+    mkdir(d);
+end
+
+
 save(oFilename,'-v7.3','-struct','spkCorrStatic');
 toc
 
