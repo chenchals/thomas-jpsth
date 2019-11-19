@@ -1,8 +1,8 @@
 % Compare cross area and within area spike count correlations
 % Use static windows
-fn = 'dataProcessed/analysis/spkCorr/spkCorrAllPairsStatic.mat';
-spkCorr = load(fn);
-outPdfFn = 'dataProcessed/analysis/spkCorr/Summary_SpkCorr';
+fn = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat';
+%spkCorr = load(fn);
+outPdfFn = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/crossAreaCompare';
 
 %% 
 filterData = 1;
@@ -19,114 +19,176 @@ useCols = {
     'condition'
     'alignedName'
     'alignedEvent'
-    'rho_pval_win'
-    'rhoRaw'
-    'pvalRaw'
-    'rhoZTrial'
-    'pvalZTrial'
-    'signifRaw_05'
-    'signifRaw_01'
-    'signifZTrial_05'
-    'signifZTrial_01'
+    'rho_pval_win_50ms'
+    'rhoRaw_50ms'
+    'pvalRaw_50ms'
+    'rhoZTrial_50ms'
+    'pvalZTrial_50ms'
+    'rho_pval_win_150ms'
+    'rhoRaw_150ms'
+    'pvalRaw_150ms'
+    'rhoZTrial_150ms'
+    'pvalZTrial_150ms'
+    'rho_pval_win_200ms'
+    'rhoRaw_200ms'
+    'pvalRaw_200ms'
+    'rhoZTrial_200ms'
+    'pvalZTrial_200ms'
+    %'signifRaw_05'
+    %'signifRaw_01'
+    %'signifZTrial_05'
+    %'signifZTrial_01'
     };
-% compareConditions = {
-%     'AccurateCorrect' 'FastCorrect'
-%     'AccurateErrorChoice' 'FastErrorChoice'
-%     'AccurateErrorTiming' 'FastErrorTiming'
-%     };
-% aggregate required fields into a single table
-spkCorrAll = table();
+
+t = regexp(useCols,'rhoRaw_(\d*)ms$','tokens');
+staticWinSizes = sort(cellfun(@(x) str2double(x{1}),t(~cellfun(@isempty,t))));
+
+%% aggregate required fields into a single table
+spkCorrAllTbl = table();
 for pa =1:numel(pairAreas)
     pairArea = pairAreas{pa};
-    spkCorrAll = [spkCorrAll; spkCorr.(pairArea)(:,useCols)];
+    spkCorrAllTbl = [spkCorrAllTbl; spkCorr.(pairArea)(:,useCols)];
 end
 % recode X_monkey
-spkCorrAll.monkey = spkCorrAll.X_monkey;
-spkCorrAll.X_monkey = [];
-% use absolute values
-spkCorrAll.rhoRaw = abs(spkCorrAll.rhoRaw);
-spkCorrAll.rhoZTrial = abs(spkCorrAll.rhoZTrial);
-spkCorrAll.baseCondition = regexprep(spkCorrAll.condition,'(Accurate)|(Fast)','');
-spkCorrAll.trialType = regexprep(spkCorrAll.condition,'(Correct)|(Error.*)','');
-% Recode distances as pairAreas
-spkCorrAll.newPairAreas = spkCorrAll.pairAreas;
-spkCorrAll.newXY_Dist = spkCorrAll.XY_Dist;
-idx = spkCorrAll.XY_Dist==0;
-spkCorrAll.newPairAreas(idx) = strcat(spkCorrAll.pairAreas(idx),'(0mm)');
-idx = spkCorrAll.XY_Dist>0 & spkCorrAll.XY_Dist<2;
-spkCorrAll.newPairAreas(idx) = strcat(spkCorrAll.pairAreas(idx),'(<2mm)');
+spkCorrAllTbl.monkey = spkCorrAllTbl.X_monkey;
+spkCorrAllTbl.X_monkey = [];
 
-% use newPairAreas
-newPairAreas =  {'SEF-SEF(0mm)','SEF-SEF(<2mm)','SEF-SEF','SEF-FEF','SEF-SC'};
 
-% Filter data?
+%% Filter data?
 filterTxt = {};
-outFileSuffix = '';
+outFileFilterSuffix = '';
 if filterData
-    filters.monk = {'D','E'};    
+    filters.monk = {'D','E'};
     filt = filters.monk{filterIdx};
     filterTxt = [filterTxt, ['Monk: ' filt]];
-    outFileSuffix = [outFileSuffix '_' filt];
-    filteredSpkCorrAll = spkCorrAll(strcmp(spkCorrAll.monkey,filt),:);
+    outFileFilterSuffix = [outFileFilterSuffix '_' filt];
+    spkCorrAllTbl = spkCorrAllTbl(strcmp(spkCorrAllTbl.monkey,filt),:);
 else
-    outFileSuffix = '_All';
-    filteredSpkCorrAll = spkCorrAll;
+    outFileFilterSuffix = '_All';
 end
 
-% get stats
-spkCorrAllStats = grpstats(filteredSpkCorrAll(:,{'baseCondition','trialType','newPairAreas','condition','alignedName','rhoRaw','rhoZTrial'}),...
-        {'condition','baseCondition','trialType','alignedName','newPairAreas'},{'mean','std','min','max'});
-spkCorrAllStats.sem_rhoRaw = (spkCorrAllStats.std_rhoRaw.^2)./sqrt(spkCorrAllStats.GroupCount);
-spkCorrAllStats.sem_rhoZTrial = (spkCorrAllStats.std_rhoZTrial.^2)./sqrt(spkCorrAllStats.GroupCount);
-
-%% Plot it
 if filterData
-    txtFilter = ['Filters : ' char(join(filterTxt',' ; '))];
+    txtFilter = ['Filters : ' char(join(filterTxt',' ; '))]; %#ok<*UNRCH>
 else
     txtFilter = '';
 end
-pdfFn = [outPdfFn outFileSuffix '.pdf'];
-plotCorrStats(pdfFn,spkCorrAllStats,newPairAreas,txtFilter);
-    
 
+
+%% Plot data for each window
+for sw = 1:numel(staticWinSizes)
+    
+    %% For each static window size
+    spkCorrAll = spkCorrAllTbl;
+    staticWin = staticWinSizes(sw);
+    swSuffix = num2str(staticWin,'_%dms');
+    outFileSuffix = [outFileFilterSuffix swSuffix]; %#ok<*AGROW>
+    rhoRawName = 'rhoRaw';
+    spkCorrAll.(rhoRawName) = spkCorrAll.([rhoRawName swSuffix]);
+    
+    rhoZTrialName = 'rhoZTrial';
+    spkCorrAll.(rhoZTrialName) = spkCorrAll.([rhoZTrialName swSuffix]);
+    
+    spkCorrAll.baseCondition = regexprep(spkCorrAll.condition,'(Accurate)|(Fast)','');
+    spkCorrAll.trialType = regexprep(spkCorrAll.condition,'(Correct)|(Error.*)','');
+    % Recode distances as pairAreas
+    spkCorrAll.newPairAreas = spkCorrAll.pairAreas;
+    spkCorrAll.newXY_Dist = spkCorrAll.XY_Dist;
+    idx = spkCorrAll.XY_Dist==0;
+    spkCorrAll.newPairAreas(idx) = strcat(spkCorrAll.pairAreas(idx),'(0mm)');
+    idx = spkCorrAll.XY_Dist>0 & spkCorrAll.XY_Dist<2;
+    spkCorrAll.newPairAreas(idx) = strcat(spkCorrAll.pairAreas(idx),'(<2mm)');
+    % use newPairAreas
+    newPairAreas =  {'SEF-SEF(0mm)','SEF-SEF(<2mm)','SEF-SEF','SEF-FEF','SEF-SC'};
+    
+    %% get stats
+    % Fields for grpstats function:
+    grpstatsFields = {'baseCondition','trialType','newPairAreas','condition','alignedName'};
+    grpstatsFields = [grpstatsFields';rhoRawName;rhoZTrialName];
+    spkCorrAll = spkCorrAll(:,grpstatsFields);
+    % separate stats for Positive rho and negative rho
+    spkCorrAllStats = struct();
+    % Positive Rho
+    idx =  spkCorrAll.(rhoRawName)>=0;
+    tempStats = grpstats(spkCorrAll(idx,:),...
+        {'condition','baseCondition','trialType','alignedName','newPairAreas'},{'mean','std'});
+    tempStats.('sem_rhoRaw') = (tempStats.(['std_' rhoRawName]).^2)./sqrt(tempStats.GroupCount);
+    tempStats.('sem_rhoZTrial') = (tempStats.(['std_' rhoZTrialName]).^2)./sqrt(tempStats.GroupCount);
+    spkCorrAllStats.plusRho = tempStats;
+    % Negative Rho
+    idx =  spkCorrAll.(rhoRawName)<0;
+    tempStats = grpstats(spkCorrAll(idx,:),...
+        {'condition','baseCondition','trialType','alignedName','newPairAreas'},{'mean','std'});
+    tempStats.('sem_rhoRaw') = (tempStats.(['std_' rhoRawName]).^2)./sqrt(tempStats.GroupCount);
+    tempStats.('sem_rhoZTrial') = (tempStats.(['std_' rhoZTrialName]).^2)./sqrt(tempStats.GroupCount);
+    spkCorrAllStats.minusRho = tempStats;
+    % Absolute Rho
+    spkCorrAll.(rhoRawName) = abs(spkCorrAll.(rhoRawName));
+    spkCorrAll.(rhoZTrialName) = abs(spkCorrAll.(rhoZTrialName));   
+    tempStats = grpstats(spkCorrAll,...
+        {'condition','baseCondition','trialType','alignedName','newPairAreas'},{'mean','std'});
+    tempStats.('sem_rhoRaw') = (tempStats.(['std_' rhoRawName]).^2)./sqrt(tempStats.GroupCount);
+    tempStats.('sem_rhoZTrial') = (tempStats.(['std_' rhoZTrialName]).^2)./sqrt(tempStats.GroupCount);
+    spkCorrAllStats.absoluteRho = tempStats;    
+    %% Plot it
+
+    pdfFn = [outPdfFn outFileSuffix '.pdf'];
+    plotCorrStats(pdfFn,spkCorrAllStats,newPairAreas,txtFilter);
+    
+end
 %% Other functions  
 
 function [] = plotCorrStats(pdfFn,spkCorrAllStats,newPairAreas,txtFilter)
+% spkCorrAllStats is a struct
+%    .plusRho = all positive rho (including zero)
+%    .minusRho = all negative rho
+%    .absoluteRho = absolute value of rho
 
-%% Plot the stats
     baseConditions = {'Correct','ErrorChoice','ErrorTiming'};
     alignedNames = {'Baseline','Visual','PostSaccade','PostReward'};
-
+    % find minRho for negative Rho 
+    % manually was [-0.2 0.45]
+    
     H_plots = getPlotHandles();
-    H_plt_Idx = 0;
-    for co = 1:numel(alignedNames)
-        alignedName = alignedNames{co};
-        for ro = 1:numel(baseConditions)
-            baseCond = baseConditions{ro};
-            tblRows = strcmp(spkCorrAllStats.alignedName,alignedName) & ...
-                strcmp(spkCorrAllStats.baseCondition,baseCond);
-            pairAreasInData = unique(spkCorrAllStats.newPairAreas(tblRows),'stable');
-            pltTbl = table();
-            pltTbl.datAreas = pairAreasInData;
-            pltTbl.datMean = reshape(spkCorrAllStats.mean_rhoRaw(tblRows),numel(pairAreasInData),[]);
-            pltTbl.datStd = reshape(spkCorrAllStats.std_rhoRaw(tblRows),numel(pairAreasInData),[]);
-            pltTbl.datSem = reshape(spkCorrAllStats.sem_rhoRaw(tblRows),numel(pairAreasInData),[]);
-            pltTbl.datCounts = reshape(spkCorrAllStats.GroupCount(tblRows),numel(pairAreasInData),[]);
-            
-            % It is possible that some pair-areas or groups may not exist
-            % in data.. In these cases, add 'NaN' to data
-            %if numel(pairAreasInData)~=numel(newPairAreas)               
-               tempTbl = table();
-               tempTbl.datAreas = newPairAreas';
-               tempTbl.grpOrder = [1:size(tempTbl,1)]';
-               pltTbl = outerjoin(tempTbl,pltTbl,'MergeKeys',true);
-               pltTbl = sortrows(pltTbl,'grpOrder');
-            %end
-                        
-            % plot it
-            H_plt_Idx = H_plt_Idx + 1;
-            plotGroupedBarsWithErrBars(H_plots(H_plt_Idx),pltTbl.datAreas,...
-                pltTbl.datMean,pltTbl.datStd,pltTbl.datSem,pltTbl.datCounts);
+    for plusMinus = 1:2
+        isPlusRhos = 1; %sum(yMean(~isnan(yMean))>=0)==numel(~isnan(yMean));
+        currStats = spkCorrAllStats.plusRho;
+        if plusMinus == 2
+            currStats = spkCorrAllStats.minusRho;
+            isPlusRhos = 0;
+        end
+        H_plt_Idx = 0;
+        for co = 1:numel(alignedNames)
+            alignedName = alignedNames{co};
+            for ro = 1:numel(baseConditions)
+                baseCond = baseConditions{ro};
+                tblRowsAccu = strcmp(currStats.alignedName,alignedName) & ...
+                    strcmp(currStats.baseCondition,baseCond) & strcmp(currStats.trialType,'Accurate');
+                tblRowsFast = strcmp(currStats.alignedName,alignedName) & ...
+                    strcmp(currStats.baseCondition,baseCond) & strcmp(currStats.trialType,'Fast');
+
+                % It is possible that some pair-areas or groups may not exist
+                % in data.. In these cases, add 'NaN' to data
+                %if numel(pairAreasInData)~=numel(newPairAreas)
+                tempTbl = table();
+                tempTbl.newPairAreas = newPairAreas';
+                tempTbl.grpOrder = (1:size(tempTbl,1))';
+                accuTbl = outerjoin(tempTbl,currStats(tblRowsAccu,:),'MergeKeys',true);
+                fastTbl = outerjoin(tempTbl,currStats(tblRowsFast,:),'MergeKeys',true);
+                accuTbl = sortrows(accuTbl,'grpOrder');
+                fastTbl = sortrows(fastTbl,'grpOrder');
+                % create table for plot 
+                pltTbl = table();
+                pltTbl.datAreas = newPairAreas';
+                pltTbl.datMean = [accuTbl.mean_rhoRaw fastTbl.mean_rhoRaw];
+                pltTbl.datStd = [accuTbl.std_rhoRaw fastTbl.std_rhoRaw];
+                pltTbl.datSem = [accuTbl.sem_rhoRaw fastTbl.sem_rhoRaw];
+                pltTbl.datCounts = [accuTbl.GroupCount fastTbl.GroupCount];
+                 
+                % plot it
+                H_plt_Idx = H_plt_Idx + 1;
+                plotGroupedBarsWithErrBars(H_plots(H_plt_Idx),pltTbl.datAreas,...
+                    pltTbl.datMean,pltTbl.datStd,pltTbl.datSem,pltTbl.datCounts,isPlusRhos);
+            end
         end
     end
     addAnnotations(pdfFn,baseConditions,alignedNames,txtFilter);
@@ -156,20 +218,24 @@ function addAnnotations(pdfFile,rowNames,colNames,txtFilter)
 end
 
 
-function [] = plotGroupedBarsWithErrBars(H_axes,xData,yMean,yStd,ySem,nPairs)
+function [] = plotGroupedBarsWithErrBars(H_axes,xData,yMean,yStd,ySem,nPairs,isPlusRhos) %#ok<*INUSL>
+
+    % find minRho for negative Rho 
+    % manually was [-0.2 0.45]
+    yLims = [-0.4 0.4];
     useSem = 1;
     axes(H_axes);
     accColor = [1 0 0];
     fastColor = [0 0.5 0];
-    ylims = [0 0.50];
+    
     %x = categorical(xData(:,1));
     x = 1:numel(xData(:,1));
     hBar = bar(x,yMean,'FaceAlpha',0.4,'BarWidth',0.90);
     set(hBar(1),'FaceColor',accColor); set(hBar(2),'FaceColor',fastColor);
     set(gca,'xticklabels',xData(:,1),'TickLabelInterpreter','none','XTickLabelRotation',20);
     set(gca,'YGrid','on')
-    ylim(ylims);
     ylabel('Mean r_{sc} \pm SEM (abs.)');
+    set(gca,'Ylim',yLims);
     set(gca,'FontWeight','bold','FontSize',8);
     hold on
     for k1 = 1:size(yMean,2)
@@ -181,9 +247,20 @@ function [] = plotGroupedBarsWithErrBars(H_axes,xData,yMean,yStd,ySem,nPairs)
         yErr = yStd;
     end
     %
-    he = errorbar(ctr,yMean',yErr','YPositiveDelta',[],'Marker','o','MarkerSize',5,'LineStyle',...
+    he = errorbar(ctr,yMean',yErr','Marker','o','MarkerSize',5,'LineStyle',...
         'none','LineWidth',0.5,'MarkerFaceColor','w','MarkerEdgeColor','k','Color','k');
     % add text values to plot
+    if isPlusRhos
+        set(he,'YPositiveDelta',[]);
+        y = 0.2;
+        va = 'bottom';
+    else
+        set(he,'YNegativeDelta',[]);
+         y = -0.2;
+        va = 'top';
+   end    
+    
+    
     [txtPairArea,txtAcc,txtFast] = arrayfun(@(x) deal(sprintf('%14s',xData{x,1}),...
         sprintf('%0.2f\\pm%0.2f %4d',yMean(x,1),yErr(x,1),nPairs(x,1)),...
         sprintf('%0.2f\\pm%0.2f %4d',yMean(x,2),yErr(x,2),nPairs(x,2))),...
@@ -191,17 +268,17 @@ function [] = plotGroupedBarsWithErrBars(H_axes,xData,yMean,yStd,ySem,nPairs)
     txtPairArea = [sprintf('%14s','AREA');txtPairArea];
     txtAcc = [sprintf('%14s','\mu\pmSEM   n');txtAcc];
     txtFast = [sprintf('%14s','\mu\pmSEM   n');txtFast];
-    
-    
-    y = ylims(2)-0.05;
-    h_pa = text(ctr(2,2)+0.5,y,txtPairArea,'HorizontalAlignment','center','VerticalAlignment','top','FontSize',8);
+%     
+
+
+    h_pa = text(ctr(2,2)+0.5,y,txtPairArea,'HorizontalAlignment','center','VerticalAlignment',va,'FontSize',7);
     ext = get(h_pa,'Extent');
     pos = get(h_pa,'Position');
-    h_txt1 = text(pos(1)+ext(3),y,txtAcc,'HorizontalAlignment','center','VerticalAlignment','top','FontSize',8,'color',accColor);
+    h_txt1 = text(pos(1)+ext(3),y,txtAcc,'HorizontalAlignment','center','VerticalAlignment',va,'FontSize',7,'color',accColor);
     ext = get(h_txt1,'Extent');
     pos = get(h_txt1,'Position');
-    h_txt2 = text(pos(1)+ext(3)+0.1,y,txtFast,'HorizontalAlignment','center','VerticalAlignment','top','FontSize',8,'color',fastColor);
-    hold off
+    h_txt2 = text(pos(1)+ext(3)+0.1,y,txtFast,'HorizontalAlignment','center','VerticalAlignment',va,'FontSize',7,'color',fastColor);
+    
 end
 
 
@@ -238,7 +315,7 @@ function [H_plots] = getPlotHandles()
         for ros = 1:nRows
             pos(2) = offsetsY(ros);
             pltCount = pltCount + 1;
-            H_plots(pltCount) = axes('parent',H_Figure,'position',pos,'box','on', 'layer','top','Tag',sprintf('H_plot%d',pltCount)); %#ok<AGROW>
+            H_plots(pltCount) = axes('parent',H_Figure,'position',pos,'box','on', 'layer','top','Tag',sprintf('H_plot%d',pltCount));
         end
     end
 
