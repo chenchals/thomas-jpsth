@@ -1,8 +1,7 @@
 % load extracted data
-%dat = load('dataProcessed/analysis/spkCorr/spkCorrAllPairsStatic.mat');
-plotUnsignedCorr = 1;
-saveFigFlag = 1;
-outDir = 'dataProcessed/analysis/spkCorr';
+dat = load('dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat');
+
+outDir = 'dataProcessed/analysis/11-18-2019/spkCorr/summary';
 fns = fieldnames(dat);
 % area pairs to plot (in-order). Do not change the order below
 pairAreas = {
@@ -11,117 +10,183 @@ pairAreas = {
     %'SC_SC'
     };
 assert(numel(pairAreas)== 2|numel(pairAreas)== 3 ,...
-    sprintf('The number of area-pairs [%d] must be [2 or 3]',numel(pairAreas))); 
+    sprintf('The number of area-pairs [%d] must be [2 or 3]',numel(pairAreas)));
+colNames = dat.(fns{1}).Properties.VariableNames';
+t = regexp(colNames,'rhoRaw_(\d*)ms$','tokens');
+staticWinSizes = sort(cellfun(@(x) str2double(x{1}),t(~cellfun(@isempty,t))));
 
-[alignedNames,idx] = unique(dat.(pairAreas{1}).alignedName,'stable');
-conditions = unique(dat.(pairAreas{1}).condition);
-alignedOn = dat.(pairAreas{1}){idx,{'alignedEvent'}};
-rscTimeWins =  dat.(pairAreas{1}){idx,{'rho_pval_win'}};
-alignedOnTimeWinsStr = cellfun(@(x,y) ['[' sprintf('Aligned on: %s',x) ', Spike Counts Win: [' num2str(y,'%d  ') ']]'],...
-                       alignedOn,rscTimeWins,'UniformOutput',false);
-% there will be nAlignedNames figures - Each figure will have 
-% SEF-SEF,FEF-FEF, SC-SC pair correlations plotted againts distance between pairs
-% for all conditions: (Fast / Accurate (Correct, ErrorChoice, ErrorTiming))
-% for epochs (fig1) Baseline, (fig2) Visual, (fig3) PostSaccade, (fig4)
-% PostReward
-warning('off')
-suff = ' ';
+plotUnsignedCorr = 0;
+saveFigFlag = 1;
+
 if plotUnsignedCorr
-    suff = '(abs.) ';
+    absOrSigned = '(abs.)';
+    fnSuffix = '_Absolute';
+else
+    absOrSigned = '';
+    fnSuffix = '';
 end
-for figNo = 1:numel(alignedOn)
-    epoch = alignedNames{figNo};
-    figTitleStr = [epoch ' : ' alignedOnTimeWinsStr{figNo} suff];
-    [aspectRatio,H_figure] = getFigHandle();
-    [H_plots] = getPlotHandlesB(H_figure, numel(pairAreas));
-    annotation('textbox','Position',[0.05 0.97 0.80 0.05],'String',figTitleStr,...
-               'Interpreter','tex','EdgeColor','none','FontWeight','bold',...
-               'FitBoxToText','on','HorizontalAlignment','center',...
-               'VerticalAlignment','baseline','FontSize',18);    
-    H_plot_Idx = 0;
-    % col1: {AccurateCorrect-SEF,FEF,SC; FastCorrect-SEF,FEF,SC
-     plotColConds = {'Correct','ErrorChoice','ErrorTiming'};
-     titleColors ={'g','r'};% Fast/Accurate
-     for co = 1:numel(plotColConds)
-         plotRowConds = {'Fast','Accurate'};
-         plotColName = plotColConds{co};
-         for ro = 1:numel(plotRowConds)
-          titleColor = titleColors{ro};
-          plotRowName = plotRowConds{ro};
-          plotPairAreas = strrep(pairAreas,'_','-');
-          for ar = 1:numel(plotPairAreas)
-              plotPairArea = plotPairAreas{ar};
-              currDat = dat.(strrep(plotPairArea,'-','_'));
-              filteredFlag = strcmp(currDat.alignedName,epoch) ...
-                  & strcmp(currDat.condition,[plotRowName plotColName]) ...
-                  & strcmp(currDat.pairAreas,plotPairArea);
-              currDat = currDat(filteredFlag,:);
-              currDat = currDat(~isnan(currDat.XY_Dist),:);
-              
-              if plotUnsignedCorr
-                  currDat.rhoRaw = abs(currDat.rhoRaw);
-              end
 
-                  % (1) percentage of pairs vs binned-spikecorr,
-                  % (2) spike corr vs binned-distance
-                  H_plot_Idx = H_plot_Idx + 1;
-                  plotRhoDistrib(H_plots(H_plot_Idx),currDat.rhoRaw);
-                  ylabel(['Percentage of ' plotPairArea ' Pairs'],'FontWeight','bold','FontAngle','italic');
-                  xlabel('Spike Count Correlation (r_{sc})','Interpreter','tex','FontWeight','bold','FontAngle','italic');                                    
-                  titlePos = get(gca,'Position');
+for sw = 1:numel(staticWinSizes)
+    
+    %% For each static window size
+    staticWin = staticWinSizes(sw);
+    swSuffix = num2str(staticWin,'_%dms');
+    rhoPvalWinName = ['rho_pval_win' swSuffix];
+    rhoName = ['rhoRaw' swSuffix];
+    
+    [alignedNames,idx] = unique(dat.(pairAreas{1}).alignedName,'stable');
+    conditions = unique(dat.(pairAreas{1}).condition);
+    alignedOn = dat.(pairAreas{1}){idx,{'alignedEvent'}};
+    rscTimeWins =  dat.(pairAreas{1}){idx,{rhoPvalWinName}};
+    alignedOnTimeWinsStr = cellfun(@(x,y) [sprintf('Aligned on: %s',x) ...
+        ', Spike Counts Win:[' num2str(y,'%d ') '], Width:[' swSuffix(2:end) '] '],...
+        alignedOn,rscTimeWins,'UniformOutput',false);
+    % there will be nAlignedNames figures - Each figure will have
+    % SEF-SEF,FEF-FEF, SC-SC pair correlations plotted againts distance between pairs
+    % for all conditions: (Fast / Accurate (Correct, ErrorChoice, ErrorTiming))
+    % for epochs (fig1) Baseline, (fig2) Visual, (fig3) PostSaccade, (fig4)
+    % PostReward
+    warning('off')
+    
+    for figNo = 1:numel(alignedOn)
+        epoch = alignedNames{figNo};
+        figTitleStr = [epoch ' : ' alignedOnTimeWinsStr{figNo} absOrSigned];
+        fn = fullfile(outDir,['corrByDistDistrib_' epoch fnSuffix swSuffix '.pdf']);
+        [aspectRatio,H_figure] = getFigHandle();
+        [H_plots] = getPlotHandlesB(H_figure, numel(pairAreas));
+        annotation('textbox','Position',[0.05 0.965 0.80 0.05],'String',figTitleStr,...
+            'Interpreter','none','EdgeColor','none','FontWeight','bold',...
+            'FitBoxToText','on','HorizontalAlignment','center',...
+            'VerticalAlignment','middle','FontSize',16);
+        H_plot_Idx = 0;
+        % col1: {AccurateCorrect-SEF,FEF,SC; FastCorrect-SEF,FEF,SC
+        plotColConds = {'Correct','ErrorChoice','ErrorTiming'};
+        titleColors ={'g','r'};% Fast/Accurate
+        for co = 1:numel(plotColConds)
+            plotRowConds = {'Fast','Accurate'};
+            plotColName = plotColConds{co};
+            for ro = 1:numel(plotRowConds)
+                titleColor = titleColors{ro};
+                plotRowName = plotRowConds{ro};
+                plotPairAreas = strrep(pairAreas,'_','-');
+                for ar = 1:numel(plotPairAreas)
+                    plotPairArea = plotPairAreas{ar};
+                    currDat = dat.(strrep(plotPairArea,'-','_'));
+                    filteredFlag = strcmp(currDat.alignedName,epoch) ...
+                        & strcmp(currDat.condition,[plotRowName plotColName]) ...
+                        & strcmp(currDat.pairAreas,plotPairArea);
+                    currDat = currDat(filteredFlag,:);
+                    currDat = currDat(~isnan(currDat.XY_Dist),:);
+                    
+                    if plotUnsignedCorr
+                        currDat.rhoRaw = abs(currDat.(rhoName));
+                    else
+                        currDat.rhoRaw = currDat.(rhoName);
+                    end
+                    
+                    % (1) percentage of pairs vs binned-spikecorr,
+                    % (2) spike corr vs binned-distance
+                    H_plot_Idx = H_plot_Idx + 1;
+                                        
+                    plotRhoDistrib(H_plots(H_plot_Idx),currDat.rhoRaw);                                       
 
-                  
-                  % (2) spike corr vs binned-distance
-                  H_plot_Idx = H_plot_Idx + 1;
-                  plotRhoVsDistDistrib(H_plots(H_plot_Idx),currDat.XY_Dist,currDat.rhoRaw);
-                  ylabel(['\rho ' suff plotPairArea ' pairs'],'Interpreter','tex','FontWeight','bold','FontAngle','italic');
-                  xlabel('Distance between units (mm)','Interpreter','tex','FontWeight','bold','FontAngle','italic');
-                  
-                  if ar == 1
-                      thPos(1) = titlePos(1) + 0.01 ;
-                      thPos(2) = titlePos(2) + titlePos(4);
-                      thPos(3) = 0.2;
-                      thPos(4) = 0.03;
-                      th = annotation('textbox','String',[plotRowName plotColName],'Position', thPos,...
-                          'Color',titleColor,'FontSize',14,'FontWeight','bold','FontAngle','italic',...
-                          'HorizontalAlignment','center','EdgeColor','none');
-                  end                         
-          end
-         end
-         drawnow;
-     end
-     if saveFigFlag
-         suff2 = '';
-         if plotUnsignedCorr
-             suff2 = '_Unsigned';
-         end
-         fn = fullfile(outDir,['Summary_Distrib_' epoch '_SpkCorr' suff2 '.pdf']);
-         saveFigPdf(fn);
-         delete(gcf)
-     end
+                    ylabel(['Percentage of ' plotPairArea ' Pairs'],'FontWeight','bold','FontAngle','italic');
+                    xlabel('Spike Count Correlation (r_{sc})','Interpreter','tex','FontWeight','bold','FontAngle','italic');
+                    titlePos = get(gca,'Position');
+  
+                    
+                    
+                    
+                    
+                    % (2) spike corr vs binned-distance
+                    H_plot_Idx = H_plot_Idx + 1;
+                    plotRhoVsDistDistrib(H_plots(H_plot_Idx),currDat.XY_Dist,currDat.rhoRaw);
+                    ylabel(['\rho ' absOrSigned plotPairArea ' pairs'],'Interpreter','tex','FontWeight','bold','FontAngle','italic');
+                    xlabel('Distance between units (mm)','Interpreter','tex','FontWeight','bold','FontAngle','italic');
+                    
+                    if ar == 1
+                        thPos(1) = titlePos(1) + 0.01 ;
+                        thPos(2) = titlePos(2) + titlePos(4);
+                        thPos(3) = 0.2;
+                        thPos(4) = 0.03;
+                        th = annotation('textbox','String',[plotRowName plotColName],'Position', thPos,...
+                            'Color',titleColor,'FontSize',14,'FontWeight','bold','FontAngle','italic',...
+                            'HorizontalAlignment','center','EdgeColor','none');
+                    end
+                end
+            end
+            drawnow;
+        end
+        if saveFigFlag
+            saveFigPdf(fn);
+            delete(gcf)
+        end
+    end
 end
 
 function [] = plotRhoVsDistDistrib(H_axes,rawxDat,rawyDat)
-     rawxDat = double(rawxDat);
-     rawyDat = double(rawyDat);
-     minMaxDist = round(minmax(rawxDat(:)'),1); % to 1st decimal
-     binWidth = 1.0;%mm
-     %bins = (-binWidth:binWidth:minMaxDist(2))'; 
-     bins = (minMaxDist(1):binWidth:ceil(minMaxDist(2)))';
-     y = arrayfun(@(x) mean(rawyDat(rawxDat>=bins(x) & rawxDat<bins(x+1))), (1:numel(bins)-1)');
-     ystd = arrayfun(@(x) std(rawyDat(rawxDat>=bins(x) & rawxDat<bins(x+1))), (1:numel(bins)-1)');
-     ycounts = arrayfun(@(x) sum(rawxDat>=bins(x) & rawxDat<bins(x+1)), (1:numel(bins)-1)');
-     x = bins(1:end-1);
-     
+    rawxDat = double(rawxDat);
+    rawyDat = double(rawyDat);
+    idx = ~isnan(rawxDat);
+    distBins = [0.5:1:8];
+    xLims = [-1 8];
+    xTicks = [0:7];
+    yLims = [-0.3 0.3];
+  
+    datTest = table();
+    datTest.rho = rawyDat(idx);
+    datTest.dist = rawxDat(idx);
+    datTest.newDist = rawxDat(idx);
+
+    for r = 1:numel(distBins)-1
+        lo = distBins(r);
+        hi = distBins(r+1);
+        idx = datTest.dist>lo & datTest.dist<=hi;
+        datTest.newDist(idx) = (lo + hi)/2;
+    end
+
+    plusIdx = datTest.rho>=0;
+    minusIdx = datTest.rho<0;
+    datStats = struct();
+  
+    plusRho = grpstats(datTest(plusIdx,:),{'newDist'},{'mean','std'});
+    plusRho.sem_rho = (plusRho.std_rho.^2)./sqrt(plusRho.GroupCount);
+  
+    minusRho = grpstats(datTest(minusIdx,:),{'newDist'},{'mean','std'});
+    minusRho.sem_rho = (minusRho.std_rho.^2)./sqrt(minusRho.GroupCount);
+       
      axes(H_axes)
-     h = bar(x,y,'BarWidth',1,'FaceAlpha',0.5);
+     % do plus rho vs distance
+     x = plusRho.newDist;
+     y = plusRho.mean_rho;
+     yerr = plusRho.sem_rho;
+     ycounts = plusRho.GroupCount;
+     h1 = bar(x,y,'BarWidth',1,'FaceAlpha',0.5);
+     
+     set(gca,'XLim',xLims,'XTick',xTicks);
+     set(gca,'YLim',yLims);
+     
+     grid on
+     set(gca,'YMinorGrid','on');
+     
      hold on
-     he = errorbar(x,y,ystd,'Marker','o','MarkerSize',10,'LineStyle',...
-         'none','LineWidth',1.5,'MarkerFaceColor','w','MarkerEdgeColor','k','Color','c')
-     %set(he,'YPositiveDelta',[])
-     set(gca,'YLim',[0 max(y)*1.1])
-     mustdn = [num2str(ycounts(:),'%d')]
-     h1 = text(x+0.1,y+0.005,mustdn,'VerticalAlignment','bottom','HorizontalAlignment','left','FontSize',8);
+     he1 = errorbar(x,y,yerr,'YPositiveDelta',[],'Marker','o','MarkerSize',6,'LineStyle',...
+         'none','LineWidth',1.5,'MarkerFaceColor','w','MarkerEdgeColor','k','Color','c');
+     %set(gca,'YLim',[0 max(y)*1.1])
+     muStdN = num2str(ycounts,'%d');
+     htxt1 = text(x+0.1,y+0.005,muStdN,'VerticalAlignment','bottom','HorizontalAlignment','center','FontSize',8);
+
+     % do minus rho vs distance
+     x = minusRho.newDist;
+     y = minusRho.mean_rho;
+     yerr = minusRho.sem_rho;
+     ycounts = minusRho.GroupCount;
+     h2 = bar(x,y,'BarWidth',1,'FaceAlpha',0.5);
+     he2 = errorbar(x,y,yerr,'YNegativeDelta',[],'Marker','o','MarkerSize',6,'LineStyle',...
+         'none','LineWidth',1.5,'MarkerFaceColor','w','MarkerEdgeColor','k','Color','c');
+     %set(gca,'YLim',[0 max(y)*1.1])
+     muStdN = num2str(ycounts,'%d');
+     htxt2 = text(x+0.1,y-0.005,muStdN,'VerticalAlignment','top','HorizontalAlignment','center','FontSize',8);
      
 end
 
@@ -129,24 +194,63 @@ function [] = plotRhoDistrib(H_axes,rawDat)
     
      rawDat = double(rawDat);
      minMaxRho = round(minmax(rawDat(:)'),1); % to 1st decimal
-     binWidth = 0.05;
-     bins = minMaxRho(1):binWidth:minMaxRho(2);
-     y = histcounts(rawDat,bins);
+     maxRho = max(abs(minMaxRho));
+     maxRho = 0.4;
+     binWidth = 0.02;
+     plusBins = [0:binWidth:maxRho];
+     minusBins = [0:-binWidth:-maxRho];
+     recodeRho = rawDat;
+     for r = 1:numel(plusBins)-1
+         lo = plusBins(r);
+         hi = plusBins(r+1);
+         idx = recodeRho>lo & recodeRho<=hi;
+         recodeRho(idx) = (lo + hi)/2;
+     end
+     for r = 1:numel(minusBins)-1
+         hi = minusBins(r);
+         lo = minusBins(r+1);
+         idx = recodeRho>=lo & recodeRho<hi;
+         recodeRho(idx) = (lo + hi)/2;
+     end
+     
+     bEdge = [-maxRho:binWidth:maxRho];
+     y = histcounts(recodeRho,bEdge);
      y(y==0) = NaN;
-     ypercent = y.*100/nansum(y);
-     x = bins(1:end-1) + binWidth/2;
+     %x = bEdge(1:end-1)+binWidth/2;     
+     x = bEdge(2:end);
+     xMinor = [min(x):binWidth:max(x)];
+     
+     xPlus = x>0;
+     xMinus = x<0;
+     yPercent = y.*100/nansum(y);
+     
+     maxy = max(yPercent)*1.2;
+     yLims = [-maxy maxy];
      
      axes(H_axes)
-     h = bar(x,ypercent,'BarWidth',1,'FaceAlpha',0.5);
+     % plus plot
+     hplus = bar(x(xPlus),yPercent(xPlus),'BarWidth',1,'FaceAlpha',0.5);
      hold on
-     h1 = text(double(x),ypercent,num2str(y(:),'%d'),...
+     h1 = text(x(xPlus),yPercent(xPlus),num2str(y(xPlus)','%d'),...
          'VerticalAlignment','bottom','HorizontalAlignment','center','FontSize',8); 
-     ylim([0 max(ypercent)+5])
+     ylim(yLims)
+     grid on
+     set(gca,'XMinorGrid','on')
      yrange = range(get(gca,'ylim'));
      % annotate
-     scatter(nanmean(rawDat),yrange*0.9,100,'v','filled','MarkerEdgeColor','r','MarkerFaceColor','r'); 
-     line([nanmean(rawDat),nanmean(rawDat)],[0 yrange*0.9],'color','r','LineStyle','--','LineWidth',1);
-     text(nanmean(rawDat),yrange*0.95,sprintf('%0.2f (%d)',nanmean(rawDat),numel(rawDat)),'FontSize',12,'FontWeight','bold');
+     idx = rawDat>0;
+     scatter(nanmean(rawDat(idx)),maxy*0.9,100,'v','filled','MarkerEdgeColor','r','MarkerFaceColor','r'); 
+     line([nanmean(rawDat(idx)),nanmean(rawDat(idx))],[0 maxy*0.9],'color','r','LineStyle','--','LineWidth',1);
+     text(nanmean(rawDat(idx))+0.02,maxy*0.9,sprintf('%0.2f (%d)',nanmean(rawDat(idx)),numel(rawDat(idx))),'FontSize',10,'FontWeight','bold');
+     % minus plot
+     hminus = bar(-x(xMinus),-yPercent(xMinus),'BarWidth',1,'FaceAlpha',0.5);
+     h2 = text(-x(xMinus),-yPercent(xMinus),num2str(y(xMinus)','%d'),...
+         'VerticalAlignment','top','HorizontalAlignment','center','FontSize',8); 
+     idx = rawDat<0;
+     scatter(-nanmean(rawDat(idx)),-maxy*0.9,100,'^','filled','MarkerEdgeColor','r','MarkerFaceColor','r'); 
+     line([-nanmean(rawDat(idx)),-nanmean(rawDat(idx))],[0 -maxy*0.9],'color','r','LineStyle','--','LineWidth',1);
+     text(-nanmean(rawDat(idx))+0.02,-maxy*0.9,sprintf('%0.2f (%d)',nanmean(rawDat(idx)),numel(rawDat(idx))),'FontSize',10,'FontWeight','bold');
+
 end
     
 %%
@@ -182,14 +286,14 @@ function  [H_plots] = getPlotHandlesB(H_Figure,nAreas)
 
     nRows = nAreas*2;
     if nRows == 6
-        pltH = 0.12;
+        pltH = 0.11;
         pltW = 0.26;
         gutter = 0.03;
         offsetsX = 0.05:(pltW+gutter*2):1-gutter; % for 3 column-starts
         offsetsY = 0.95-pltH:-(pltH+gutter):gutter; % for 6 row-starts
         offsetsY(4:end) = offsetsY(4:end) - gutter;
     elseif nRows == 4
-        pltH = 0.18;
+        pltH = 0.17;
         pltW = 0.275;
         gutter = 0.05;
         offsetsX = 0.05:(pltW+gutter):1-gutter; % for 3 column-starts

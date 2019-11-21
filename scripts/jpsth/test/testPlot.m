@@ -183,3 +183,49 @@ xOff = 0.01;
 yOff = [0.8 0.6 0.3];
 h = axes('Parent',gcf,'Position',[xOff yOff(2) 0.005 0.005],'Box','off','Visible','off')
 
+
+%% corrSpkDistributionPlotB
+datTest = currDat;
+
+plusBins = [0:0.02:0.3];
+minusBins = [0:-0.02:-0.3];
+recodeRho = datTest.rhoRaw_50ms;
+for r = 1:numel(plusBins)-1
+    lo = plusBins(r);
+    hi = plusBins(r+1);
+    idx = recodeRho>lo & recodeRho<=hi;
+    recodeRho(idx) = (lo + hi)/2;
+end
+for r = 1:numel(minusBins)-1
+    hi = minusBins(r);
+    lo = minusBins(r+1);
+    idx = recodeRho>=lo & recodeRho<hi;
+    recodeRho(idx) = (lo + hi)/2;
+end
+newRhoRaw = [datTest.rhoRaw_50ms recodeRho];
+
+
+% rho vs dist
+datTest = table();
+idx = ~isnan(rawxDat);
+datTest.rho = rawyDat(idx);
+datTest.dist = rawxDat(idx);
+datTest.newDist = rawxDat(idx);
+
+bins = [0.5:1:8];
+for r = 1:numel(bins)-1
+    lo = bins(r);
+    hi = bins(r+1);
+    idx = datTest.dist>lo & datTest.dist<=hi;
+    datTest.newDist(idx) = (lo + hi)/2;
+end
+
+plusIdx = datTest.rho>=0;
+minusIdx = datTest.rho<0;
+datStats = struct();
+datStats.plusRho = grpstats(datTest(plusIdx,:),{'newDist'},{'mean','std'});
+datStats.minusRho = grpstats(datTest(minusIdx,:),{'newDist'},{'mean','std'});
+
+
+
+
