@@ -93,10 +93,6 @@ for sw = 1:numel(staticWinSizes)
                     ylabel(['Percentage of ' plotPairArea ' Pairs'],'FontWeight','bold','FontAngle','italic');
                     xlabel('Spike Count Correlation (r_{sc})','Interpreter','tex','FontWeight','bold','FontAngle','italic');
                     titlePos = get(gca,'Position');
-  
-                    
-                    
-                    
                     
                     % (2) spike corr vs binned-distance
                     H_plot_Idx = H_plot_Idx + 1;

@@ -1,8 +1,6 @@
-% load extracted data
-%dat = load('dataProcessed/analysis/spkCorr/spkCorrAllPairsStatic.mat');
-plotUnsignedCorr = 1;
-saveFigFlag = 1;
-outDir = 'dataProcessed/analysis/spkCorr';
+%dat = load('dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat');
+
+outDir = 'dataProcessed/analysis/11-18-2019/spkCorr/summary';
 fns = fieldnames(dat);
 % area pairs to plot (in-order). Do not change the order below
 pairAreas = {
@@ -11,101 +9,139 @@ pairAreas = {
     %'SC_SC'
     };
 assert(numel(pairAreas)== 2|numel(pairAreas)== 3 ,...
-    sprintf('The number of area-pairs [%d] must be [2 or 3]',numel(pairAreas))); 
+    sprintf('The number of area-pairs [%d] must be [2 or 3]',numel(pairAreas)));
+colNames = dat.(fns{1}).Properties.VariableNames';
+t = regexp(colNames,'rhoRaw_(\d*)ms$','tokens');
+staticWinSizes = sort(cellfun(@(x) str2double(x{1}),t(~cellfun(@isempty,t))));
 
-[alignedNames,idx] = unique(dat.(pairAreas{1}).alignedName,'stable');
-conditions = unique(dat.(pairAreas{1}).condition);
-alignedOn = dat.(pairAreas{1}){idx,{'alignedEvent'}};
-rscTimeWins =  dat.(pairAreas{1}){idx,{'rho_pval_win'}};
-alignedOnTimeWinsStr = cellfun(@(x,y) ['[' sprintf('Aligned on: %s',x) ', Spike Counts Win: [' num2str(y,'%d  ') ']]'],...
-                       alignedOn,rscTimeWins,'UniformOutput',false);
-% there will be nAlignedNames figures - Each figure will have 
-% SEF-SEF,FEF-FEF, SC-SC pair correlations plotted againts distance between pairs
-% for all conditions: (Fast / Accurate (Correct, ErrorChoice, ErrorTiming))
-% for epochs (fig1) Baseline, (fig2) Visual, (fig3) PostSaccade, (fig4)
-% PostReward
-warning('off')
-suff = ' ';
+plotUnsignedCorr = 0;
+saveFigFlag = 1;
+
 if plotUnsignedCorr
-    suff = '(abs.) ';
-end
-for figNo = 1:numel(alignedOn)
-    epoch = alignedNames{figNo};
-    figTitleStr = [epoch ' : ' alignedOnTimeWinsStr{figNo} suff];
-    [aspectRatio,H_figure] = getFigHandle();
-    [H_plots] = getPlotHandles(H_figure, numel(pairAreas));
-    annotation('textbox','Position',[0.05 0.97 0.80 0.05],'String',figTitleStr,...
-               'Interpreter','tex','EdgeColor','none','FontWeight','bold',...
-               'FitBoxToText','on','HorizontalAlignment','center',...
-               'VerticalAlignment','baseline','FontSize',18);    
-    H_plot_Idx = 0;
-    % col1: {AccurateCorrect-SEF,FEF,SC; FastCorrect-SEF,FEF,SC
-     plotColConds = {'Correct','ErrorChoice','ErrorTiming'};
-     titleColors ={'g','r'};% Fast/Accurate
-     for co = 1:numel(plotColConds)
-         plotRowConds = {'Fast','Accurate'};
-         plotColName = plotColConds{co};
-         for ro = 1:numel(plotRowConds)
-          titleColor = titleColors{ro};
-          plotRowName = plotRowConds{ro};
-          plotPairAreas = strrep(pairAreas,'_','-');
-          for ar = 1:numel(plotPairAreas)
-              plotPairArea = plotPairAreas{ar};
-              currDat = dat.(strrep(plotPairArea,'-','_'));
-              filteredFlag = strcmp(currDat.alignedName,epoch) ...
-                  & strcmp(currDat.condition,[plotRowName plotColName]) ...
-                  & strcmp(currDat.pairAreas,plotPairArea);
-              currDat = currDat(filteredFlag,:);
-              
-              if plotUnsignedCorr
-                  currDat.rhoRaw = abs(currDat.rhoRaw);
-              end
-                     
-              % round XY_Dist to nearest microns
-              roundToMs = 200;
-              currDat.XY_DistBinned = round(currDat.XY_Dist*1000/roundToMs).*(roundToMs/1000);
-              currDatStats = grpstats(currDat(:,{'XY_DistBinned','rhoRaw'}),'XY_DistBinned',{'mean','std'});
-              % plot signal corr
-              H_plot_Idx = H_plot_Idx + 1;
-              plotRscScatterStats(H_plots(H_plot_Idx),currDat.XY_DistBinned,currDat.rhoRaw,...
-                  currDatStats.XY_DistBinned,currDatStats.mean_rhoRaw,currDatStats.std_rhoRaw,...
-                  currDat.signifRaw_05,currDat.signifRaw_01);
-              ylabel(['\rho ' suff plotPairArea ' pairs'],'Interpreter','tex','FontWeight','bold','FontAngle','italic');
-              xlabel('Distance between units (mm)','Interpreter','tex','FontWeight','bold','FontAngle','italic');
-              if ar==1
-                  title([plotRowName plotColName],'Color',titleColor,'FontSize',14,'FontWeight','bold','FontAngle','italic');
-              end
-          end
-         end
-         drawnow;
-     end
-     if saveFigFlag
-         suff2 = '';
-         if plotUnsignedCorr
-             suff2 = '_Unsigned';
-         end
-         fn = fullfile(outDir,['Summary_' epoch '_SpkCorr' suff2 '.pdf']);
-         saveFigPdf(fn);
-         delete(gcf)
-     end
+    absOrSigned = '(abs.)';
+    fnSuffix = '_Absolute';
+else
+    absOrSigned = '';
+    fnSuffix = '';
 end
 
+for sw = 1:numel(staticWinSizes)
+    
+    %% For each static window size
+    staticWin = staticWinSizes(sw);
+    swSuffix = num2str(staticWin,'_%dms');
+    rhoPvalWinName = ['rho_pval_win' swSuffix];
+    rhoName = ['rhoRaw' swSuffix];
+    signif05Name = ['signifRaw_05' swSuffix];
+    signif01Name = ['signifRaw_01' swSuffix];
+    
+    [alignedNames,idx] = unique(dat.(pairAreas{1}).alignedName,'stable');
+    conditions = unique(dat.(pairAreas{1}).condition);
+    alignedOn = dat.(pairAreas{1}){idx,{'alignedEvent'}};
+    rscTimeWins =  dat.(pairAreas{1}){idx,{rhoPvalWinName}};
+    alignedOnTimeWinsStr = cellfun(@(x,y) [sprintf('Aligned on: %s',x) ...
+        ', Spike Counts Win:[' num2str(y,'%d ') '], Width:[' swSuffix(2:end) '] '],...
+        alignedOn,rscTimeWins,'UniformOutput',false);
+    % there will be nAlignedNames figures - Each figure will have
+    % SEF-SEF,FEF-FEF, SC-SC pair correlations plotted againts distance between pairs
+    % for all conditions: (Fast / Accurate (Correct, ErrorChoice, ErrorTiming))
+    % for epochs (fig1) Baseline, (fig2) Visual, (fig3) PostSaccade, (fig4)
+    % PostReward
+    warning('off')
+    
+    for figNo = 1:numel(alignedOn)
+        epoch = alignedNames{figNo};
+        figTitleStr = [epoch ' : ' alignedOnTimeWinsStr{figNo} absOrSigned];
+        fn = fullfile(outDir,['corrByDistance_' epoch fnSuffix swSuffix '.pdf']);
+        [aspectRatio,H_figure] = getFigHandle();
+        [H_plots] = getPlotHandles(H_figure, numel(pairAreas));
+        annotation('textbox','Position',[0.05 0.965 0.80 0.05],'String',figTitleStr,...
+            'Interpreter','none','EdgeColor','none','FontWeight','bold',...
+            'FitBoxToText','on','HorizontalAlignment','center',...
+            'VerticalAlignment','middle','FontSize',16);
+        H_plot_Idx = 0;
+        % col1: {AccurateCorrect-SEF,FEF,SC; FastCorrect-SEF,FEF,SC
+        plotColConds = {'Correct','ErrorChoice','ErrorTiming'};
+        titleColors ={'g','r'};% Fast/Accurate
+        for co = 1:numel(plotColConds)
+            plotRowConds = {'Fast','Accurate'};
+            plotColName = plotColConds{co};
+            for ro = 1:numel(plotRowConds)
+                titleColor = titleColors{ro};
+                plotRowName = plotRowConds{ro};
+                plotPairAreas = strrep(pairAreas,'_','-');
+                for ar = 1:numel(plotPairAreas)
+                    plotPairArea = plotPairAreas{ar};
+                    currDat = dat.(strrep(plotPairArea,'-','_'));
+                    filteredFlag = strcmp(currDat.alignedName,epoch) ...
+                        & strcmp(currDat.condition,[plotRowName plotColName]) ...
+                        & strcmp(currDat.pairAreas,plotPairArea);
+                    currDat = currDat(filteredFlag,:);
+                    currDat = currDat(~isnan(currDat.XY_Dist),:);
+                    
+                    if plotUnsignedCorr
+                        currDat.rhoRaw = abs(currDat.(rhoName));
+                    else
+                        currDat.rhoRaw = currDat.(rhoName);
+                    end
+                    
+                    % round XY_Dist to nearest microns
+                    roundToMs = 200;
+                    currDat.XY_DistBinned = round(currDat.XY_Dist*1000/roundToMs).*(roundToMs/1000);
+                    % 
+                    plusDat = currDat(currDat.rhoRaw>=0,:);
+                    minusDat = currDat(currDat.rhoRaw<0,:);                    
+                                        
+                    plusStats = grpstats(plusDat(:,{'XY_DistBinned','rhoRaw'}),'XY_DistBinned',{'mean','std'});
+                    minusStats = grpstats(minusDat(:,{'XY_DistBinned','rhoRaw'}),'XY_DistBinned',{'mean','std'});
+                   
+                    % plot spike corr scatter
+                    H_plot_Idx = H_plot_Idx + 1;
+                    % Positive correlations
+                    [legTxt1] = plotRscScatterStats(H_plots(H_plot_Idx),plusDat.XY_DistBinned,plusDat.rhoRaw,...
+                        plusStats.XY_DistBinned,plusStats.mean_rhoRaw,plusDat.(signif05Name),plusDat.(signif01Name));
+                    % Negative correlations
+                    [legTxt2] = plotRscScatterStats(H_plots(H_plot_Idx),minusDat.XY_DistBinned,minusDat.rhoRaw,...
+                        minusStats.XY_DistBinned,minusStats.mean_rhoRaw,minusDat.(signif05Name),minusDat.(signif01Name));
+                    % add legend for positive and negative corr
+                    leg1 = regexprep(legTxt1,' pairs.*','(+) ');
+                    leg2 = regexprep(legTxt2,' pair','(-) pair');
+                    legend(strcat(leg1,'  ',leg2),'Location','northeast','Interpreter','tex','Box','off');
+                    
+                    ylabel(['\rho ' absOrSigned plotPairArea ' pairs'],'Interpreter','tex','FontWeight','bold','FontAngle','italic');
+                    xlabel('Distance between units (mm)','Interpreter','tex','FontWeight','bold','FontAngle','italic');
+                    
+                    if ar==1
+                        title([plotRowName plotColName],'Color',titleColor,'FontSize',14,'FontWeight','bold','FontAngle','italic');
+                    end
+                end
+            end
+            drawnow;
+        end
+        % scale Ylims of all plots to be same
+            
+        if saveFigFlag
+            saveFigPdf(fn);
+            delete(gcf)
+        end
+    end
+end
 
-function [] = plotRscScatterStats(H_axes,x,y,xmu,ymu,ystd,sig05,sig01)
+function [legTxt] = plotRscScatterStats(H_axes,x,y,xmu,ymu,sig05,sig01)
 % x = x values for y = raw spkcorr-rho value
 % xmu = x values for ymu = mean spkcorr-rho value
 % ystd = std of raw spkcorr-rho values (for plotting +/-std around mean
 % sig05 = boolean, raw spkcorr values <= pval of 0.05
 % sig01 = boolean, raw spkcorr values <= pval of 0.01
-    yScaleFixed = false;
-    yLims = [-1 1]; % set to min/max for Pearson corr-coeff
-    if ~yScaleFixed
-        yLims = minmax(y(:)');% row
-        % round to 2 decimals
-        yLims = round((yLims + [-0.05 +0.05]),2);
-    end
+%    yScaleFixed = false;
+%    yLims = [-1 1]; % set to min/max for Pearson corr-coeff
+%     if ~yScaleFixed
+%         yLims = minmax(y(:)');% row
+%         % round to 2 decimals
+%         yLims = round((yLims + [-0.05 +0.05]),2);
+%     end
 
-    if isempty(x) | isempty(y)
+    if isempty(x) || isempty(y)
         return;
     end
     
@@ -115,7 +151,6 @@ function [] = plotRscScatterStats(H_axes,x,y,xmu,ymu,ystd,sig05,sig01)
     scatter(x(notSignif),y(notSignif),'o','filled','MarkerFaceColor',col_k,'MarkerFaceAlpha',0.4)
     hold on
     xlim([min(x)-0.5 max(x)+0.5])
-    ylim(yLims)
     scatter(x(sig05),y(sig05),'o','filled','MarkerFaceColor',col_b,'MarkerFaceAlpha',0.4)
     scatter(x(sig01),y(sig01),'o','filled','MarkerFaceColor',col_r,'MarkerFaceAlpha',0.4)
     % fit linear model
@@ -127,15 +162,17 @@ function [] = plotRscScatterStats(H_axes,x,y,xmu,ymu,ystd,sig05,sig01)
     % draw the mean scatter
     scatter(xmu,ymu,60,'Marker','diamond','LineWidth',1,'MarkerEdgeColor',col_k)
     plot(xmu,ymu,'Marker','none','Color',col_k,'LineStyle','--','HandleVisibility','off');
+    % Draw zero line
+    line(get(gca,'XLim'),[0 0]);
     
     % annotate counts for each plot
     legTxt = {sprintf('%d pairs p>0.05',sum(notSignif)),...
-        sprintf('%d pairs  p<=0.05',sum(sig05)),...
-        sprintf('%d pairs  p<=0.01',sum(sig01)),...
-        sprintf('%d all pairs mean corr.',numel(y))...
+        sprintf('%d pairs p<=0.05',sum(sig05)),...
+        sprintf('%d pairs p<=0.01',sum(sig01)),...
+        sprintf('%d pairs mean corr.',numel(y))...
         };
-     legend(legTxt,'Location','northeast','Interpreter','tex','Box','off');
-     hold off
+    % legend(legTxt,'Location','northeast','Interpreter','tex','Box','off');
+     
 end
     
     
