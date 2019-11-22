@@ -19,8 +19,8 @@ for c = 1:numel(conds)
 
 figure(); hold on
 
-doAbs = 1;
-drop0Dist = 1;
+doAbs = 0;
+drop0Dist = 0;
 
 for pp = 1:3
   
