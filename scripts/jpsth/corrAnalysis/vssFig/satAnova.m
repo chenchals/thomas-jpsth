@@ -50,8 +50,12 @@ function [resultsAsTbl] = annotateMultcompareResults(results,grpNames)
     resultsAsTbl = table();
     resultsAsTbl.levelName1 = arrayfun(@(x) levelNamesNew(x),results(:,1),'UniformOutput',false);
     resultsAsTbl.levelName2 = arrayfun(@(x) levelNamesNew(x),results(:,2),'UniformOutput',false);
-    resultsAsTbl = [resultsAsTbl array2table(results(:,3:end),'VariableNames',{'loCI','meanDiff','hiCI','pval_H0'})];
+    resultsAsTbl = [resultsAsTbl array2table(results(:,3:end),'VariableNames',{'loCI95','meanDiff','hiCI95','pval_H0'})];
     resultsAsTbl.isSignif05 = results(:,end)<=0.05;
+    resultsAsTbl.isSignif01 = results(:,end)<=0.01;
+    resultsAsTbl.signifStr=repmat({''},size(resultsAsTbl,1),1);
+    resultsAsTbl.signifStr(resultsAsTbl.isSignif05) = repmat({'*'},sum(resultsAsTbl.isSignif05),1);
+    resultsAsTbl.signifStr(resultsAsTbl.isSignif01) = repmat({'**'},sum(resultsAsTbl.isSignif01),1);
     resultsAsTbl.group1 = results(:,1);
     resultsAsTbl.group2 = results(:,2);
 end
