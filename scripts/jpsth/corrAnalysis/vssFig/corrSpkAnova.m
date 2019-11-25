@@ -26,7 +26,7 @@ if useAbsRho
     spkCorrAllTbl.rhoRaw_200ms = abs(spkCorrAllTbl.rhoRaw_200ms);
 end
 
-%% Recode groups/factors for anova - CONDITION (2) by EPOCH (4)
+%% Recode groups/factors for anova - CONDITION (2) by EPOCH (4) = (8*7)/2 = 28 comparisions
 valsGroupsTbl = table();
 valsGroupsTbl.yVals = spkCorrAllTbl.rhoRaw_200ms;
 valsGroupsTbl.condition = regexprep(spkCorrAllTbl.condition,'Correct|Error.*','');
@@ -34,7 +34,7 @@ valsGroupsTbl.epoch = spkCorrAllTbl.alignedName;
 
 [conditionByEpoch] = satAnova(valsGroupsTbl);
 
-%% Recode groups/factors for anova - PAIRAREA (3) by EPOCH (4)
+%% Recode groups/factors for anova - PAIRAREA (3) by EPOCH (4) = (12*11)/2 = 66 comparisions
 valsGroupsTbl = table();
 valsGroupsTbl.yVals = spkCorrAllTbl.rhoRaw_200ms;
 valsGroupsTbl.pairAreas = spkCorrAllTbl.pairAreas;
@@ -42,7 +42,7 @@ valsGroupsTbl.epoch = spkCorrAllTbl.alignedName;
 
 [pairAreasByEpoch] = satAnova(valsGroupsTbl);
 
-%% Recode groups/factors for anova - CONDITION (2) by PAIRAREA (3) by EPOCH (4)
+%% Recode groups/factors for anova - CONDITION (2) by PAIRAREA (3) by EPOCH (4) = (24*23/2) = 276 comparisions
 % valsGroupsTbl = table();
 % valsGroupsTbl.yVals = spkCorrAllTbl.rhoRaw_200ms;
 % valsGroupsTbl.condition = regexprep(spkCorrAllTbl.condition,'Correct|Error.*','');
