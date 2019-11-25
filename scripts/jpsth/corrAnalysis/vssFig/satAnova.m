@@ -31,15 +31,34 @@ function [anovaResults] = satAnova(valsGroupsTbl)
         anovaResults.(groupNames{gr}) = annotateMultcompareResults(temp,grpNames);
     end
     
-    % Compare results for different LEVEL combinations *ACROSS* each group/Factor independently
-    nGrpComparisions = combnk(1:numel(groupNames),2);
+    %% Compare results for different LEVEL combinations *ACROSS* each group/Factor independently
+    nWays = 2;
+    n2GrpComparisions = combnk(1:numel(groupNames),nWays);
     
-    for jj = 1:size(nGrpComparisions,1)
-        idx = nGrpComparisions(jj,:);
-        fn = [groupNames{idx(1)} '_' groupNames{idx(2)}];
-        [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',1:numel(groupNames),'Alpha',0.05);
+    for jj = 1:size(n2GrpComparisions,1)
+        idx = n2GrpComparisions(jj,:);
+        fn = char(join(groupNames(idx),'_'));
+        [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',idx,'Alpha',0.05);
         anovaResults.(fn) = annotateMultcompareResults(temp,grpNames);
     end
+    
+    %% If there are 3 groups also do a 3 way comparision
+    if numel(groupNames) > 2
+        nWays = 3;
+        n3GrpComparisions = combnk(1:numel(groupNames),nWays);
+        
+        for jj = 1:size(n3GrpComparisions,1)
+            idx = n3GrpComparisions(jj,:);
+            fn = char(join(groupNames(idx),'_'));
+            [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',idx,'Alpha',0.05);
+            anovaResults.(fn) = annotateMultcompareResults(temp,grpNames);
+        end
+        
+    end
+    
+    
+    
+    
 end
 function [resultsAsTbl] = annotateMultcompareResults(results,grpNames)
 % see also multcompare
