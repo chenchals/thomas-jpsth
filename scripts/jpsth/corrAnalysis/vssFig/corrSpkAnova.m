@@ -26,6 +26,8 @@ if useAbsRho
     spkCorrAllTbl.rhoRaw_200ms = abs(spkCorrAllTbl.rhoRaw_200ms);
 end
 
+idx_TrialOutcome = ismember(spkCorrAllTbl.condition, {'AccurateErrorChoice','FastErrorChoice'});
+spkCorrAllTbl = spkCorrAllTbl(idx_TrialOutcome,:);
 %% Recode groups/factors for anova - CONDITION (2) by EPOCH (4) = (8*7)/2 = 28 comparisions
 valsGroupsTbl = table();
 valsGroupsTbl.yVals = spkCorrAllTbl.rhoRaw_200ms;
