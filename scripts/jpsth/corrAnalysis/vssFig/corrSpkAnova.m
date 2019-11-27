@@ -1,6 +1,6 @@
 % Run anova for different factors of SAT for spike correlations
 fn = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat';
-spkCorr = load(fn);
+%spkCorr = load(fn);
 outFn = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAnovaSummary.mat';
 useAbsRho = 1; % no support for useAbsRho = 0
 %% aggregate required fields into a single table
@@ -26,21 +26,25 @@ if useAbsRho
     spkCorrAllTbl.rhoRaw_200ms = abs(spkCorrAllTbl.rhoRaw_200ms);
 end
 
-idx_TrialOutcome = ismember(spkCorrAllTbl.condition, {'AccurateErrorChoice','FastErrorChoice'});
-spkCorrAllTbl = spkCorrAllTbl(idx_TrialOutcome,:);
+useArea = 'SEF-SEF';
+idxTrialOutcome = ismember(spkCorrAllTbl.condition, {'AccurateErrorChoice','FastErrorChoice'});
+idxArea = strcmp(spkCorrAllTbl.pairAreas,useArea);
+
+spkCorrFilt = spkCorrAllTbl(idxTrialOutcome & idxArea,:);
+
 %% Recode groups/factors for anova - CONDITION (2) by EPOCH (4) = (8*7)/2 = 28 comparisions
 valsGroupsTbl = table();
-valsGroupsTbl.yVals = spkCorrAllTbl.rhoRaw_200ms;
-valsGroupsTbl.condition = regexprep(spkCorrAllTbl.condition,'Correct|Error.*','');
-valsGroupsTbl.epoch = spkCorrAllTbl.alignedName;
+valsGroupsTbl.yVals = spkCorrFilt.rhoRaw_200ms;
+valsGroupsTbl.condition = regexprep(spkCorrFilt.condition,'Correct|Error.*','');
+valsGroupsTbl.epoch = spkCorrFilt.alignedName;
 
 [conditionByEpoch] = satAnova(valsGroupsTbl);
 
 %% Recode groups/factors for anova - PAIRAREA (3) by EPOCH (4) = (12*11)/2 = 66 comparisions
 valsGroupsTbl = table();
-valsGroupsTbl.yVals = spkCorrAllTbl.rhoRaw_200ms;
-valsGroupsTbl.pairAreas = spkCorrAllTbl.pairAreas;
-valsGroupsTbl.epoch = spkCorrAllTbl.alignedName;
+valsGroupsTbl.yVals = spkCorrFilt.rhoRaw_200ms;
+valsGroupsTbl.pairAreas = spkCorrFilt.pairAreas;
+valsGroupsTbl.epoch = spkCorrFilt.alignedName;
 
 [pairAreasByEpoch] = satAnova(valsGroupsTbl);
 
