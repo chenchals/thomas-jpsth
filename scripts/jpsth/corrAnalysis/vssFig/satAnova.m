@@ -6,7 +6,8 @@ function [anovaResults] = satAnova(valsGroupsTbl)
 % matlab
 % ***Note: dont use "factor" *** --> Its is a matlab funtion for primes  doc FACTOR
 % see also ANOVAN, MULTCOMPARE
-
+    model_Anova = 'linear'; %'interaction'
+    
     yVals = valsGroupsTbl{:,1};
     assert(isnumeric(yVals),'Y-Values must be numeric');
     
@@ -22,7 +23,7 @@ function [anovaResults] = satAnova(valsGroupsTbl)
     anovaResults = struct();
     anovaTblVarNames = {'Source', 'SumSq' 'df' 'IsSingular' 'MeanSq' 'F'  'ProbGtF'};
     
-    [~,temp,anovaStats] = anovan(yVals,groups,'model','linear','varnames',groupNames);
+    [~,temp,anovaStats] = anovan(yVals,groups,'model',model_Anova,'varnames',groupNames);
     anovaResults.anovaTbl = cell2table(temp(2:end,:),'VariableNames',anovaTblVarNames);
     
     % Compare results for different LEVELS *WITHIN* each group/Factor independently    
