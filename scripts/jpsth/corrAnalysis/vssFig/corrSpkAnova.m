@@ -1,67 +1,64 @@
-% Run anova for different factors of SAT for spike correlations
-fn = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat';
-%spkCorr = load(fn);
-outFn = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAnovaSummary.mat';
-useAbsRho = 1; % no support for useAbsRho = 0
-%% aggregate required fields into a single table
+%corrSpkAnova.m
+% This script collects static rSC values for four trial epochs: Baseline,
+% Visual Response, Post-Saccade, and Post-Reward. It computes an analysis
+% of variance with factors Trial Epoch (4 levels) and Task Condition (2
+% levels).
+
+areaTest = 'SEF-FEF';
+trialOutcome = {'Correct','ErrorChoice','ErrorTiming'};
+% outFn = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAnovaSummary.mat';
+
+%% Run anova for different factors of SAT for spike correlations
+spkCorr = load('dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat');
+
+%% Aggregate required fields into a single table
 pairAreas = {'SEF_SEF','SEF_FEF','SEF_SC'};
 % Prune to columns of interest for each pairArea
-useCols = {
-    'pairAreas'
-    'XY_Dist'
-    'condition'
-    'alignedName'
-    'rhoRaw_200ms'
-    };
+useCols = {'pairAreas','XY_Dist','condition','alignedName','rhoRaw_200ms'};
 
-spkCorrAllTbl = table();
+spkCorr_All = table();
 for pa =1:numel(pairAreas)
     pairArea = pairAreas{pa};
-    spkCorrAllTbl = [spkCorrAllTbl; spkCorr.(pairArea)(:,useCols)];
-end
-%% Filter data and assemble values and factors into a table
-% Filter data --> remove all values where XY_Dist = 0
-spkCorrAllTbl = spkCorrAllTbl(spkCorrAllTbl.XY_Dist~=0,:);
-if useAbsRho
-    spkCorrAllTbl.rhoRaw_200ms = abs(spkCorrAllTbl.rhoRaw_200ms);
+    spkCorr_All = [spkCorr_All; spkCorr.(pairArea)(:,useCols)];
 end
 
-useArea = 'SEF-SEF';
-idxTrialOutcome = ismember(spkCorrAllTbl.condition, {'AccurateErrorChoice','FastErrorChoice'});
-idxArea = strcmp(spkCorrAllTbl.pairAreas,useArea);
+%remove all values where XY_Dist = 0 -- commented by TR 2019-12-02
+% spkCorr_All = spkCorr_All(spkCorr_All.XY_Dist~=0,:);
 
-spkCorrFilt = spkCorrAllTbl(idxTrialOutcome & idxArea,:);
+%take absolute value of correlation
+spkCorr_All.rhoRaw_200ms = abs(spkCorr_All.rhoRaw_200ms);
+
+
+for to = 1:3
+
+if (USE_UNSIGNED_RHO)
+    
+end
+
+idxTrialOutcome = ismember(spkCorr_All.condition, {'AccurateErrorChoice','FastErrorChoice'});
+idxArea = strcmp(spkCorr_All.pairAreas,areaTest);
+spkCorrFilt = spkCorr_All(idxTrialOutcome & idxArea,:);
 
 %% Recode groups/factors for anova - CONDITION (2) by EPOCH (4) = (8*7)/2 = 28 comparisions
 valsGroupsTbl = table();
 valsGroupsTbl.yVals = spkCorrFilt.rhoRaw_200ms;
 valsGroupsTbl.condition = regexprep(spkCorrFilt.condition,'Correct|Error.*','');
 valsGroupsTbl.epoch = spkCorrFilt.alignedName;
-
 [conditionByEpoch] = satAnova(valsGroupsTbl);
+end % for : trialOutcome (to)
 
-%% Recode groups/factors for anova - PAIRAREA (3) by EPOCH (4) = (12*11)/2 = 66 comparisions
-valsGroupsTbl = table();
-valsGroupsTbl.yVals = spkCorrFilt.rhoRaw_200ms;
-valsGroupsTbl.pairAreas = spkCorrFilt.pairAreas;
-valsGroupsTbl.epoch = spkCorrFilt.alignedName;
-
-[pairAreasByEpoch] = satAnova(valsGroupsTbl);
-
-%% Recode groups/factors for anova - CONDITION (2) by PAIRAREA (3) by EPOCH (4) = (24*23/2) = 276 comparisions
-% valsGroupsTbl = table();
-% valsGroupsTbl.yVals = spkCorrAllTbl.rhoRaw_200ms;
-% valsGroupsTbl.condition = regexprep(spkCorrAllTbl.condition,'Correct|Error.*','');
-% valsGroupsTbl.pairAreas = spkCorrAllTbl.pairAreas;
-% valsGroupsTbl.epoch = spkCorrAllTbl.alignedName;
-% 
-% [conditionByPairAreasByEpoch] = satAnova(valsGroupsTbl);
-% 
-% 
-
-
-%%
+%% Save data
 %save(outFn,'conditionByEpoch','pairAreasByEpoch');
+
+
+
+% %% Recode groups/factors for anova - PAIRAREA (3) by EPOCH (4) = (12*11)/2 = 66 comparisions
+% valsGroupsTbl = table();
+% valsGroupsTbl.yVals = spkCorrFilt.rhoRaw_200ms;
+% valsGroupsTbl.pairAreas = spkCorrFilt.pairAreas;
+% valsGroupsTbl.epoch = spkCorrFilt.alignedName;
+% 
+% [pairAreasByEpoch] = satAnova(valsGroupsTbl);
 
 
 
