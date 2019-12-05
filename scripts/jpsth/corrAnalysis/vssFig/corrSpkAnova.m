@@ -6,6 +6,7 @@
 
 windowTest = 'rhoRaw_150ms';
 trialOutcome = {'Correct','ErrorChoice','ErrorTiming'};
+lineStyle = {'-','--',':'};
 ylimPlot = [0.04 0.18];
 
 %load r_sc data
@@ -73,12 +74,14 @@ for jj = 1:3
   rsc_Baseline_Acc(:,jj) = [rsc_Acc_mu(1); rsc_Acc_se(1)];
   rsc_Baseline_Fast(:,jj) = [rsc_Fast_mu(1); rsc_Fast_se(1)];
   
-  subplot(3,2,2*jj-1) %Accurate
-  errorbar((1:4), rsc_Acc_mu, rsc_Acc_se, 'CapSize',0, 'Color','r')
+%   subplot(3,2,2*jj-1) %Accurate
+  subplot(1,2,1); hold on
+  errorbar((1:4), rsc_Acc_mu, rsc_Acc_se, 'CapSize',0, 'Color','r', 'LineStyle',lineStyle{jj})
   xticks(1:4); xticklabels([]); xlim([.8 4.2]); ylim(ylimPlot); ytickformat('%3.2f')
   
-  subplot(3,2,2*jj) %Fast
-  errorbar((1:4), rsc_Fast_mu, rsc_Fast_se, 'CapSize',0, 'Color',[0 .7 0])
+%   subplot(3,2,2*jj) %Fast
+  subplot(1,2,2); hold on
+  errorbar((1:4), rsc_Fast_mu, rsc_Fast_se, 'CapSize',0, 'Color',[0 .7 0], 'LineStyle',lineStyle{jj})
   xticks(1:4); xticklabels([]); xlim([.8 4.2]); ylim(ylimPlot); yticks([])
   
   pause(0.25)
@@ -86,7 +89,8 @@ for jj = 1:3
 end % for : trialOutcome (jj)
 
 title(areaPair)
-ppretty([6.4,4])
+% ppretty([6.4,4])
+ppretty([6.4,1.3])
 
 %summary barplot
 figure(); hold on
@@ -97,7 +101,7 @@ errorbar((2:2:6), rsc_Baseline_Fast(1,:), rsc_Baseline_Fast(2,:), 'CapSize',0, '
 xticks([]); ytickformat('%3.2f')
 ppretty([3,3])
 
-clear idx_* rsc_* *jj
+clearvars -except SEF_* spkCorr stats_Anova
 
 %% Save data
 %save(outFn,'conditionByEpoch','pairAreasByEpoch');
