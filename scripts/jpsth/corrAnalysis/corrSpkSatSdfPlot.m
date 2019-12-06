@@ -96,8 +96,11 @@ for uu = 1:nUnits
         set(gca,'YColor',[1 1 1]);
         pos = get(gca,'Position');
         annotation('textbox','String',pairedUnitsTxt,'Position',pos,'EdgeColor','none')
-
-    end
+    end % text for significant paired units
+    
+    % annotate unit
+    addUnitInfo(H_Figure,currUnitInfo);
+    
     
     %%
     
@@ -107,13 +110,21 @@ end % for unit
 
 %%
 
+function [] = addUnitInfo(parentFig,currUnitInfo)
+
+    H_unitInfo = axes('parent',parentFig,'position',[0.01 0.01 0.98 0.06],...
+        'box','on','XTick',[],'YTick',[],'layer','top','Tag','H_unitInfo');
+    plotAddPairInfo(H_unitInfo, currUnitInfo);
+
+end
+
 function [unitsStr] = getUnitsTxt(units,heading,txtColor)
     unitsStr{1,1} = ['\fontsize{10} \color{' txtColor '} \bf' heading ':'];
     if ~isempty(units)
         s = sprintf('%d, ',units);
-        unitsStr{2,1} = ['\it   ' s(1:end-2)];
+        unitsStr{2,1} = ['\color{black}\it   ' s(1:end-2)];
     else
-        unitsStr{2,1} = '\it     none ';
+        unitsStr{2,1} = '\color{black}\it     none ';
     end
 end
 
@@ -219,7 +230,8 @@ function [H_plots,H_Figure] = getPlotHandles()
             H_plots(pltCount) = axes('parent',H_Figure,'position',pos,'box',boxOn,...
                 'layer','top','Tag',sprintf('H_plot%d',pltCount));
         end
-    end
+    end    
+    
 end
 
 

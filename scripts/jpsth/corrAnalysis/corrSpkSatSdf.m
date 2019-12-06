@@ -9,21 +9,35 @@
 spkCorrDir = 'dataProcessed/analysis/11-18-2019/spkCorr';
 % for loading event times and trial types
 datasetDir = 'dataProcessed/dataset';
-% Output specs
-spkCorrSdfsFile = fullfile(spkCorrDir,'summary/spkCorrSdfs.mat');
+% Files from which to load spik corrs and compute SDFs
+spkCorrFile = fullfile(spkCorrDir,'summary/spkCorrAllPairsStaticNew.mat');
+spikeTimesFile = fullfile(datasetDir,'spikes_SAT.mat');
+unitInfoStatsFile = fullfile(datasetDir,'dataNeurophys_SAT.mat');
+trialTypesFile = fullfile(datasetDir,'TrialTypesDB.mat');
+trialEventTimesFile = fullfile(datasetDir,'TrialEventTimesDB.mat');
 
 %% Filter criteria - to limit units that will be processed for SDFs
 % Use epoch available: {Baseline, Visual, PostDSaccade, PostReward}
-% These are column names in the spkCorrAllPairsStaticNew.mat
-useEpoch = 'PostSaccade';
+% These are column names / values in the spkCorrAllPairsStaticNew.mat
+useEpoch = 'Baseline'; % value for alignedName column
+% Use condition that contain the outcome values below
+useOutcome = 'ErrorTiming'; % condition column values shall contain this string
+% Output specs - add epoch and outcome used
+spkCorrSdfsFile = fullfile(spkCorrDir,['summary/spkCorrSdfs_' useOutcome '_' useEpoch '.mat']);
+% Use unsigned rho
+useRhoUnsigned = true;
+% Use rho value from column
+useRhoValColName = 'rhoRaw_150ms';
+% Use p value from column
+usePvalColName = 'pvalRaw_150ms';
 % Use rho percentile
-useRhoPercentile = 90;
+useRhoPercentile = 70;
 % Use significance level for selecting units to plot
 useSignif = 0.01;
 % For a given unit, use significance level for selecting paired units 
 usePairSignif = 0.05;
 % Selected trials for any condition must be greater than this threshold
-nTrialsThreshold = 10;
+useMinTrialCount = 50;
 
 %% Parameters for SDFs
 useAreas = {'SEF' 'FEF' 'SC'};
@@ -71,18 +85,14 @@ useCols = {
     'Y_unitNum'
     'X_area'
     'Y_area'
-    'rhoRaw_200ms'
-    'pvalRaw_200ms'
+    useRhoValColName
+    usePvalColName
     };
 
 %% Load data variables
 stTime = tic;
 fprintf('Loading data variables...');
-spkCorrFile = fullfile(spkCorrDir,'summary/spkCorrAllPairsStaticNew.mat');
-spikeTimesFile = fullfile(datasetDir,'spikes_SAT.mat');
-unitInfoStatsFile = fullfile(datasetDir,'dataNeurophys_SAT.mat');
-trialTypesFile = fullfile(datasetDir,'TrialTypesDB.mat');
-trialEventTimesFile = fullfile(datasetDir,'TrialEventTimesDB.mat');
+
 if ~exist('spkCorr','var')
     % Load data variable: spike correlations
     spkCorr = load(spkCorrFile);
@@ -90,8 +100,8 @@ if ~exist('spkCorr','var')
     spikesSat = load(spikeTimesFile);
     spikesSat = spikesSat.spikesSAT;
     % Load unit Info for knowing which trials to be removed of any
-    unitInfo = load(unitInfoStatsFile,'unitInfo');
-    unitInfo = unitInfo.unitInfo;
+    unitInfoAll = load(unitInfoStatsFile,'unitInfo');
+    unitInfoAll = unitInfoAll.unitInfo;
     % Load data variable: TrialTypes
     sessionTrialTypes = load(trialTypesFile);
     sessionTrialTypes = sessionTrialTypes.TrialTypesDB;
@@ -103,100 +113,76 @@ lap = toc(stTime);
 fprintf('done %5.2f sec\n',lap);
 
 %% Aggregate data into a single table for areas of intertest
-spkCorrAllTbl = table();
+spkCorrAll = table();
 for pa = 1:numel(usePairAreas)
     temp =  spkCorr.(usePairAreas{pa})(:,useCols);
-    spkCorrAllTbl = [spkCorrAllTbl;temp];
+    % recode rho, pval
+    temp.rho = temp.(useRhoValColName);
+    temp.pval = temp.(usePvalColName);
+    temp.rhoUnsigned = abs(temp.rho);
+    % recode outcome, satCondition
+    temp.outcome = regexprep(temp.condition,'(Fast)|(Accurate)','');
+    temp.satCondition = regexprep(temp.condition,'(Correct)|(Error.*)','');
+    spkCorrAll = [spkCorrAll;temp];
     clearvars temp
 end
 
 %% Filter Data to limit Units used for SDFs
-isEpoch = strcmp(spkCorrAllTbl.alignedName,useEpoch);
-isSignifIdx = spkCorrAllTbl.pvalRaw_200ms <= useSignif;
-plusIdx = spkCorrAllTbl.rhoRaw_200ms>=0;
-minusIdx = spkCorrAllTbl.rhoRaw_200ms<0;
+isOutcome = strcmp(spkCorrAll.outcome,useOutcome);
+isEpoch = strcmp(spkCorrAll.alignedName,useEpoch);
+isMinTrialCount = spkCorrAll.nTrials >= useMinTrialCount;
+spkCorrAllTbl = spkCorrAll(isOutcome & isEpoch & isMinTrialCount,:);
 
-hiPlus = prctile(spkCorrAllTbl.rhoRaw_200ms(plusIdx & isEpoch),useRhoPercentile);
-loMinus = prctile(spkCorrAllTbl.rhoRaw_200ms(minusIdx & isEpoch),useRhoPercentile);
+isSignif = spkCorrAllTbl.pval <= useSignif;
 
-hiPlusSignifIdx = spkCorrAllTbl.rhoRaw_200ms>=hiPlus & isSignifIdx & isEpoch;
-loMinusSignifIdx = spkCorrAllTbl.rhoRaw_200ms<=loMinus & isSignifIdx & isEpoch;
+
+hiUnsigned = prctile(spkCorrAllTbl.rhoUnsigned,useRhoPercentile);
+isHiUnsigned = spkCorrAllTbl.rhoUnsigned >= hiUnsigned;
+isHiUnsignedSignif = isHiUnsigned & isSignif;
+
+isPlusIdx = spkCorrAllTbl.rho>=0;
+hiPlus = prctile(spkCorrAllTbl.rho(isPlusIdx),useRhoPercentile);
+isHiPlus = spkCorrAllTbl.rho>=hiPlus;
+isHiPlusSignif = spkCorrAllTbl.rho>=hiPlus & isSignif;
+
+isMinusIdx = spkCorrAllTbl.rho<0;
+loMinus = prctile(spkCorrAllTbl.rho(isMinusIdx),useRhoPercentile);
+isLoMinus = spkCorrAllTbl.rho<=loMinus;
+isLoMinusSignif = spkCorrAllTbl.rho<=loMinus & isSignif;
+
 
 % Filter criteria
 filterCriteria = struct();
 filterCriteria.usePairAreas = usePairAreas;
 filterCriteria.useEpoch = useEpoch;
+filterCriteria.useOutcome = useOutcome;
 filterCriteria.useRhoPercentile = useRhoPercentile;
 filterCriteria.usePvalForUnit = useSignif;
+filterCriteria.useMinTrialCount = useMinTrialCount;
+filterCriteria.useRhoUnsigned = useRhoUnsigned;
+
+filterCriteria.rhoUnsignedThresh = hiUnsigned;
+filterCriteria.rhoPositiveThresh = hiPlus;
+filterCriteria.rhoNegativeThresh = loMinus;
 filterCriteria.usePvalForPairedUnits = usePairSignif;
-filterCriteria.useTrialCount = nTrialsThreshold;
-filterCriteria.rscPositiveThresh = hiPlus;
-filterCriteria.rscNegativeThresh = loMinus;
+
 
 %% Get list of units for positive and negative Spike correlations
-plusTable = spkCorrAllTbl(hiPlusSignifIdx,:);
-minusTable = spkCorrAllTbl(loMinusSignifIdx,:);
-% plus spk corr table
-unitsPlus = table();
-unitsPlus.unitNum = [plusTable.X_unitNum;plusTable.Y_unitNum];
-unitsPlus.area = [plusTable.X_area;plusTable.Y_area];
-unitsPlus.sess = [plusTable.X_sess;plusTable.X_sess];
-unitsPlus.rscPositive = [plusTable.rhoRaw_200ms;plusTable.rhoRaw_200ms];
-unitsPlus = sortrows(unique(unitsPlus,'stable'),'area');
-% minus spk corr table
-unitsMinus = table();
-unitsMinus.unitNum = [minusTable.X_unitNum;minusTable.Y_unitNum];
-unitsMinus.area = [minusTable.X_area;minusTable.Y_area];
-unitsMinus.sess = [minusTable.X_sess;minusTable.X_sess];
-unitsMinus.rscNegative = [minusTable.rhoRaw_200ms;minusTable.rhoRaw_200ms];
-unitsMinus = sortrows(unique(unitsMinus,'stable'),'area');
-
-%% Create unique unit table for unit numbers, and keep track of positive or negative correlations
-unitTbl = table();
-uniqUnits = unique([unitsPlus.unitNum;unitsMinus.unitNum]);
-
-for ii = 1:numel(uniqUnits)
-    unitNum = uniqUnits(ii);
-    pIdx = max([find(unitsPlus.unitNum==unitNum);0]);
-    mIdx = max([find(unitsMinus.unitNum==unitNum);0]);
-    temp = table();
-    if pIdx && ~mIdx
-        temp.unitNum = unitNum;
-        temp.sess = unitsPlus.sess(pIdx);
-        temp.area = unitsPlus.area(pIdx);
-        temp.rscPositive = unitsPlus.rscPositive(pIdx);
-        temp.rscNegative = NaN;
-        temp.isPlus = 1;
-        temp.isMinus = 0;
-        temp.isBoth = 0;
-    elseif mIdx && ~pIdx
-        temp.unitNum = unitNum;
-        temp.sess = unitsMinus.sess(mIdx);
-        temp.area = unitsMinus.area(mIdx);
-        temp.rscPositive = NaN;
-        temp.rscNegative = unitsMinus.rscNegative(mIdx);
-        temp.isPlus = 0;
-        temp.isMinus = 1;
-        temp.isBoth = 0;
-    elseif pIdx && mIdx
-        temp.unitNum = unitNum;
-        temp.sess = unitsPlus.sess(pIdx);
-        temp.area = unitsPlus.area(pIdx);
-        temp.rscPositive = unitsPlus.rscPositive(pIdx);
-        temp.rscNegative = unitsMinus.rscNegative(mIdx);
-        temp.isPlus = 0;
-        temp.isMinus = 0;
-        temp.isBoth = 1;
-    end
-    unitTbl = [unitTbl;temp]; %#ok<*AGROW>
+if useRhoUnsigned
+    tempTable = spkCorrAllTbl(isHiUnsignedSignif,:);
+    unitTbl = getUniqueUnitTbl(tempTable);
+else
+    tempTable = spkCorrAllTbl(isHiPlusSignif,:);
+    tempTable = [tempTable; spkCorrAllTbl(isLoMinusSignif,:)];
+    unitTbl = getUniqueUnitTbl(tempTable);
 end
-unitTbl = sortrows(unitTbl,{'area','isBoth','isMinus','isPlus','unitNum'});
 
 %% Process units for SDF by area
 fprintf('Processing units for SDF by area\n');
 unitSdfs = {};
 opts = table();
 roNum = 0;
+warning('off');
 for jj = 1:numel(useAreas)
     currArea = useAreas{jj};
     currUnitsTbl = unitTbl(strcmp(unitTbl.area,currArea),:);
@@ -204,31 +190,31 @@ for jj = 1:numel(useAreas)
     tic
     fprintf('   Area: %s...',currArea);
     s = '';
-    %%
     for uu = 1:nUnits
+        %%
         
         currUnitTbl = currUnitsTbl(uu,:);
         unitNum = currUnitTbl.unitNum;
-        currUnitInfo = unitInfo(unitInfo.unitNum==unitNum,:);
+        currUnitInfo = unitInfoAll(unitInfoAll.unitNum==unitNum,:);
         
         sess = currUnitTbl.sess{1};
         unit = currUnitInfo.unit{1};
-        rscNegative = currUnitTbl.rscNegative;
-        rscPositive = currUnitTbl.rscPositive;
+        rho = currUnitTbl.rho{1};
+        rhoUnsigned = currUnitTbl.rhoUnsigned{1};
         rscIsPositive = currUnitTbl.isPlus;
         rscIsNegative = currUnitTbl.isMinus;
         rscIsBoth = currUnitTbl.isBoth;      
         
-        %% fun stuff...
+        % fun stuff...
         fprintf(repmat('\b',1,size(s,2)));
         s = sprintf('Unit %d [%s-%s] %d of %d',unitNum,sess,unit,uu,nUnits);
         fprintf('%s',s);
         
-        %%
+        %
         unitSpkTimes = spikesSat{unitNum}';
         evntTimes = sessionEventTimes(strcmp(sessionEventTimes.session,sess),:);
         trialTypes = sessionTrialTypes(strcmp(sessionTrialTypes.session,sess),:);
-        trialsToRemove = unitInfo.trRemSAT{unitInfo.unitNum==unitNum};
+        trialsToRemove = unitInfoAll.trRemSAT{unitInfoAll.unitNum==unitNum};
         
         % For this unit find spikecorrs that are significant
         isXunit = sum(spkCorrAllTbl.X_unitNum==unitNum)>0;
@@ -241,7 +227,7 @@ for jj = 1:numel(useAreas)
             usePairUnitField = 'X_unitNum';
             usePairAreaField = 'X_area';
         end
-        signifRscIdx = find(spkCorrAllTbl.(useUnitField)==unitNum & spkCorrAllTbl.pvalRaw_200ms <= usePairSignif);
+        signifRscIdx = find(spkCorrAllTbl.(useUnitField)==unitNum & spkCorrAllTbl.pval <= usePairSignif);
         signifUnitTbl = table();
         signifUnitTbl.pairUnitNum = spkCorrAllTbl.(usePairUnitField)(signifRscIdx);
         signifUnitTbl.pairUnitArea = spkCorrAllTbl.(usePairAreaField)(signifRscIdx);
@@ -261,7 +247,7 @@ for jj = 1:numel(useAreas)
                 pairedScUnitNums = tempTbl.pairUnitNum(strcmp(tempTbl.pairUnitArea,'SC'));
                 
                 % Get trials for this unit discounting the trials to remove 
-                selTrials = getSelectedTrials(condition,trialTypes,trialsToRemove,nTrialsThreshold);
+                selTrials = getSelectedTrials(condition,trialTypes,trialsToRemove,useMinTrialCount);
                 if isempty(selTrials)
                     continue;
                 end
@@ -274,8 +260,8 @@ for jj = 1:numel(useAreas)
                 opts.unitNum(roNum) = unitNum;
                 opts.area{roNum} = currArea;
                 opts.condition{roNum} = condition;
-                opts.rscNegative(roNum) = rscNegative;
-                opts.rscPositive(roNum) = rscPositive;
+                opts.rho{roNum} = rho;
+                opts.rhoUnsigned{roNum} = rhoUnsigned;
                 opts.rscIsPositive(roNum) = rscIsPositive;
                 opts.rscIsNegative(roNum) = rscIsNegative;
                 opts.rscIsBoth(roNum) = rscIsBoth;
@@ -343,10 +329,10 @@ for jj = 1:numel(useAreas)
                 getReport(mE)
                 continue
             end % try for each condition
+            opts.pairedSefUnitNums{roNum}=pairedSefUnitNums;
+            opts.pairedFefUnitNums{roNum}=pairedFefUnitNums;
+            opts.pairedScUnitNums{roNum}=pairedScUnitNums;            
         end % for each condition
-        opts.pairedSefUnitNums{roNum}=pairedSefUnitNums;
-        opts.pairedFefUnitNums{roNum}=pairedFefUnitNums;
-        opts.pairedScUnitNums{roNum}=pairedScUnitNums;
         
     end % for each unit
     fprintf(repmat('\b',1,size(s,2)));
@@ -358,7 +344,7 @@ end % for each area
 fprintf('Saving output to %s...',spkCorrSdfsFile);
 spkCorrSdfs = struct();
 spkCorrSdfs.filterCriteria = filterCriteria;
-spkCorrSdfs.unitInfo = unitInfo(ismember(unitInfo.unitNum,unique(opts.unitNum,'stable')),:);
+spkCorrSdfs.unitInfo = unitInfoAll(ismember(unitInfoAll.unitNum,unique(opts.unitNum,'stable')),:);
 spkCorrSdfs.SEF = opts(strcmp(opts.area,'SEF'),:);
 spkCorrSdfs.FEF = opts(strcmp(opts.area,'FEF'),:);
 spkCorrSdfs.SC = opts(strcmp(opts.area,'SC'),:);
@@ -413,4 +399,35 @@ function [selTrials] = getSelectedTrials(condition,trialTypes,trialsToRemove,nTr
 
 end
 
+function [unitTbl] = getUniqueUnitTbl(filteredUnitsTbl)
 
+    tempTbl = table();
+    tempTbl.unitNum = [filteredUnitsTbl.X_unitNum;filteredUnitsTbl.Y_unitNum];
+    tempTbl.area = [filteredUnitsTbl.X_area;filteredUnitsTbl.Y_area];
+    tempTbl.sess = [filteredUnitsTbl.X_sess;filteredUnitsTbl.X_sess];
+    tempTbl.rho = [filteredUnitsTbl.rho;filteredUnitsTbl.rho];
+    tempTbl.rhoUnsigned = [filteredUnitsTbl.rhoUnsigned;filteredUnitsTbl.rhoUnsigned];
+    tempTbl = sortrows(unique(tempTbl,'stable'),'area');
+    
+    uniqUnits = unique(tempTbl.unitNum, 'stable');
+    
+    unitTbl = table();
+    for ii = 1:numel(uniqUnits)
+        unitNum = uniqUnits(ii);
+        idx = find(tempTbl.unitNum==unitNum);
+        unitRsc = tempTbl.rho(idx);
+        unitRscUnsigned = tempTbl.rhoUnsigned(idx);
+        temp = table();
+        
+        temp.unitNum = unitNum;
+        temp.sess = tempTbl.sess(idx(1));
+        temp.area = tempTbl.area(idx(1));
+        temp.rho = {unitRsc};
+        temp.rhoUnsigned = {unitRscUnsigned};
+        temp.isPlus = sum(unitRsc>0)>0;
+        temp.isMinus = sum(unitRsc<0)>0;
+        temp.isBoth = temp.isPlus & temp.isMinus;
+        unitTbl = [unitTbl;temp]; %#ok<*AGROW>
+    end
+    unitTbl = sortrows(unitTbl,{'area','isBoth','isMinus','isPlus','unitNum'});
+end
