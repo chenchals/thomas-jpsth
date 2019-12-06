@@ -53,7 +53,7 @@ padTimeWin = [-padLen padLen];
 
 % Use following area pairs 
 % These are variable names in spkCorrAllPairsStaticNew.mat
-pairAreas = {'SEF_SEF','SEF_FEF','SEF_SC'}';
+usePairAreas = {'SEF_SEF','SEF_FEF','SEF_SC'}';
 % Use following column names from each pairArea table
 % These are column names in variables in spkCorrAllPairsStaticNew.mat
 useCols = {
@@ -74,8 +74,6 @@ useCols = {
     'rhoRaw_200ms'
     'pvalRaw_200ms'
     };
-
-
 
 %% Load data variables
 stTime = tic;
@@ -106,8 +104,8 @@ fprintf('done %5.2f sec\n',lap);
 
 %% Aggregate data into a single table for areas of intertest
 spkCorrAllTbl = table();
-for pa = 1:numel(pairAreas)
-    temp =  spkCorr.(pairAreas{pa})(:,useCols);
+for pa = 1:numel(usePairAreas)
+    temp =  spkCorr.(usePairAreas{pa})(:,useCols);
     spkCorrAllTbl = [spkCorrAllTbl;temp];
     clearvars temp
 end
@@ -124,9 +122,16 @@ loMinus = prctile(spkCorrAllTbl.rhoRaw_200ms(minusIdx & isEpoch),useRhoPercentil
 hiPlusSignifIdx = spkCorrAllTbl.rhoRaw_200ms>=hiPlus & isSignifIdx & isEpoch;
 loMinusSignifIdx = spkCorrAllTbl.rhoRaw_200ms<=loMinus & isSignifIdx & isEpoch;
 
-% FilterString
-filterStr = sprintf('Filtered on Epoch: %s, rho percentile [%d: >=%0.3f or <=%0.3f], p<=%0.3f',...
-    useEpoch,useRhoPercentile,hiPlus,loMinus,useSignif);
+% Filter criteria
+filterCriteria = struct();
+filterCriteria.usePairAreas = usePairAreas;
+filterCriteria.useEpoch = useEpoch;
+filterCriteria.useRhoPercentile = useRhoPercentile;
+filterCriteria.usePvalForUnit = useSignif;
+filterCriteria.usePvalForPairedUnits = usePairSignif;
+filterCriteria.useTrialCount = nTrialsThreshold;
+filterCriteria.rscPositiveThresh = hiPlus;
+filterCriteria.rscNegativeThresh = loMinus;
 
 %% Get list of units for positive and negative Spike correlations
 plusTable = spkCorrAllTbl(hiPlusSignifIdx,:);
@@ -136,14 +141,14 @@ unitsPlus = table();
 unitsPlus.unitNum = [plusTable.X_unitNum;plusTable.Y_unitNum];
 unitsPlus.area = [plusTable.X_area;plusTable.Y_area];
 unitsPlus.sess = [plusTable.X_sess;plusTable.X_sess];
-unitsPlus.threshPlus = repmat(hiPlus,size(unitsPlus,1),1);
+unitsPlus.rscPositive = [plusTable.rhoRaw_200ms;plusTable.rhoRaw_200ms];
 unitsPlus = sortrows(unique(unitsPlus,'stable'),'area');
 % minus spk corr table
 unitsMinus = table();
 unitsMinus.unitNum = [minusTable.X_unitNum;minusTable.Y_unitNum];
 unitsMinus.area = [minusTable.X_area;minusTable.Y_area];
 unitsMinus.sess = [minusTable.X_sess;minusTable.X_sess];
-unitsMinus.threshMinus = repmat(loMinus,size(unitsMinus,1),1);
+unitsMinus.rscNegative = [minusTable.rhoRaw_200ms;minusTable.rhoRaw_200ms];
 unitsMinus = sortrows(unique(unitsMinus,'stable'),'area');
 
 %% Create unique unit table for unit numbers, and keep track of positive or negative correlations
@@ -159,8 +164,8 @@ for ii = 1:numel(uniqUnits)
         temp.unitNum = unitNum;
         temp.sess = unitsPlus.sess(pIdx);
         temp.area = unitsPlus.area(pIdx);
-        temp.threshPlus = unitsPlus.threshPlus(pIdx);
-        temp.threshMinus = NaN;
+        temp.rscPositive = unitsPlus.rscPositive(pIdx);
+        temp.rscNegative = NaN;
         temp.isPlus = 1;
         temp.isMinus = 0;
         temp.isBoth = 0;
@@ -168,8 +173,8 @@ for ii = 1:numel(uniqUnits)
         temp.unitNum = unitNum;
         temp.sess = unitsMinus.sess(mIdx);
         temp.area = unitsMinus.area(mIdx);
-        temp.threshPlus = NaN;
-        temp.threshMinus = unitsMinus.threshMinus(mIdx);
+        temp.rscPositive = NaN;
+        temp.rscNegative = unitsMinus.rscNegative(mIdx);
         temp.isPlus = 0;
         temp.isMinus = 1;
         temp.isBoth = 0;
@@ -177,15 +182,14 @@ for ii = 1:numel(uniqUnits)
         temp.unitNum = unitNum;
         temp.sess = unitsPlus.sess(pIdx);
         temp.area = unitsPlus.area(pIdx);
-        temp.threshPlus = unitsPlus.threshPlus(pIdx);
-        temp.threshMinus = unitsMinus.threshMinus(mIdx);
+        temp.rscPositive = unitsPlus.rscPositive(pIdx);
+        temp.rscNegative = unitsMinus.rscNegative(mIdx);
         temp.isPlus = 0;
         temp.isMinus = 0;
         temp.isBoth = 1;
     end
     unitTbl = [unitTbl;temp]; %#ok<*AGROW>
 end
-unitTbl.filterStr = repmat(filterStr,size(unitTbl,1),1);
 unitTbl = sortrows(unitTbl,{'area','isBoth','isMinus','isPlus','unitNum'});
 
 %% Process units for SDF by area
@@ -209,8 +213,8 @@ for jj = 1:numel(useAreas)
         
         sess = currUnitTbl.sess{1};
         unit = currUnitInfo.unit{1};
-        rscThreshLo = currUnitTbl.threshMinus;
-        rscThreshHi = currUnitTbl.threshPlus;
+        rscNegative = currUnitTbl.rscNegative;
+        rscPositive = currUnitTbl.rscPositive;
         rscIsPositive = currUnitTbl.isPlus;
         rscIsNegative = currUnitTbl.isMinus;
         rscIsBoth = currUnitTbl.isBoth;      
@@ -270,8 +274,8 @@ for jj = 1:numel(useAreas)
                 opts.unitNum(roNum) = unitNum;
                 opts.area{roNum} = currArea;
                 opts.condition{roNum} = condition;
-                opts.rscThreshLo(roNum) = rscThreshLo;
-                opts.rscThreshHi(roNum) = rscThreshHi;
+                opts.rscNegative(roNum) = rscNegative;
+                opts.rscPositive(roNum) = rscPositive;
                 opts.rscIsPositive(roNum) = rscIsPositive;
                 opts.rscIsNegative(roNum) = rscIsNegative;
                 opts.rscIsBoth(roNum) = rscIsBoth;
@@ -353,6 +357,7 @@ end % for each area
 % save spkCorrSdf.mat
 fprintf('Saving output to %s...',spkCorrSdfsFile);
 spkCorrSdfs = struct();
+spkCorrSdfs.filterCriteria = filterCriteria;
 spkCorrSdfs.unitInfo = unitInfo(ismember(unitInfo.unitNum,unique(opts.unitNum,'stable')),:);
 spkCorrSdfs.SEF = opts(strcmp(opts.area,'SEF'),:);
 spkCorrSdfs.FEF = opts(strcmp(opts.area,'FEF'),:);
