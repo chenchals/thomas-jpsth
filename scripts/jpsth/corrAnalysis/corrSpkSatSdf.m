@@ -58,7 +58,8 @@ usePairSignif = 0.05;
 % Selected trials for any condition must be greater than this threshold
 useMinTrialCount = 50;
 % use Conditions
-useConditions = availableConditions(contains(availableConditions,useOutcome));
+% useConditions = availableConditions(contains(availableConditions,useOutcome));
+useConditions = availableConditions; % so we can compute SDFs for all conditions
 
 
 %% Parameters for SDFs
