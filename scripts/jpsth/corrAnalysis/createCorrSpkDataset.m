@@ -12,8 +12,7 @@ function [] = createCorrSpkDataset(area1,area2)
 %         'dataProcessed/dataset/binfo_moves_SAT.mat'
 % Spike time data for all units of all sessions:
 %         'dataProcessed/dataset/spikes_SAT.mat'
-% To generate pairs use:
-
+% see also CREATEJPSTHPAIRCELLINFODB, CREATETRIALTYPESEVENTTIMESDB
 %%
 warning('off');
 monkIdsToDo = {'D','E'};

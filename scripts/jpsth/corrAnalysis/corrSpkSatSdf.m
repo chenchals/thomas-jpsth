@@ -1,10 +1,22 @@
-% Compute SDFs units with significant spike correlations with any other
+function [spkCorrSdfs] = corrSpkSatSdf(outcomeToUse,epochToUse)
+% CORRSPKSATSDF Compute SDFs using filter criteria
+%    outcomeToUse : valid values are :'Correct', 'ErrorChoice',
+%                   'ErrorTiming' 
+%    epochToUse : valid values are :'Baseline', 'Visual', 'PostSaccade',
+%                 'PostReward' 
+%  Useage: 
+%     corrSpkSatSdf('Correct','Baseline'): for Correct trials and Baseline
+%                   epoch, that computes data and saves file
+%                   spkCorrSdfs_Correct_Baseline.mat  
+%
+% Computes SDFs units with significant spike correlations with any other
 % unit(s) in the session in the PostSaccade epoch. Use data from:
 % analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat
 % dataset/spikes_SAT.mat
 % dataset/dataNeurophys_SAT.mat
 % dataset/TrialTypesDB.mat
 % dataset/TrialEventTimesDB.mat
+% see also CORRSPKSTATICEXTRACT
 
 spkCorrDir = 'dataProcessed/analysis/11-18-2019/spkCorr';
 % for loading event times and trial types
@@ -17,11 +29,18 @@ trialTypesFile = fullfile(datasetDir,'TrialTypesDB.mat');
 trialEventTimesFile = fullfile(datasetDir,'TrialEventTimesDB.mat');
 
 %% Filter criteria - to limit units that will be processed for SDFs
+% available conditions
+
+%conditions
+availableConditions = {
+    'AccurateCorrect';'AccurateErrorChoice';'AccurateErrorTiming';
+    'FastCorrect';    'FastErrorChoice';    'FastErrorTiming'
+    };
 % Use epoch available: {Baseline, Visual, PostDSaccade, PostReward}
 % These are column names / values in the spkCorrAllPairsStaticNew.mat
-useEpoch = 'Baseline'; % value for alignedName column
+useEpoch = epochToUse; %'PostSaccade'; % value for alignedName column
 % Use condition that contain the outcome values below
-useOutcome = 'ErrorTiming'; % condition column values shall contain this string
+useOutcome = outcomeToUse;%'ErrorTiming'; % condition column values shall contain this string
 % Output specs - add epoch and outcome used
 spkCorrSdfsFile = fullfile(spkCorrDir,['summary/spkCorrSdfs_' useOutcome '_' useEpoch '.mat']);
 % Use unsigned rho
@@ -38,6 +57,9 @@ useSignif = 0.01;
 usePairSignif = 0.05;
 % Selected trials for any condition must be greater than this threshold
 useMinTrialCount = 50;
+% use Conditions
+useConditions = availableConditions(contains(availableConditions,useOutcome));
+
 
 %% Parameters for SDFs
 useAreas = {'SEF' 'FEF' 'SC'};
@@ -48,11 +70,6 @@ alignTimeWins = {[-600 400],[-200 600],[-100 400]};
 alignNames = {'Visual','PostSaccade','PostReward'};
 % first sort by accurate/fast?
 firstSortEventNames = {'SaccadePrimary','SaccadePrimary','SaccadePrimary'};
-%conditions
-conditions = {
-    'AccurateCorrect';'AccurateErrorChoice';'AccurateErrorTiming';
-    'FastCorrect';    'FastErrorChoice';    'FastErrorTiming'
-    };
 % use epsp kernel length to pad alignTimeWin
 % pad one-half the length of epsp kernel
 % In convn call, use flag 'valid' to drop off the padded window
@@ -234,11 +251,11 @@ for jj = 1:numel(useAreas)
         signifUnitTbl.condition = spkCorrAllTbl.condition(signifRscIdx);
         
         %%
-        for cc = 1:numel(conditions)
+        for cc = 1:numel(useConditions)
             % SDF for each condition,
             % some condition may not exist...so use try...catch
             try
-                condition = conditions{cc};
+                condition = useConditions{cc};
                 % Paired Units that have signif spike corr. for condition
                 tempTbl = signifUnitTbl(strcmp(signifUnitTbl.condition,condition),:);
                 tempTbl = unique(tempTbl,'stable');
@@ -352,6 +369,7 @@ save(spkCorrSdfsFile,'-v7.3','-struct','spkCorrSdfs');
 fprintf(repmat('\b',1,3));
 fprintf('\nDone processing in %3.2f sec\n\n',toc(stTime));
 
+end
 
 %%
 

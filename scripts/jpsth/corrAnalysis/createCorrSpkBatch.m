@@ -1,3 +1,7 @@
+% Create spike count correlation data set for  for pairs of units tecorded form
+% same session for same as well as different areas
+% see also CREATECORRSPKDATASET
+
 areaPairs ={
     'SEF','SEF'
     'SEF','FEF'

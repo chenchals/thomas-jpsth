@@ -1,3 +1,7 @@
+% Extract spike count correlation data for pairs of units tecorded form
+% same session for same as well as different areas
+% see also CREATECORRSPKBATCH
+
 oFilename = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat';
 areaPairs = {
     'SEF-SEF' 
