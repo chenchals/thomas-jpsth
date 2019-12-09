@@ -43,15 +43,19 @@ for o = 1:numel(outcomes)
 end % for each outcome
 
 uniqUnits = unique(sdfsTbl.unitNum);
-
+tic
 for u = 1:numel(uniqUnits)
+    tic
     % call function: corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
     currUnitNum = uniqUnits(u);
+    fprintf('Doing unit num %03d...\n', currUnitNum);
     currUnitSdfsTbl = sdfsTbl(sdfsTbl.unitNum==currUnitNum,:);
     currUnitInfoTbl = unitInfosTbl(unitInfosTbl.unitNum==currUnitNum,:);
     currUnitInfoTbl = currUnitInfoTbl(1,:);
-    pdfFilename = sprintf('%sUnit_%03d_%s.pdf',[basePdfDir filesep],currUnitNum,currUnitInfoTbl.area{1});
-    
+    currPdfFilename = sprintf('%sUnit_%03d_%s.pdf',[basePdfDir filesep],currUnitNum,currUnitInfoTbl.area{1});
+    corrSpkSatSdfPlot(currUnitSdfsTbl,currUnitInfoTbl,currPdfFilename);
+    fprintf('Unit num %03d [%d of %d] units done %3.2f sec\n',currUnitNum, u, numel(uniqUnits),toc);
+
 end
 
 
