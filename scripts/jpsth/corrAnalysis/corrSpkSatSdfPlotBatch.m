@@ -49,7 +49,8 @@ for ae = 1:numel(availEpochToUse)
         
         uniqUnits = unique(sdfsTbl.unitNum);
         tic
-        for u = 5:numel(uniqUnits)
+        for u = 1:numel(uniqUnits)
+            try
             tic
             % call function: corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
             currUnitNum = uniqUnits(u);
@@ -60,6 +61,11 @@ for ae = 1:numel(availEpochToUse)
             currPdfFilename = sprintf('%sUnit_%03d_%s.pdf',[basePdfDir filesep],currUnitNum,currUnitInfoTbl.area{1});
             corrSpkSatSdfPlot(currUnitSdfsTbl,currUnitInfoTbl,currPdfFilename);
             fprintf('Unit num %03d [%d of %d] units done %3.2f sec\n',currUnitNum, u, numel(uniqUnits),toc);
+            catch me
+                warning('Error processing unit: %d\n',currUnitNum);
+                me
+                continue
+            end
             
         end
     end

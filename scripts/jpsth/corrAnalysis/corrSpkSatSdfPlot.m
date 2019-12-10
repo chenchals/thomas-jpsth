@@ -27,7 +27,12 @@ function [] = corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
         epochName = epochs{col};
         alignedOn = alignedOnEvents{col};
         sdfCol = [epochName sdfColNameSuffix];
-
+        nTrialsCol = [epochName '_nTrials'];
+        nSpikesCol = [epochName '_nSpikes'];
+        if strcmp(epochName,'Visual')
+            nSpksTxtOnLeft = 1;
+        end
+        
         for ro = 1:numel(conditionPairs)
             currCondPair = conditionPairs{ro};
             condSdfs = unitSdfsTbl(ismember(unitSdfsTbl.condition,currCondPair),{'condition',sdfCol});
@@ -35,6 +40,8 @@ function [] = corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
             H_ax = H_plots(plotNo);
             plotSatSdf(H_ax,condSdfs,sdfCol,maxFr);
             xlabel(['Time from ' alignedOn ' (ms)'],'FontWeight','bold');
+            nTrialsNSpikesTbl = unitSdfsTbl(ismember(unitSdfsTbl.condition,currCondPair),{'condition',nTrialsCol,nSpikesCol});
+            annotateNTrialsNSpikes(nTrialsNSpikesTbl,nSpksTxtOnLeft);
             % if row = 1 add epoc name at the top
             if ro == 1
                 title(epochName);
@@ -128,6 +135,7 @@ fns2Use = {
     'rhoUnsignedThresh'
     'rhoPositiveThresh'
     'rhoNegativeThresh'
+    'usePvalForPairedUnits'
     };
 
 fltStr = [];
@@ -149,7 +157,7 @@ for ii = 1:numel(filtCritCellArr)
     end
     fltStr{ii,1} = char(join(tempStr,'; ')); 
 end
-fltStr = unique(fltStr,'rows');
+fltStr = unique(fltStr);
 fltStr = ['Filter Criteria: ' fltStr{1}];
 axes(H_axes)
 fs = 8;
@@ -186,6 +194,26 @@ yTicks = get(gca,'YTick');
 text(min(xTicks)-unique(diff(xTicks)),mean(yTicks),condTxt,...
     'HorizontalAlignment','center','Rotation',90,...
     'FontWeight','bold','FontSize',12,'FontAngle','italic');
+end
+
+function [] = annotateNTrialsNSpikes(nTrialsNspikesTbl,leftFlag)
+   fidx = find(contains(nTrialsNspikesTbl.condition,'Fast'));
+   aidx = find(contains(nTrialsNspikesTbl.condition,'Accurate'));
+
+   txt{1,1} = sprintf('\\color{black}\\fontsize{10}\\bf%8s %6s %6s','Condtion','nTrials','nSpikes');
+   txt{2,1} = sprintf('\\color{%s}%10s %6s %6s','green','Fast',num2str(nTrialsNspikesTbl{fidx,2},'%d'),num2str(nTrialsNspikesTbl{fidx,3},'%d'));
+   txt{3,1} = sprintf('\\color{%s}%10s %6s %6s','red','Accurate',num2str(nTrialsNspikesTbl{aidx,2},'%d'),num2str(nTrialsNspikesTbl{aidx,3},'%d'));
+   xTicks = get(gca,'XTick');
+   yTicks = get(gca,'YTick');
+   
+   yPos = yTicks(end-1);
+   if leftFlag
+       xPos = min(xTicks)+unique(diff(xTicks))*2;
+   else
+       xPos = max(xTicks)-unique(diff(xTicks))*3;
+   end
+    h_txt = text(xPos,yPos,txt,'HorizontalAlignment','left','FontWeight','bold','FontSize',10,'FontAngle','italic');
+   
 end
 
 
