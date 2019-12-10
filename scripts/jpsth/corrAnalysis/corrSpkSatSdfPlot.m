@@ -54,23 +54,35 @@ function [] = corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
         unitSdfsTbl.fastOrAcc = regexprep(unitSdfsTbl.condition,'(Correct)|(Error.*)','');
         fastIdx = ismember(unitSdfsTbl.condition,currCondPair) & strcmp(unitSdfsTbl.fastOrAcc,'Fast');
         accIdx = ismember(unitSdfsTbl.condition,currCondPair) & strcmp(unitSdfsTbl.fastOrAcc,'Accurate');
-        % accurate paired units r_sc <= 0.05
+        % accurate paired units r_sc 
         pairedUnitsTxt = {};
-        units = unitSdfsTbl.pairedSefUnitNums{accIdx};
-        pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(units,'SEF','red')];
-        units = unitSdfsTbl.pairedFefUnitNums{accIdx};
-        pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(units,'FEF','red')];
-        units = unitSdfsTbl.pairedScUnitNums{accIdx};
-        pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(units,'SC','red')];
+        if sum(accIdx) == 1
+            pairedUnits = unitSdfsTbl.pairedSefUnitNums{accIdx};
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(pairedUnits,'SEF','red')];
+            pairedUnits = unitSdfsTbl.pairedFefUnitNums{accIdx};
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(pairedUnits,'FEF','red')];
+            pairedUnits = unitSdfsTbl.pairedScUnitNums{accIdx};
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(pairedUnits,'SC','red')];
+        else
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt([],'SEF','red')];
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt([],'FEF','red')];
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt([],'SC','red')];
+        end
 
-        pairedUnitsTxt =[pairedUnitsTxt; {'  ';'  '}];
-        % fast paired units r_sc <= 0.05
-        units = unitSdfsTbl.pairedSefUnitNums{fastIdx};
-        pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(units,'SEF','green')];
-        units = unitSdfsTbl.pairedFefUnitNums{fastIdx};
-        pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(units,'FEF','green')];
-        units = unitSdfsTbl.pairedScUnitNums{fastIdx};
-        pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(units,'SC','green')];
+        pairedUnitsTxt =[pairedUnitsTxt; {'  ';'  '}]; %#ok<*AGROW>
+        % fast paired units r_sc 
+        if sum(fastIdx) == 1
+            pairedUnits = unitSdfsTbl.pairedSefUnitNums{fastIdx};
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(pairedUnits,'SEF','green')];
+            pairedUnits = unitSdfsTbl.pairedFefUnitNums{fastIdx};
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(pairedUnits,'FEF','green')];
+            pairedUnits = unitSdfsTbl.pairedScUnitNums{fastIdx};
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt(pairedUnits,'SC','green')];
+        else
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt([],'SEF','green')];
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt([],'FEF','green')];
+            pairedUnitsTxt = [pairedUnitsTxt; getUnitsTxt([],'SC','green')];
+        end
 
         % Position the text
         plotNo = plotNo + 1;
@@ -87,12 +99,12 @@ function [] = corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
     H_unitInfo = addUnitInfo(H_Figure,unitInfoTbl);
     addFilterCriteria(H_unitInfo,unitSdfsTbl.filterCriteria);
     addFigureTitle(currUnitNum, currUnitArea,pdfFilename);
+    drawnow;
     %%
     if savePdfFile
-        saveFigPdf(pdfFilename);
+        h_fig = saveFigPdf(pdfFilename);
+        delete(h_fig);
     end
-
-    delete(gcf)
 
 end % end function
 
@@ -116,7 +128,6 @@ fns2Use = {
     'rhoUnsignedThresh'
     'rhoPositiveThresh'
     'rhoNegativeThresh'
-    'usePvalForPairedUnits'
     };
 
 fltStr = [];
@@ -136,7 +147,7 @@ for ii = 1:numel(filtCritCellArr)
            
        end
     end
-    fltStr{ii,1} = char(join(tempStr,'; ')); %#ok<AGROW>
+    fltStr{ii,1} = char(join(tempStr,'; ')); 
 end
 fltStr = unique(fltStr,'rows');
 fltStr = ['Filter Criteria: ' fltStr{1}];

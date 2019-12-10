@@ -53,10 +53,12 @@ usePvalColName = 'pvalRaw_150ms';
 useRhoPercentile = 70;
 % Use significance level for selecting units to plot
 useSignif = 0.01;
+% Selected trials for any condition must be greater than this threshold
+% For computing SDF, there may not be spike corr
+useMinTrialCount = 1; % this will compute SDFs for all conditions
 % For a given unit, use significance level for selecting paired units 
 usePairSignif = 0.05;
-% Selected trials for any condition must be greater than this threshold
-useMinTrialCount = 50;
+
 % use Conditions
 % useConditions = availableConditions(contains(availableConditions,useOutcome));
 useConditions = availableConditions; % so we can compute SDFs for all conditions
@@ -178,12 +180,10 @@ filterCriteria.useRhoPercentile = useRhoPercentile;
 filterCriteria.usePvalForUnit = useSignif;
 filterCriteria.useMinTrialCount = useMinTrialCount;
 filterCriteria.useRhoUnsigned = useRhoUnsigned;
-
 filterCriteria.rhoUnsignedThresh = hiUnsigned;
 filterCriteria.rhoPositiveThresh = hiPlus;
 filterCriteria.rhoNegativeThresh = loMinus;
 filterCriteria.usePvalForPairedUnits = usePairSignif;
-
 
 %% Get list of units for positive and negative Spike correlations
 if useRhoUnsigned
@@ -214,7 +214,6 @@ for jj = 1:numel(useAreas)
         currUnitTbl = currUnitsTbl(uu,:);
         unitNum = currUnitTbl.unitNum;
         currUnitInfo = unitInfoAll(unitInfoAll.unitNum==unitNum,:);
-        
         sess = currUnitTbl.sess{1};
         unit = currUnitInfo.unit{1};
         rho = currUnitTbl.rho{1};
@@ -245,11 +244,11 @@ for jj = 1:numel(useAreas)
             usePairUnitField = 'X_unitNum';
             usePairAreaField = 'X_area';
         end
-        signifRscIdx = find(spkCorrAllTbl.(useUnitField)==unitNum & spkCorrAllTbl.pval <= usePairSignif);
-        signifUnitTbl = table();
-        signifUnitTbl.pairUnitNum = spkCorrAllTbl.(usePairUnitField)(signifRscIdx);
-        signifUnitTbl.pairUnitArea = spkCorrAllTbl.(usePairAreaField)(signifRscIdx);
-        signifUnitTbl.condition = spkCorrAllTbl.condition(signifRscIdx);
+        pairsRscIdx = find(spkCorrAllTbl.(useUnitField)==unitNum & spkCorrAllTbl.pval <= usePairSignif);
+        pairsUnitTbl = table();
+        pairsUnitTbl.pairUnitNum = spkCorrAllTbl.(usePairUnitField)(pairsRscIdx);
+        pairsUnitTbl.pairUnitArea = spkCorrAllTbl.(usePairAreaField)(pairsRscIdx);
+        pairsUnitTbl.condition = spkCorrAllTbl.condition(pairsRscIdx);
         
         %%
         for cc = 1:numel(useConditions)
@@ -258,7 +257,7 @@ for jj = 1:numel(useAreas)
             try
                 condition = useConditions{cc};
                 % Paired Units that have signif spike corr. for condition
-                tempTbl = signifUnitTbl(strcmp(signifUnitTbl.condition,condition),:);
+                tempTbl = pairsUnitTbl(strcmp(pairsUnitTbl.condition,condition) ,:);
                 tempTbl = unique(tempTbl,'stable');
                 pairedSefUnitNums = tempTbl.pairUnitNum(strcmp(tempTbl.pairUnitArea,'SEF'));
                 pairedFefUnitNums = tempTbl.pairUnitNum(strcmp(tempTbl.pairUnitArea,'FEF'));
