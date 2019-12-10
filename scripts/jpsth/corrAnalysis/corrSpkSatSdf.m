@@ -55,7 +55,7 @@ useRhoPercentile = 70;
 useSignif = 0.01;
 % Selected trials for any condition must be greater than this threshold
 % For computing SDF, there may not be spike corr
-useMinTrialCount = 1; % this will compute SDFs for all conditions
+useMinTrialCount = 50; % this will compute SDFs for all conditions
 % For a given unit, use significance level for selecting paired units 
 usePairSignif = 0.05;
 

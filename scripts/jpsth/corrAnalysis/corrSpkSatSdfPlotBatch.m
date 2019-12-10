@@ -58,7 +58,7 @@ for ae = 1:numel(availEpochToUse)
             currUnitSdfsTbl = sdfsTbl(sdfsTbl.unitNum==currUnitNum,:);
             currUnitInfoTbl = unitInfosTbl(unitInfosTbl.unitNum==currUnitNum,:);
             currUnitInfoTbl = currUnitInfoTbl(1,:);
-            currPdfFilename = sprintf('%sUnit_%03d_%s.pdf',[basePdfDir filesep],currUnitNum,currUnitInfoTbl.area{1});
+            currPdfFilename = sprintf('%sUnit_%s_%03d.pdf',[basePdfDir filesep],currUnitInfoTbl.area{1},currUnitNum);
             corrSpkSatSdfPlot(currUnitSdfsTbl,currUnitInfoTbl,currPdfFilename);
             fprintf('Unit num %03d [%d of %d] units done %3.2f sec\n',currUnitNum, u, numel(uniqUnits),toc);
             catch me
