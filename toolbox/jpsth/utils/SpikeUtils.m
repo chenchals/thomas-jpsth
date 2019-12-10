@@ -321,13 +321,7 @@ classdef SpikeUtils
             kernel = [zeros(1,length(bins)-1) ...
                 (1-fx_exp(growth_ms)).*fx_exp(decay_ms)]';
             kernel = kernel./sum(kernel);
-            
-            %Note: convn works column wise for matrix:
-            % resultTrialsInColumns  =  convn(TrialsInRowsMatrix' ,
-            %    kernelColumnVector, 'same'); % not transpose in the end
-            %
-            % resultTrialsInRows  =  convn(TrialsInRowsMatrix' , kernelColumnVector,
-            % 'same')'; % added transpose int he end
+
         end
         
         
