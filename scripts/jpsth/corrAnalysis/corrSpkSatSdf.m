@@ -113,7 +113,7 @@ useCols = {
 stTime = tic;
 fprintf('Loading data variables...');
 
-if ~exist('spkCorr','var')
+%if ~exist('spkCorr','var')
     % Load data variable: spike correlations
     spkCorr = load(spkCorrFile);
     % Load data variable: spike times
@@ -128,7 +128,7 @@ if ~exist('spkCorr','var')
     % Load data variable: TrialEventTimes
     sessionEventTimes = load(trialEventTimesFile);
     sessionEventTimes = sessionEventTimes.TrialEventTimesDB;
-end
+%end
 lap = toc(stTime);
 fprintf('done %5.2f sec\n',lap);
 
@@ -315,9 +315,8 @@ for jj = 1:numel(useAreas)
                     tempRast = SpikeUtils.rasters(alignedSpkTimes,alignedTimeWinPad);
                     rasters = tempRast.rasters;
                     rasterBins = tempRast.rasterBins;
-                    % valid flag chops off from the begining and from the
-                    % end numel(pspKernel)/2 bins (padLen)
-                    trialSdfs = convn(rasters',pspKernel,'valid')';
+                    trialSdfs = convn(rasters',pspKernel,'full')';
+                    trialSdfs = trialSdfs(:,padLen:range(alignedTimeWin)+padLen);
                     sdfTime = rasterBins(padLen+1:end-padLen);
                     rasters = rasters(:,padLen+1:size(rasters,2)-padLen);
                     sdfMean = mean(trialSdfs,1);
