@@ -13,7 +13,7 @@ function [outTbl] = getUnitSatSdf(useUnit,evntTimes,useTrials,useAlignment)
 %     useAlignment.names = {'Visual','PostSaccade','PostReward'};
 %     useAlignment.sortEventNames = {'SaccadePrimary','SaccadePrimary','SaccadePrimary'};
 %
-
+warning('off');
 unitNum = useUnit.unitNum;
 spkTimes = useUnit.spkTimes; %spikesSat{unitNum}';
 

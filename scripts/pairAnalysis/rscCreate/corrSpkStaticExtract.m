@@ -2,7 +2,7 @@
 % same session for same as well as different areas
 % see also CREATECORRSPKBATCH
 
-oFilename = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat';
+%%oFilename = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat';
 areaPairs = {
     'SEF-SEF' 
     'SEF-FEF'    
