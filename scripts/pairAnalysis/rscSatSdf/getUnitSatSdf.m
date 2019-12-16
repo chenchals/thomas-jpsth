@@ -107,6 +107,8 @@ for cc = 1:numel(satConditions)
             sdfSem = sdfStd./sqrt(size(trialSdfs,1));
             nSpikes = sum(rasters(:));
             
+            % get waveforms?
+            
             % Gather variables for output
             % prefix the alignedName for pivot
             prefix = [alignedName '_'];
@@ -129,8 +131,6 @@ for cc = 1:numel(satConditions)
         continue
     end % try for each condition
 end % for each condition
-
-
 
 
 end

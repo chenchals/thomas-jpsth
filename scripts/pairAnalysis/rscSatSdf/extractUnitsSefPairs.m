@@ -14,9 +14,11 @@ function [allUnitPairs] = extractUnitsSefPairs(outcomes,epoch)
     unitAreas = {SEF,FEF,SC};
 
     allPairings = table();
+    filterCriteria = table();
     for oe = 1:numel(outcomeEpochs)
         outcomeEpoch = outcomeEpochs{oe};
         useCorrTbl = load([baseSpkCorrSdfsFile outcomeEpoch '.mat']);
+        filterCriteria = [filterCriteria;struct2table(useCorrTbl.filterCriteria,'AsArray',true)];
         %% for SEF units
         for ua = 1:numel(unitAreas)
             unitArea = unitAreas{ua};
@@ -104,11 +106,12 @@ function [allUnitPairs] = extractUnitsSefPairs(outcomes,epoch)
             'RightKeys',{'X_unitNum','Y_unitNum'},...
             'LeftVariables',{'unitNum','pairedUnitNum'},'RightVariables',colNames);
         pairsByArea = [pairsByArea;paUnits];
-        allUnitPairs.(pairArea) = paUnits;
+        %allUnitPairs.(pairArea) = paUnits;
     end
     allUnitPairs.outcomeEpochs = outcomeEpochs;
+    allUnitPairs.filterCriteria = filterCriteria;
     allUnitPairs.pairsForUnit = unitPairs;
-    allUnitPairs.pairsByarea = pairsByArea;
+    allUnitPairs.pairsByArea = pairsByArea;
     
     writetable(unitPairs,outXlsxFile);
     save(outMatFile,'-v7.3','-struct','allUnitPairs');

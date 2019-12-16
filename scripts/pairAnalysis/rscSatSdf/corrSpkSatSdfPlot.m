@@ -3,6 +3,7 @@ function [] = corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
 
     %% vars
     savePdfFile = 1;
+    plotSemFlag = 0;
     % these are values for column: condition
     conditionPairs = {
         {'FastCorrect','AccurateCorrect'};
@@ -38,10 +39,13 @@ function [] = corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
             condSdfs = unitSdfsTbl(ismember(unitSdfsTbl.condition,currCondPair),{'condition',sdfCol});
             plotNo = plotNo + 1;
             H_ax = H_plots(plotNo);
-            plotSatSdf(H_ax,condSdfs,sdfCol,maxFr);
+            plotSatSdf(H_ax,condSdfs,sdfCol,maxFr,plotSemFlag);
             xlabel(['Time from ' alignedOn ' (ms)'],'FontWeight','bold');
-            nTrialsNSpikesTbl = unitSdfsTbl(ismember(unitSdfsTbl.condition,currCondPair),{'condition',nTrialsCol,nSpikesCol});
-            annotateNTrialsNSpikes(nTrialsNSpikesTbl,nSpksTxtOnLeft);
+            if isfield(unitSdfsTbl,nTrialsCol) && isfield(unitSdfsTbl,nSpikesCol)
+                nTrialsNSpikesTbl = unitSdfsTbl(ismember(unitSdfsTbl.condition,currCondPair),{'condition',nTrialsCol,nSpikesCol});
+                annotateNTrialsNSpikes(nTrialsNSpikesTbl,nSpksTxtOnLeft);
+            end
+            
             % if row = 1 add epoc name at the top
             if ro == 1
                 title(epochName);
@@ -57,6 +61,13 @@ function [] = corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
     end % for col
     % last column: Paired unit nums with siginif. spike corr for currUnit
     for ro = 1:numel(conditionPairs)
+        if ~isfield(unitSdfsTbl,'pairedSefUnitNums')
+            % this may be an average of units plot...
+            plotNo = plotNo + 1;
+            H_ax = H_plots(plotNo);
+            delete(H_ax);
+            continue;
+        end
         currCondPair = conditionPairs{ro};
         unitSdfsTbl.fastOrAcc = regexprep(unitSdfsTbl.condition,'(Correct)|(Error.*)','');
         fastIdx = ismember(unitSdfsTbl.condition,currCondPair) & strcmp(unitSdfsTbl.fastOrAcc,'Fast');
@@ -101,10 +112,14 @@ function [] = corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
         pos = get(gca,'Position');
         annotation('textbox','String',pairedUnitsTxt,'Position',pos,'EdgeColor','none')
     end % text for significant paired units
-
+    
     % annotate unit
-    H_unitInfo = addUnitInfo(H_Figure,unitInfoTbl);
-    addFilterCriteria(H_unitInfo,unitSdfsTbl.filterCriteria);
+    if istable(unitInfoTbl)
+        H_unitInfo = addUnitInfo(H_Figure,unitInfoTbl);
+    end
+    if isfield(unitSdfsTbl,'filterCriteria')
+        addFilterCriteria(H_unitInfo,unitSdfsTbl.filterCriteria);
+    end
     addFigureTitle(currUnitNum, currUnitArea,pdfFilename);
     drawnow;
     %%
@@ -217,7 +232,7 @@ function [] = annotateNTrialsNSpikes(nTrialsNspikesTbl,leftFlag)
 end
 
 
-function [] = plotSatSdf(H_ax,currSdfTbl,sdfColName,maxFr)
+function [] = plotSatSdf(H_ax,currSdfTbl,sdfColName,maxFr,semFlag)
 
 fx_vecSmooth = @(x,w) smoothdata(x,'movmean',w,'omitnan');
 conds = unique(currSdfTbl.condition,'stable');
@@ -229,7 +244,14 @@ for c = 1:numel(conds)
     if contains(cond,'Fast')
         pltColor = 'g';
     end
-    currSdf = currSdfTbl.(sdfColName){ismember(currSdfTbl.condition,cond)}(:,1:2);
+    currSdf = currSdfTbl.(sdfColName){ismember(currSdfTbl.condition,cond)}(:,1:4);
+    x=currSdf(:,1);
+    y=fx_vecSmooth(currSdf(:,2),5); 
+    sem = currSdf(:,4);
+    if semFlag
+      fill([x;flipud(x)],[y+sem;flipud(y-sem)],pltColor,'FaceAlpha',0.2,'LineStyle','none');
+      hold on
+    end  
     plot(currSdf(:,1),fx_vecSmooth(currSdf(:,2),5),'Color',pltColor,'LineWidth',1.5)
     hold on
 end
