@@ -106,7 +106,9 @@ for ii = 1:numel(pairedAreas)
     %%
     corrSpkSatSdfPlot(units1SdfsTbl,[],['AverageSdf_allPairedUnits_' pairedAreaStr '_a1_' area1 '.pdf']);
     corrSpkSatSdfPlot(units2SdfsTbl,[],['AverageSdf_allPairedUnits_' pairedAreaStr '_a2_' area2 '.pdf']);
-
+    
+    %% trial-by-trial diff of normalized sdfs for each pair
+    diffSdfsTbl = geTrialByTrialDiffs(unitSdfsTbl,usePairs(idxPair,:));
     
     
 end
@@ -114,6 +116,26 @@ end
 
 
 %% Other functions
+
+function diffSdfsTbl = geTrialByTrialDiffs(unitSdfsTbl,pairedUnitsTbl)
+
+  nPairs = size(pairedUnitsTbl,1);
+  for p = 1:nPairs
+      u1 = pairedUnitsTbl.unitNum(p);
+      u2 = pairedUnitsTbl.pairedUnitNum(p);
+      
+      alignName = 'Visual';
+      u1Sdfs = unitSdfsTbl(unitSdfsTbl.unitNum==u1, [alignName '_sdf']);
+      u2Sdfs = unitSdfsTbl(unitSdfsTbl.unitNum==u1, [alignName '_sdf']);
+      
+      
+      
+      
+  end
+
+end
+
+
 function [outSdfsTbl] = getSdfsTblForUnits(unitSdfsTbl,unitsIdx, unitNum, unitArea)
     % Use all pairs from baseline as well as postsaccade    
     fx_sdfTsMeanStdSem = @(t,x) {[...

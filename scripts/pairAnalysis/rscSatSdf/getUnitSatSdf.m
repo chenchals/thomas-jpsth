@@ -123,6 +123,7 @@ for cc = 1:numel(satConditions)
             outTbl.([prefix 'nSpikes'])(roNum) = nSpikes;
             outTbl.([prefix 'timeMs']){roNum} = single(sdfTime);
             outTbl.([prefix 'rasters']){roNum} = rasters;
+            outTbl.([prefix 'sdfByTrial']){roNum} = trialSdfs;
             outTbl.([prefix 'sdfTsMeanStdSem']){roNum} = single([sdfTime(:) sdfMean(:) sdfStd(:) sdfSem(:)]);
             
         end % for each alignEvent
