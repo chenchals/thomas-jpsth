@@ -3,12 +3,12 @@ testX1 = [0 0 0 0 0 1 1 1 1 0 1 0 0 1 0 1 1 1 1 0 1 0 0 0 1 1 1 0 0 0];
 X = [0 0 0 0 0 1 1 1 1 0 1 0 1 0 1 1 1 1 0 1 0 1 1 1];
 %%
 find0_1vec = X
-[startIdx0,endIdx0,runLen0] = findRuns(find0_1vec,0)
-[startIdx1,endIdx1,runLen1] = findRuns(find0_1vec,1)
+[startIdx0,endIdx0,runLen0] = findRunsOfZerosOrOnes(find0_1vec,0)
+[startIdx1,endIdx1,runLen1] = findRunsOfZerosOrOnes(find0_1vec,1)
 
 
 %%
-function [startIdx,endIdx,runLen] = findRuns(vect,trueFalse)
+function [startIdx,endIdx,runLen] = findRunsOfZerosOrOnes(vect,trueFalse)
 X = vect;
 if trueFalse==1
     X = vect - 1;
