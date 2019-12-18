@@ -1,3 +1,4 @@
+%oStruct=load('temp_spkCorrStackPlotData.mat');
 corrDirs = {
     'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
     'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
@@ -35,6 +36,7 @@ pairInfoFields = {
     'isOnSameChannel'
     };
 %%
+if ~exist(oStruct,'var')
 tic
 oStruct = struct();
 for d = 1:numel(corrDirs)
@@ -76,6 +78,7 @@ for d = 1:numel(corrDirs)
     
 end
 toc
+end
 %%
 cdataPlusMinus = [0 0 1;1 1 1;1 0 0];% idx 1=blue, 2=white, 3=red
 cdataPlus = [1 1 1;1 0 0];% idx 1=white, 2=red
