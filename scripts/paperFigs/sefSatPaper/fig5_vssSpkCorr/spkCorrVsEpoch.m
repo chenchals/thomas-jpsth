@@ -93,7 +93,7 @@ spkCorr.epoch = spkCorr.alignedName;
 spkCorr.rsc = double(abs(spkCorr.(rscColName)));
 
 %% Compute stats mean, std, se for rsc
-
+warning('off')    
 usePairAreas = {
     {'SEF-FEF'}
     {'SEF-SC'}
@@ -140,8 +140,12 @@ for pa = 1:numel(usePairAreas)
         currData = statsTbl.(neuronType);
         titleStr = [regexprep(neuronType,'N$',' Neurons') ' - ' currPairAreaStr];
         doXlabel = 0;
+        doLegend = 0;
         if ro==numel(neuronTypes)
             doXlabel = 1;
+        end
+        if ro==1
+            doLegend = 1;
         end
         
         for jj = 1:numel(outcomes)
@@ -153,7 +157,11 @@ for pa = 1:numel(usePairAreas)
             
             % Accurate
             subplot(plt_ax(1)); hold on
-            errorbar((1:4), acc.mean_rsc, acc.se_rsc, 'CapSize',0, 'Color','r', 'LineStyle',lineStyle{jj})
+            plot(1:4,acc.mean_rsc,'Color','r', 'LineStyle',lineStyle{jj});
+            if doLegend
+                legend(outcomes,'Location','northwest','Box','off','FontSize',6,'NumColumns',2);
+            end
+            errorbar((1:4), acc.mean_rsc, acc.se_rsc, 'CapSize',0, 'Color','r', 'LineStyle',lineStyle{jj},'HandleVisibility','off')
             xticks(1:4); xticklabels([]); xlim([.8 4.2]); ylim(yLimPlot); ytickformat('%3.2f')
             h_t = title(titleStr,'Position',[numel(neuronTypes)-0.5 max(yLimPlot)*1.05]);
             ylabel('r_{sc}','FontWeight','bold')
@@ -163,7 +171,12 @@ for pa = 1:numel(usePairAreas)
             
             % Fast
             subplot(plt_ax(2)); hold on
-            errorbar((1:4), fast.mean_rsc, fast.se_rsc, 'CapSize',0, 'Color',[0 .7 0], 'LineStyle',lineStyle{jj})
+            plot(1:4,fast.mean_rsc,'Color',[0 .7 0], 'LineStyle',lineStyle{jj});
+            if doLegend
+                legend(outcomes,'Location','northwest','Box','off','FontSize',6,'NumColumns',2);
+            end
+
+            errorbar((1:4), fast.mean_rsc, fast.se_rsc, 'CapSize',0, 'Color',[0 .7 0], 'LineStyle',lineStyle{jj},'HandleVisibility','off')
             xticks(1:4); xticklabels([]); xlim([.8 4.2]); ylim(yLimPlot); ytickformat('%3.2f') %yticks([])
             if doXlabel
                 set(gca,'XTickLabel',acc.epoch,'FontWeight','bold','XTickLabelRotation',30)
@@ -172,7 +185,7 @@ for pa = 1:numel(usePairAreas)
         end
         drawnow;        
     end
-    print(pdfFile,'-dpdf','-fillpage')
+   print(pdfFile,'-dpdf','-fillpage')
     %%
 end
 
