@@ -10,7 +10,7 @@ lineStyle = {'-','--',':'};
 ylimPlot = [0.04 0.18];
 
 %load r_sc data
-% load('dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat', 'SEF_FEF','SEF_SC','SEF_SEF');
+load('dataProcessed/analysis/spkCorr/summary/spkCorrAllPairsStaticNew.mat', 'SEF_FEF','SEF_SC','SEF_SEF');
 
 %% Aggregate required fields into a single table
 % pairAreas = {'SEF_SEF','SEF_FEF','SEF_SC'};
