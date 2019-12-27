@@ -1,5 +1,5 @@
 % load the behavior file for getting trial outcomes
-
+trialHistoryFile = 'dataProcessed/analysis/spkCorr/trialHistory/SpkCorr_TrialHistory.mat';
 trialTypeDbFile = 'dataProcessed/dataset/TrialTypesDB.mat';
 trialTypesDB = load(trialTypeDbFile);
 trialTypesDB = trialTypesDB.TrialTypesDB;
@@ -15,10 +15,16 @@ trialTypesDB = trialTypesDB(ismember(trialTypesDB.monk,{'D','E'}),:);
 fastCols = {'FastCorrect','FastErrorChoice','FastErrorTiming'}';
 accCols = {'AccurateCorrect','AccurateErrorChoice','AccurateErrorTiming'}';
 useCols = [fastCols;accCols];
-[prevTrlCounts,prevTrls] = getNthTrialHistory(trialTypesDB,useCols,1);
-
 %%
-[prevHistoryTbl] = getNthTrialHistoryUseBlock(trialTypesDB,useCols,1);
+nthPrevTrial = 1;
+out = struct();
+[out.(['trialHistory_' num2str(nthPrevTrial,'%d')])] = getNthTrialHistoryUseBlock(trialTypesDB,useCols,nthPrevTrial);
+
+if exist(trialHistoryFile,'file')
+    save(trialHistoryFile,'-append','-v7.3','-struct','out');
+else
+    save(trialHistoryFile,'-v7.3','-struct','out');
+end
 
 
 %%
@@ -26,9 +32,10 @@ function [prevHistoryTbl] = getNthTrialHistoryUseBlock(trialTypesDB,useColsNames
 nPrevTrial = nthPrevTrial; % number of trials before current trial
 prevHistoryTbl = table();
 useColsNames = useColsNames';
-for s = 1:1 %size(trialTypesDB.session)
+for s = 1:size(trialTypesDB.session)
     tbl = table();
     sess = trialTypesDB.session{s};
+    fprintf('Doing Session : %s\n',sess);
     tbl.TrialBlockNum = trialTypesDB.TrialBlockNum{1};
     for uc = useColsNames
        tbl.(uc{1}) = trialTypesDB.(uc{1}){1};
@@ -91,7 +98,7 @@ for s = 1:1 %size(trialTypesDB.session)
         tempBlk = [tempBlk;tempOutcome];
     end
     sessTbl = aggregateBlocks(tempBlk);
-    prevHistoryTbl = [prevHistoryTbl;sessTbl];
+    prevHistoryTbl = [prevHistoryTbl;sessTbl]; %#ok<*AGROW>
 end
 
 end
@@ -120,35 +127,3 @@ function [sessTbl] = aggregateBlocks(tempBlk)
     end
 end
 
-
-function [prevTrialCountTbl,prevTrlsTbl] = getNthTrialHistory(trialTypesDB,useCols,nthPrevTrial)
-
-nPrevTrial = nthPrevTrial; % number of trials before current trial
-prevTrlsTbl = table();
-prevTrialCountTbl = table();
-useCols = useCols';
-prevColNames = strcat(useCols,num2str(nPrevTrial,'_p%d'));
-for s = 1:size(trialTypesDB.session)
-    tbl = trialTypesDB(s,:);
-    satStart = find(isnan(tbl.Fast{1}), 1, 'last' ) + 1;
-    sess = tbl.session{1};
-    for ii = 1:numel(useCols)
-        temp = table();
-        outcome_n = useCols{ii};
-        % from trial#2 to end
-        currTrls = find(tbl.(outcome_n){1}(satStart:end) == 1);
-        idxOffset = satStart + nPrevTrial;
-        prevIdx = tbl.(outcome_n){1}(idxOffset+1:end) == 1;
-        prevTrls = cellfun(@(x) find(prevIdx & (tbl.(x){1}(1:end-idxOffset) == 1)),useCols,'UniformOutput',false);
-        prevTrls = cell2table(prevTrls,'VariableNames',prevColNames);
-        prevTrlsCounts = cellfun(@(x) numel(find(prevIdx & (tbl.(x){1}(1:end-idxOffset) == 1))),useCols,'UniformOutput',false);
-        prevTrlsCounts = cell2table(prevTrlsCounts,'VariableNames',prevColNames);
-        temp.session = {sess};
-        temp.currOutcome = {outcome_n};
-        temp.currTrials = {currTrls};
-        temp.currTrialsCount= numel(currTrls);
-        prevTrlsTbl = [prevTrlsTbl;[temp prevTrls]]; %#ok<*AGROW>
-        prevTrialCountTbl = [prevTrialCountTbl;[temp prevTrlsCounts]];
-    end
-end
-end
