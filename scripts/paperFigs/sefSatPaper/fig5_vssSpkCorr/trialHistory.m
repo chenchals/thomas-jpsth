@@ -1,3 +1,29 @@
+% Create table for outcomes by session split on previous outcome.
+% Previous outcome criteria:
+%   1. Previous outcome must be within the same block as current outcome
+%   2. Previous outcome must not be the first oucome in the block
+% Criteria(1) ensures that the monk is in a given state of either Fast or
+%      Accurate as these SAT conditions are blocked 
+% Criteria(2) ensures that the monk is not "transitioning" from one state
+% to another.
+% The possible combinations are the foillowing:
+% cOC: current Outcome
+% pOC: previous outcome [1,2 or 3]
+% A : Accurate,  F: Fast
+% _C : Correct, _EC: ErrorChoice, _ET: ErrorTiming
+% _____________________________
+% | cOC  | pOC1 | pOC2 | pOC3 |  
+% |------|------|------|------|
+% | A_C  | A_C  | A_EC | A_ET |
+% | A_EC | A_C  | A_EC | A_ET |
+% | A_ET | A_C  | A_EC | A_ET |
+% |------|------|------|------|
+% | F_C  | F_C  | F_EC | F_ET |
+% | F_EC | F_C  | F_EC | F_ET |
+% | F_ET | F_C  | F_EC | F_ET |
+% -----------------------------
+%
+
 % load the behavior file for getting trial outcomes
 trialHistoryFile = 'dataProcessed/analysis/spkCorr/trialHistory/SpkCorr_TrialHistory.mat';
 trialTypeDbFile = 'dataProcessed/dataset/TrialTypesDB.mat';

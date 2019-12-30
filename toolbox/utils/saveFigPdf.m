@@ -1,5 +1,8 @@
-function [f_h] = saveFigPdf(fn)
+function [f_h] = saveFigPdf(fn,varargin)
     orient = 'landscape';
+    if numel(varargin)==1
+        orient = 'portrait';
+    end
     f_h = gcf;
     set(f_h,'Units','inches');
     screenposition = get(gcf,'Position');
