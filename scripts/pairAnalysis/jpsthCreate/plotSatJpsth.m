@@ -340,24 +340,26 @@ end
 
 %%
 function [H_Figure] = getFigHandle()
+%set(0, 'DefaultFigureColormap', jet(64));
+% set(0,'units','pixels');
+% set(0,'defaulttextfontsize',6,...
+%     'defaulttextfontname','Arial',...
+%     'defaultaxesfontsize',6,...
+%     'defaultaxeslinewidth',0.05);
+% margin = 10; %pixels
+% %ss=get(0,'ScreenSize');
+% % optimized for this size on my macbookpro
+% ss = [1 1 1680 1050];
+% FigPos=[margin margin ss(3)-(2*margin) ss(4)-(2*margin)];
+% %Main figure window
+% H_Figure=figure('Position',FigPos,...
+%     'color',[1 1 1],'numbertitle','off','renderer','painters',...
+%     'renderermode','manual','menubar','none',...
+%     'Tag','H_Figure');
+% orient landscape
+% set(H_Figure,'units','normalized')
+H_Figure = newFigure();
 set(0, 'DefaultFigureColormap', jet(64));
-set(0,'units','pixels');
-set(0,'defaulttextfontsize',6,...
-    'defaulttextfontname','Arial',...
-    'defaultaxesfontsize',6,...
-    'defaultaxeslinewidth',0.05);
-margin = 10; %pixels
-%ss=get(0,'ScreenSize');
-% optimized for this size on my macbookpro
-ss = [1 1 1680 1050];
-FigPos=[margin margin ss(3)-(2*margin) ss(4)-(2*margin)];
-%Main figure window
-H_Figure=figure('Position',FigPos,...
-    'color',[1 1 1],'numbertitle','off','renderer','painters',...
-    'renderermode','manual','menubar','none',...
-    'Tag','H_Figure');
-orient landscape
-set(H_Figure,'units','normalized')
 end
 
 function saveFigAs(fn)

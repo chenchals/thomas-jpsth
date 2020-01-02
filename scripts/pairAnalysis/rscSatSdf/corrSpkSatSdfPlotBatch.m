@@ -15,8 +15,8 @@
 availEpochToUse = {'Baseline','PostSaccade'};
 availOutcomes = {'Correct','ErrorChoice','ErrorTiming'};
 areas = {'SEF','FEF','SC'};
-baseSatSdfFile = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrSdfs';
-baseSatSdfPdfDir = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/sdfPlots';
+baseSatSdfFile = 'dataProcessed/analysis/spkCorr/summary/spkCorrSdfs';
+baseSatSdfPdfDir = 'dataProcessed/analysis/spkCorr/summary/sdfPlots';
 
 for ae = 1:numel(availEpochToUse)
     epochToUse = availEpochToUse{ae};

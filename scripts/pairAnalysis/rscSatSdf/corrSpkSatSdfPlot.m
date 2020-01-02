@@ -276,26 +276,8 @@ function [H_plots,H_Figure] = getPlotHandles()
 % on the leftmost plot
 % plus 1 column for information about pairted units
 % plus 1 row for unit info annotation
-fs = 6;
-if ismac
-    fs = 8;
-end
-set(0,'units','pixels');
-set(0,'defaulttextfontsize',fs,...
-    'defaulttextfontname','Arial',...
-    'defaultaxesfontsize',fs,...
-    'defaultaxeslinewidth',0.05);
-margin = 10; %pixels
 
-ss = [20 20 1500 990];
-FigPos=[margin margin ss(3)-(2*margin) ss(4)-(2*margin)];
-%Main figure window
-H_Figure=figure('Position',FigPos,...
-    'color',[1 1 1],'numbertitle','off','renderer','painters',...
-    'renderermode','manual','menubar','none',...
-    'Tag','H_Figure');
-orient landscape
-set(H_Figure,'units','normalized')
+H_Figure = newFigure();
 
 nRows = 3;
 startOffset = 0.05;

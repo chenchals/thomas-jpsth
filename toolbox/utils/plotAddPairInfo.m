@@ -2,9 +2,9 @@ function plotAddPairInfo(H_axes, unitInfosTable)
 %ADDCELLPAIRINFO Summary of this function goes here
 %   Detailed explanation goes here
 
-    fs = 8;
+    fs = 6;
     if ismac
-        fs = 10;
+        fs = 8;
     end
 
     axes(H_axes)

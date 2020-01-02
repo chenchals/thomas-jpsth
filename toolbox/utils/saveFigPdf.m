@@ -1,8 +1,9 @@
-function [f_h] = saveFigPdf(fn,varargin)
+function [f_h] = saveFigPdf(fn)
+%SAVEFIGPDF saves current figure in landscape mode. 
+%   To be proper *must* use getFigureHandle to create the base figure
+% see also NEWFIGURE
+%
     orient = 'landscape';
-    if numel(varargin)==1
-        orient = 'portrait';
-    end
     f_h = gcf;
     set(f_h,'Units','inches');
     screenposition = get(gcf,'Position');

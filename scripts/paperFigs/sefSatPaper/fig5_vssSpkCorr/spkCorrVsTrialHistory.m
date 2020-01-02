@@ -56,11 +56,12 @@ accuTbl.sum_AccurateOther_p1_count = accuTbl{:,3} - sum(accuTbl{:,4:6},2);
 accuData = array2table(accuTbl{:,4:7}./accuTbl{:,3},'VariableNames',prevOutcomes);
 accuData.outcome = currOutcomes;
 
-figure
+H_fig = newFigure();
 accColor = [1 0 0];
 fastColor = [0 0.5 0];
 temp = [fastData{:,prevOutcomes};accuData{:,prevOutcomes}];
 yLim = [0 round(max(temp(:))+0.005,2)];
+outcomes = prevOutcomes; % includes 'other'
 for oc = 1:numel(currOutcomes)
     outcome = outcomes{oc};
     yLab = sprintf('Prob.[prevTrialOutcome|\ncurrTrialOutcome = %s]',outcome);
@@ -77,8 +78,7 @@ for oc = 1:numel(currOutcomes)
     legend({'Fast','Accurate'},'Location','north','Orientation','horizontal','Box','off')
 end
 
-%saveFigPdf('sat_prevTrialOutcome.pdf');
-
+saveFigPdf('test.pdf')
 
 
 

@@ -1,6 +1,5 @@
 function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 %CORRSPKCOUNTPLOT Summary of this function goes here
-
     %% ....
     fs = 6;
     if ismac
@@ -27,6 +26,8 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
 
     %% compute the min-max for axis scaling
     % common for all psth plots
+    % choose static time win to use: 50|150|200
+    staticMsToUse = 150;
     allRast = [spikeCorr.xRasters;spikeCorr.yRasters];
     maxSpkPerSec = max(cellfun(@(x) max(fx_vecSmooth(mean(x),smoothBinWidthMs)),allRast));
     maxSpkPerSec = round(maxSpkPerSec*1000);
@@ -51,9 +52,10 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
     rscYTickLabel(rscYTicks==0) = {'0'};
 
     %%
+    rhoPvalStaticWinCol = strcat('rho_pval_win',num2str(staticMsToUse,'_%dms'));
     [~,pdfBaseFile] = fileparts(spkCountFile);
     [alignNames,idx] = unique(spikeCorr.alignedName,'stable');
-    rhoPvalWins = spikeCorr.rho_pval_win(idx);
+    rhoPvalWins = spikeCorr.(rhoPvalStaticWinCol)(idx);
     %colormap('jet');close gcf;
     colrs = lines;
     for cc = 1:numel(conditionPairs)
@@ -164,6 +166,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
             end
             %% Draw static window spike count corr
             staticCols  = {'xSpkCount_win','ySpkCount_win','rho_pval_win','rho_pval_static'};
+            staticCols = strcat(staticCols,num2str(staticMsToUse,'_%dms'));
             currSpkCorr = spikeCorr(strcmp(spikeCorr.condition,condition),:);
             statColrIdx = [6 2];
             for z = 1:1
@@ -371,6 +374,8 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
         end
     end
 end
+
+%%
 function [] = annotateErrorRewardGrade(cellPairInfo)
         fs = 8;
         if ismac
@@ -527,28 +532,7 @@ end
 
 %%
 function [H_Figure] = getFigHandle()
-%set(0, 'DefaultFigureColormap', jet(64));
- fs = 6;
- if ismac
-     fs = 8;
- end
-set(0,'units','pixels');
-set(0,'defaulttextfontsize',fs,...
-    'defaulttextfontname','Arial',...
-    'defaultaxesfontsize',fs,...
-    'defaultaxeslinewidth',0.05);
-margin = 10; %pixels
-%ss=get(0,'ScreenSize');
-% optimized for this size on my macbookpro
-ss = [1 1 1650 1000];
-FigPos=[margin*2 margin*2 ss(3)-(2*margin) ss(4)-(2*margin)];
-%Main figure window
-H_Figure=figure('Position',FigPos,...
-    'color',[1 1 1],'numbertitle','off','renderer','painters',...
-    'renderermode','manual','menubar','none',...
-    'Tag','H_Figure');
-orient landscape
-set(H_Figure,'units','normalized')
+    H_Figure = newFigure();
 end
 
 function saveFigAs(fn)

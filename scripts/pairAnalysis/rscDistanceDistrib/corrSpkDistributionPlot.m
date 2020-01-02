@@ -1,7 +1,7 @@
 % load extracted data
-dat = load('dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat');
+dat = load('dataProcessed/analysis/spkCorr/summary/spkCorrAllPairsStaticNew.mat');
 
-outDir = 'dataProcessed/analysis/11-18-2019/spkCorr/summary';
+outDir = 'dataProcessed/analysis/spkCorr/summary';
 fns = fieldnames(dat);
 % area pairs to plot (in-order). Do not change the order below
 pairAreas = {
@@ -251,27 +251,9 @@ end
     
 %%
 function [aspectRatio, H_Figure] = getFigHandle()
-%set(0, 'DefaultFigureColormap', jet(64));
-set(0,'units','pixels');
-set(0,'defaulttextfontsize',6,...
-    'defaulttextfontname','Arial',...
-    'defaultaxesfontsize',6,...
-    'defaultaxeslinewidth',0.05);
-margin = 10; %pixels
-%ss=get(0,'ScreenSize');
-% optimized for this size on my macbookpro
-ss = [1 1 1680 1050];
-ss = [20 20 1500 990];
-FigPos=[margin margin ss(3)-(2*margin) ss(4)-(2*margin)];
-%Main figure window
-H_Figure=figure('Position',FigPos,...
-    'color',[1 1 1],'numbertitle','off','renderer','painters',...
-    'renderermode','manual','menubar','none',...
-    'Tag','H_Figure');
-orient landscape
-set(H_Figure,'units','normalized')
-ss = get(0,'ScreenSize');
-aspectRatio = ss(3)/ss(4);
+    H_Figure = newFigure();
+    ss = get(0,'ScreenSize');
+    aspectRatio = ss(3)/ss(4);
 end
 
 function  [H_plots] = getPlotHandlesB(H_Figure,nAreas)

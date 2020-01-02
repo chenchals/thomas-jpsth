@@ -1,4 +1,4 @@
-%oStruct=load('temp_spkCorrStackPlotData.mat');
+oStruct=load('temp_spkCorrStackPlotData.mat');
 corrDirs = {
     'dataProcessed/analysis/spkCorr/spkCorr_SEF-SEF/mat' 
     'dataProcessed/analysis/spkCorr/spkCorr_SEF-FEF/mat'    
@@ -10,11 +10,11 @@ corrDirs = {
 plotDirs = regexprep(corrDirs,'/mat$','/pdf');
 pairAreas = regexprep(corrDirs,{'.*_','/mat','-'},{'','','_'});
 
-for p = 1:numel(plotDirs)
-    if ~exist(plotDirs{p},'dir')
-        mkdir(plotDirs{p})
-    end
-end
+% for p = 1:numel(plotDirs)
+%     if ~exist(plotDirs{p},'dir')
+%         mkdir(plotDirs{p})
+%     end
+% end
 
 
 %%
@@ -36,7 +36,7 @@ pairInfoFields = {
     'isOnSameChannel'
     };
 %%
-if ~exist(oStruct,'var')
+if ~exist('oStruct','var')
 tic
 oStruct = struct();
 for d = 1:numel(corrDirs)

@@ -1,8 +1,8 @@
 % Compare cross area and within area spike count correlations
 % Use static windows
-fn = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat';
-%spkCorr = load(fn);
-outPdfFn = 'dataProcessed/analysis/11-18-2019/spkCorr/summary/crossAreaCompare';
+fn = 'dataProcessed/analysis/spkCorr/summary/spkCorrAllPairsStaticNew.mat';
+spkCorr = load(fn);
+outPdfFn = 'dataProcessed/analysis/spkCorr/summary/crossAreaCompare';
 
 %% 
 filterData = 1;
@@ -286,18 +286,7 @@ function [H_plots] = getPlotHandles()
     %% for spike corr comparision among areas
     % 3 rows : correct, errorChoice, errorTiming
     % 4 cols : baseline, visual, postSaccade, postReward
-    ss = [20 20 1500 990];
-    margin = 10;
-    FigPos=[margin margin ss(3)-(2*margin) ss(4)-(2*margin)];
-    %Main figure window
-    H_Figure=figure('Position',FigPos,...
-        'color',[1 1 1],'numbertitle','off','renderer','painters',...
-        'renderermode','manual','menubar','none',...
-        'Tag','H_Figure');
-    orient landscape
-    set(H_Figure,'units','normalized')
-    ss = get(0,'ScreenSize');
-    aspectRatio = ss(3)/ss(4);
+   H_Figure = newFigure();
 
     nRows = 3;
     nCols = 4;
