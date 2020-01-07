@@ -11,7 +11,7 @@ function [spkCorrSdfs] = corrSpkSatSdf(outcomeToUse,epochToUse)
 %
 % Computes SDFs units with significant spike correlations with any other
 % unit(s) in the session in the PostSaccade epoch. Use data from:
-% analysis/11-18-2019/spkCorr/summary/spkCorrAllPairsStaticNew.mat
+% analysis/spkCorr/summary/spkCorrAllPairsStaticNew.mat
 % dataset/spikes_SAT.mat
 % dataset/dataNeurophys_SAT.mat
 % dataset/TrialTypesDB.mat
@@ -154,7 +154,6 @@ isMinTrialCount = spkCorrAll.nTrials >= useMinTrialCount;
 spkCorrAllTbl = spkCorrAll(isOutcome & isEpoch & isMinTrialCount,:);
 
 isSignif = spkCorrAllTbl.pval <= useSignif;
-
 
 hiUnsigned = prctile(spkCorrAllTbl.rhoUnsigned,useRhoPercentile);
 isHiUnsigned = spkCorrAllTbl.rhoUnsigned >= hiUnsigned;

@@ -16,6 +16,7 @@ function [outTbl] = getUnitSatSdf(useUnit,evntTimes,useTrials,useAlignment)
 warning('off');
 unitNum = useUnit.unitNum;
 spkTimes = useUnit.spkTimes; %spikesSat{unitNum}';
+fprintf('getUnitSdfs for unitNum %03d\n',unitNum);
 
 trialTypes = useTrials.trialTypes;%  sessionTrialTypes(strcmp(sessionTrialTypes.session,sess),:);
 trialsToRemove = useTrials.trialsToRemove;% unitInfoAll.trRemSAT{unitInfoAll.unitNum==unitNum};
@@ -102,13 +103,7 @@ for cc = 1:numel(satConditions)
             trialSdfs = trialSdfs(:,padLen:range(alignedTimeWin)+padLen);
             sdfTime = rasterBins(padLen+1:end-padLen);
             rasters = rasters(:,padLen+1:size(rasters,2)-padLen);
-            sdfMean = mean(trialSdfs,1);
-            sdfStd = std(trialSdfs,1);
-            sdfSem = sdfStd./sqrt(size(trialSdfs,1));
             nSpikes = sum(rasters(:));
-            
-            % get waveforms?
-            
             % Gather variables for output
             % prefix the alignedName for pivot
             prefix = [alignedName '_'];
@@ -119,13 +114,13 @@ for cc = 1:numel(satConditions)
             outTbl.([prefix 'firstSortByTime']){roNum} = single(firstSortByTime);
             % may be useful to filter post-hoc
             outTbl.([prefix 'nTrials'])(roNum) = numel(selTrials);
+            outTbl.([prefix 'trialNos']){roNum} = selTrials;
             % may be useful to filter post-hoc
             outTbl.([prefix 'nSpikes'])(roNum) = nSpikes;
             outTbl.([prefix 'timeMs']){roNum} = single(sdfTime);
             outTbl.([prefix 'rasters']){roNum} = rasters;
             outTbl.([prefix 'sdfByTrial']){roNum} = trialSdfs;
-            outTbl.([prefix 'sdfTsMeanStdSem']){roNum} = single([sdfTime(:) sdfMean(:) sdfStd(:) sdfSem(:)]);
-            
+            % get waveforms?                        
         end % for each alignEvent
     catch mE
         getReport(mE)
