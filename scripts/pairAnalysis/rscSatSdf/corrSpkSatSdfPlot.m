@@ -2,7 +2,7 @@ function [] = corrSpkSatSdfPlot(unitSdfsTbl,unitInfoTbl,pdfFilename)
 %CORRSPKCSATSDFPLOT Summary of this function goes here
 
     %% vars
-    savePdfFile = 1;
+    savePdfFile = 0;
     plotSemFlag = 0;
     % these are values for column: condition
     conditionPairs = {

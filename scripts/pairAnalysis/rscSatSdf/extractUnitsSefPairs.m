@@ -1,10 +1,10 @@
 function [allUnitPairs] = extractUnitsSefPairs(outcomes,epoch)
 %     outcomes = {'Correct','ErrorChoice','ErrorTiming'};
 %     epoch = 'Baseline';
-    outFileBase = ['dataProcessed/analysis/11-18-2019/spkCorr/summary/sefPairs' epoch];
+    outFileBase = ['dataProcessed/analysis/spkCorr/summary/sefPairs' epoch];
     outXlsxFile = [outFileBase '.xlsx'];    
     outMatFile = [outFileBase '.mat'];
-    baseDir = 'dataProcessed/analysis/11-18-2019/spkCorr/summary';
+    baseDir = 'dataProcessed/analysis/spkCorr/summary';
     baseSpkCorrSdfsFile = [baseDir '/spkCorrSdfs_'];
     spkCorrRhoPvalFile = [baseDir '/spkCorrAllPairsStaticRhoPval.mat'];
     outcomeEpochs = strcat(outcomes,'_',epoch);

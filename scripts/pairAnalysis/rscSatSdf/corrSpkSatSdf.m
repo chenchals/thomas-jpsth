@@ -18,7 +18,7 @@ function [spkCorrSdfs] = corrSpkSatSdf(outcomeToUse,epochToUse)
 % dataset/TrialEventTimesDB.mat
 % see also CORRSPKSTATICEXTRACT
 
-spkCorrDir = 'dataProcessed/analysis/11-18-2019/spkCorr';
+spkCorrDir = 'dataProcessed/analysis/spkCorr';
 % for loading event times and trial types
 datasetDir = 'dataProcessed/dataset';
 % Files from which to load spik corrs and compute SDFs

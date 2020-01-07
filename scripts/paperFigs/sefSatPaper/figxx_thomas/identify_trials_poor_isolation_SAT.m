@@ -4,6 +4,8 @@ function [ idx_poor_isolation ] = identify_trials_poor_isolation_SAT( ninfo , nu
 
 args = getopt(varargin, {{'task=','SAT'}});
 
+ninfo = table2struct(ninfo);
+
 if strcmp(args.task, 'SAT')
   field_ = 'trRemSAT';
 elseif strcmp(args.task, 'MG')
