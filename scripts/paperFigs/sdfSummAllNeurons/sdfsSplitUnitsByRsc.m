@@ -42,17 +42,21 @@ rsc.sig(rsc.pval<=filt.Pval) = 1;
 rsc.XY_Dist(isnan(rsc.XY_Dist)) = inf;
 
 
-%% For significant and nonSignificant Rsc(s): get unique SEF, FEF, SC units
+%% For significant and nonSignificant Rsc(s): get unique SEF, FEF, SC units by filtering on different outcomes and epochs
 unitsTbl = table();
 % 'Error' = 'ErrorChoice' and 'ErrorTiming'
 outcomes = {'Correct', 'ErrorChoice', 'ErrorTiming', 'Error'};
-for o = 1:numel(outcomes)
-    filt.Outcome = outcomes{o};
-    % Split Rsc by other filter criteria
-    idxfiltered = ismember(rsc.alignedName,filt.Epoch)...
-        & contains(rsc.condition,filt.Outcome)...
-        & rsc.XY_Dist > filt.Dist;    
-    unitsTbl = [unitsTbl; getUniqueUnitsByArea(rsc(idxfiltered,:),filt)];
+epochs = {'Baseline', 'Visual', 'PostSaccade', 'PostReward'};
+for oc = 1:numel(outcomes)
+    filt.Outcome = outcomes{oc};
+    for ep = 1:numel(epochs)
+        filt.Epoch = epochs{ep};
+        % Split Rsc by other filter criteria
+        idxfiltered = ismember(rsc.alignedName,filt.Epoch)...
+            & contains(rsc.condition,filt.Outcome)...
+            & rsc.XY_Dist > filt.Dist;
+        unitsTbl = [unitsTbl; getUniqueUnitsByArea(rsc(idxfiltered,:),filt)];
+    end
 end
 
 
