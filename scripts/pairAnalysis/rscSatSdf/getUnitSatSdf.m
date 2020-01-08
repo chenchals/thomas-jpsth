@@ -113,13 +113,13 @@ for cc = 1:numel(satConditions)
             outTbl.([prefix 'firstSortByName']){roNum} = firstSortByName;
             outTbl.([prefix 'firstSortByTime']){roNum} = single(firstSortByTime);
             % may be useful to filter post-hoc
-            outTbl.([prefix 'nTrials'])(roNum) = numel(selTrials);
-            outTbl.([prefix 'trialNos']){roNum} = selTrials;
+            outTbl.([prefix 'nTrials'])(roNum) = single(numel(selTrials));
+            outTbl.([prefix 'trialNos']){roNum} = single(selTrials);
             % may be useful to filter post-hoc
             outTbl.([prefix 'nSpikes'])(roNum) = nSpikes;
             outTbl.([prefix 'timeMs']){roNum} = single(sdfTime);
             outTbl.([prefix 'rasters']){roNum} = rasters;
-            outTbl.([prefix 'sdfByTrial']){roNum} = trialSdfs;
+            outTbl.([prefix 'sdfByTrial']){roNum} = single(trialSdfs);
             % get waveforms?                        
         end % for each alignEvent
     catch mE

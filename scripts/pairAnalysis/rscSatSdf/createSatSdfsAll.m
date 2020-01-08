@@ -10,9 +10,11 @@ function [] = createSatSdfsAll()
 % see also GETUNITSATSDF
 %
     %% Load data needed for computing SDFs
-    mFilename = mfilename;
     datasetDir = 'dataProcessed/dataset';
-    satSdfFilename = 'dataProcessed/dataset/SDFs_SAT.mat';
+    satSdfDir = 'dataProcessed/dataset/satSdfs';
+    if ~exist(satSdfDir,'dir')
+        mkdir(satSdfDir);
+    end
     % Load data variable: spike times
     spikeTimesFile = fullfile(datasetDir,'spikes_SAT.mat');
     spikesSat = load(spikeTimesFile);
@@ -29,6 +31,7 @@ function [] = createSatSdfsAll()
     trialEventTimesFile = fullfile(datasetDir,'TrialEventTimesDB.mat');
     sessionEventTimes = load(trialEventTimesFile);
     sessionEventTimes = sessionEventTimes.TrialEventTimesDB;
+    fprintf('loaded data variables...\n');
     %% Compute SDFs by SAT condition for each unit
     unitNums = unitInfoAll.unitNum;
     % argument: alignmentStruct
@@ -37,10 +40,7 @@ function [] = createSatSdfsAll()
     useAlignment.names = {'Visual','PostSaccade','PostReward'};
     useAlignment.sortEventNames = {'SaccadePrimary','SaccadePrimary','SaccadePrimary'};
     %%
-    if ~exist(satSdfFilename,'file')
-        save(satSdfFilename,'-v7.3','useAlignment','mFilename')
-    end
-    for uu = 1:numel(unitNums)
+    parfor uu = 1:numel(unitNums)
         useTrials = struct();
         useUnit = struct();
         unitNum = unitNums(uu);
@@ -57,14 +57,17 @@ function [] = createSatSdfsAll()
             % argument: unitStruct
             useUnit.unitNum = unitNum;
             useUnit.spkTimes = spikesSat{unitNum}';
-            [outTbl] = getUnitSatSdf(useUnit,useEventTimes,useTrials,useAlignment);
-            appendVar(satSdfFilename,outTbl,unitNum);
+            sdfTbl = getUnitSatSdf(useUnit,useEventTimes,useTrials,useAlignment);
+            oFn = fullfile(satSdfDir,sprintf('Unit_%03d.mat',unitNum));
+            saveSatSdf(oFn,sdfTbl,useAlignment,useTrials,useEventTimes);
         end
-    end 
+    end
 end
 
-function [] = appendVar(oFn,sdfTbl,unitNum)
-   temp.(sprintf('Unit_%03d',unitNum)) = sdfTbl;
-   save(oFn,'-v7.3','-append','-struct','temp')
+function [] = saveSatSdf(oFn,sdfs,alignment,trialTypes,eventTimes)
+  temp.sdfs = sdfs;
+  temp.alignment = alignment;
+  temp.trialTypes = trialTypes;
+  temp.eventTimes = eventTimes;
+  save(oFn,'-v7.3','-struct','temp');
 end
-
