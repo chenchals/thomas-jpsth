@@ -33,14 +33,22 @@ for s = 1:numel(isSignifs)
     signif = isSignifs(s);
     idx = currUnitsByArea.filter_IsRscSignificant == signif;
     for a = 1:numel(unitAreas)
-        unitNums = currUnitsByArea.SEF{idx};
+        unitArea = unitAreas{a};
+        unitNums = currUnitsByArea.(unitArea){idx};
+        fprintf('Doing area %s...',unitArea);
+        if isempty(unitNums)
+            fprintf(' no units! Done!\n');
+            continue;
+        end
         parfor un = 1:numel(unitNums)
             % compute average SDF for unit by condition and epoch
             unitNum = unitNums(un);
             temp = getNormalizedSdf(satSdfDir,unitNum);
             temp.isRscSignificant = repmat(signif,size(temp,1),1);
+            temp.unitArea = repmat({unitArea},size(temp,1),1);
             sdfsTbl = [sdfsTbl;temp];
         end
+        fprintf('Done!\n');
     end
 end
 
