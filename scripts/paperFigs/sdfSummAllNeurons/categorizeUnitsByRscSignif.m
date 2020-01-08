@@ -1,3 +1,4 @@
+function [ unitsByRscSignif ] = categorizeUnitsByRscSignif()
 %% Jan 06, 2020
 % 2.       What types of neurons contribute to significant r_sc at any point during the trial?
 %   a.       Summary plot with SDFs of all such neurons in SEF.
@@ -19,50 +20,50 @@
 %
 %
 %% Load static RSC matrix for all pairs of SEF units
-fn = 'dataProcessed/analysis/spkCorr/summary/spkCorrAllPairsStaticRhoPval.mat';
-filt.PvalColumn = 'pvalRaw_150ms';
-filt.Dist = 0;
-filt.Pval = 0.05;
-filt.Epoch = 'PostSaccade';
-filt.Outcome = 'Correct';
+    fn = 'dataProcessed/analysis/spkCorr/summary/spkCorrAllPairsStaticRhoPval.mat';
+    filt.PvalColumn = 'pvalRaw_150ms';
+    filt.Dist = 0;
+    filt.Pval = 0.05;
+    filt.Epoch = 'PostSaccade';
+    filt.Outcome = 'Correct';
 
-temp = load(fn,'-regexp','SEF*');
-rsc = table();
-fns = fieldnames(temp);
-for jj = 1:numel(fns)
-    rsc = [rsc;temp.(fns{jj})];
-end
-clearvars temp fns
-rsc.pval = rsc.(filt.PvalColumn);
-% retain only these columns
-rsc = rsc(:,{'X_unitNum','Y_unitNum','X_area','Y_area','XY_Dist','condition','alignedName','pval'});
-% Add signif. col using values in filt.UseColForPval <= filt.Pval
-rsc.sig(rsc.pval<=filt.Pval) = 1;
-% Convert all NaN distances to Inf to apply distance filter
-rsc.XY_Dist(isnan(rsc.XY_Dist)) = inf;
+    temp = load(fn,'-regexp','SEF*');
+    rsc = table();
+    fns = fieldnames(temp);
+    for jj = 1:numel(fns)
+        rsc = [rsc;temp.(fns{jj})];
+    end
+    clearvars temp fns
+    rsc.pval = rsc.(filt.PvalColumn);
+    % retain only these columns
+    rsc = rsc(:,{'X_unitNum','Y_unitNum','X_area','Y_area','XY_Dist','condition','alignedName','pval'});
+    % Convert all NaN distances to Inf to apply distance filter
+    rsc.XY_Dist(isnan(rsc.XY_Dist)) = inf;
 
 
-%% For significant and nonSignificant Rsc(s): get unique SEF, FEF, SC units by filtering on different outcomes and epochs
-unitsTbl = table();
-% 'Error' = 'ErrorChoice' and 'ErrorTiming'
-outcomes = {'Correct', 'ErrorChoice', 'ErrorTiming', 'Error'};
-epochs = {'Baseline', 'Visual', 'PostSaccade', 'PostReward'};
-for oc = 1:numel(outcomes)
-    filt.Outcome = outcomes{oc};
-    for ep = 1:numel(epochs)
-        filt.Epoch = epochs{ep};
-        % Split Rsc by other filter criteria
-        idxfiltered = ismember(rsc.alignedName,filt.Epoch)...
-            & contains(rsc.condition,filt.Outcome)...
-            & rsc.XY_Dist > filt.Dist;
-        unitsTbl = [unitsTbl; getUniqueUnitsByArea(rsc(idxfiltered,:),filt)];
+    %% For significant and nonSignificant Rsc(s): get unique SEF, FEF, SC units by filtering on different outcomes and epochs
+    unitsByRscSignif = table();
+    % 'Error' = 'ErrorChoice' and 'ErrorTiming'
+    outcomes = {'Correct', 'ErrorChoice', 'ErrorTiming', 'Error'};
+    epochs = {'Baseline', 'Visual', 'PostSaccade', 'PostReward'};
+    signifs = [0.05, 0.01];
+    for sig = 1:numel(signifs)
+        filt.Pval = signifs(sig);
+        % Add signif. col using values in filt.UseColForPval <= filt.Pval
+        rsc.sig(rsc.pval<=filt.Pval) = 1;
+        for oc = 1:numel(outcomes)
+            filt.Outcome = outcomes{oc};
+            for ep = 1:numel(epochs)
+                filt.Epoch = epochs{ep};
+                % Split Rsc by other filter criteria
+                idxfiltered = ismember(rsc.alignedName,filt.Epoch)...
+                    & contains(rsc.condition,filt.Outcome)...
+                    & rsc.XY_Dist > filt.Dist;
+                unitsByRscSignif = [unitsByRscSignif; getUniqueUnitsByArea(rsc(idxfiltered,:),filt)]; %#ok<*AGROW>
+            end
+        end
     end
 end
-
-
-%% Get SDFs for the unique units (signif /non-signif) by Fast/Accurate condition
-
-
 
 
 %% Sub-functions to get unique units from pair Rsc table
