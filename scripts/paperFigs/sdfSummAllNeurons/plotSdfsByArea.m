@@ -46,11 +46,55 @@ for s = 1:numel(isSignifs)
             temp = getNormalizedSdf(satSdfDir,unitNum);
             temp.isRscSignificant = repmat(signif,size(temp,1),1);
             temp.unitArea = repmat({unitArea},size(temp,1),1);
-            sdfsTbl = [sdfsTbl;temp];
+            sdfsTbl = [sdfsTbl;temp];            
         end
         fprintf('Done!\n');
     end
 end
+
+%% Aggregate SDFs of all units by area by significance
+sdfsImageTbl = table();
+for s = 1:numel(isSignifs)
+    signif = isSignifs(s);
+    for a = 1:numel(unitAreas)
+        unitArea = unitAreas{a};
+        idx = sdfsTbl.isRscSignificant == signif ...
+            & ismember(sdfsTbl.unitArea,unitArea); 
+        conds = unique(sdfsTbl.condition,'stable');
+        fprintf('Doing area %s...',unitArea);
+        for c = 1:numel(conds)
+            % aggregate all SDFs by condition for all epochs
+            temp = table();
+            condition = conds{c};
+            cIdx = find(idx & ismember(sdfsTbl.condition,condition));
+            if isempty(cIdx)
+                continue;
+            end
+            %cat(1,sdfs.Visual_sdfByTrial{:})
+            temp.condition =  {condition};
+            temp.isRscSignificant = signif;
+            temp.unitArea = {unitArea};
+            % Visual (includes Baseline)
+            temp.VisualAlignedEvent = sdfsTbl.VisualAlignedEvent(cIdx(1));
+            temp.VisualTs = sdfsTbl.VisualTs(cIdx(1));
+            temp.VisualSdfs = {cat(1,sdfsTbl.VisualSdf{cIdx})};
+            % PostSaccade 
+            temp.PostSaccadeAlignedEvent = sdfsTbl.PostSaccadeAlignedEvent(cIdx(1));
+            temp.PostSaccadeTs = sdfsTbl.PostSaccadeTs(cIdx(1));
+            temp.PostSaccadeSdfs = {cat(1,sdfsTbl.PostSaccadeSdf{cIdx})};
+            % PostReward 
+            temp.PostRewardAlignedEvent = sdfsTbl.PostRewardAlignedEvent(cIdx(1));
+            temp.PostRewardTs = sdfsTbl.PostRewardTs(cIdx(1));
+            temp.PostRewardSdfs = {cat(1,sdfsTbl.PostRewardSdf{cIdx})};
+            % Add row for condition
+            sdfsImageTbl = [sdfsImageTbl;temp];            
+        end
+        fprintf('Done!\n');
+    end
+end
+
+%% explore
+
 
 
 %% Other functions
