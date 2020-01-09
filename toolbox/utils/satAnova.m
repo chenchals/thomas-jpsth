@@ -7,7 +7,7 @@ function [anovaResults] = satAnova(valsGroupsTbl)
 % see also ANOVAN, MULTCOMPARE
 
 model_Anova = 'linear'; %'interaction'
-performMultCompare = false;
+performMultCompare = true;
 anovaDisplay = 'off'; %'on'
 
 yVals = valsGroupsTbl{:,1};
@@ -29,7 +29,8 @@ anovaTblVarNames = {'Source', 'SumSq' 'df' 'IsSingular' 'MeanSq' 'F'  'ProbGtF'}
 [~,temp,anovaStats] = anovan(yVals,groups,'model',model_Anova,'varnames',groupNames, 'display',anovaDisplay);
 anovaResults.anovaTbl = cell2table(temp(2:end,:),'VariableNames',anovaTblVarNames);
 
-% Compare results for different LEVELS *WITHIN* each group/Factor independently    
+% Compare results for different LEVELS *WITHIN* each group/Factor independently 
+% for bonferroni use 'CType', ... see doc multcompare
 if (performMultCompare)
 for gr = 1:numel(groupNames)   
     [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',gr,'Alpha',0.05);

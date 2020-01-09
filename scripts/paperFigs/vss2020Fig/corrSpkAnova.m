@@ -5,18 +5,18 @@
 % levels).
 
 plot_X_epoch = false;
-windowTest = 'rhoRaw_150ms';
+rhoColName = 'rhoRaw_150ms';
 trialOutcome = {'Correct','ErrorChoice','ErrorTiming'};
 lineStyle = {'-','--',':'};
 ylimPlot = [0.04 0.18];
 
 %load r_sc data
-% load('dataProcessed/analysis/spkCorr/summary/spkCorrAllPairsStaticNew.mat', 'SEF_FEF','SEF_SC','SEF_SEF');
+load('dataProcessed/analysis/spkCorr/summary/spkCorrAllPairsStaticNew.mat', 'SEF_FEF','SEF_SC','SEF_SEF');
 
 %% Aggregate required fields into a single table
 % pairAreas = {'SEF_SEF','SEF_FEF','SEF_SC'};
 % Prune to columns of interest for each pairArea
-useCols = {'pairAreas','XY_Dist','condition','alignedName',windowTest};
+useCols = {'pairAreas','XY_Dist','condition','alignedName',rhoColName};
 
 %isolate area pairing of interest
 % spkCorr = SEF_SEF(:,useCols);
@@ -24,15 +24,11 @@ spkCorr = [SEF_FEF(:,useCols); SEF_SC(:,useCols)];
 areaPair = 'SEF-FEF & SEF-SC';
 
 %take absolute value of correlation
-spkCorr.(windowTest) = abs(spkCorr.(windowTest));
-
-%remove all values where XY_Dist = 0 -- commented by TR 2019-12-02
-% spkCorr_All = spkCorr_All(spkCorr_All.XY_Dist~=0,:);
+spkCorr.(rhoColName) = abs(spkCorr.(rhoColName));
 
 %initialize output for plot and ANOVA
 rsc_Acc = cell(1,length(trialOutcome));
 rsc_Fast = cell(1,length(trialOutcome));
-stats_Anova = cell(1,length(trialOutcome));
 
 rsc_Epoch_Acc = NaN(2,length(trialOutcome));
 rsc_Epoch_Fast = NaN(2,length(trialOutcome));
@@ -47,13 +43,6 @@ for jj = 1:3
   idx_jj = ismember(spkCorr.condition, {['Accurate' trialOutcome{jj}],['Fast' trialOutcome{jj}]});  
   spkCorr_jj = spkCorr(idx_jj,:);
   
-  %ANOVA -- Factors (groups) Condition (2) by Epoch (4)
-%   valsGroupsTbl = table();
-%   valsGroupsTbl.yVals = spkCorr_jj.(windowTest);
-%   valsGroupsTbl.condition = regexprep(spkCorr_jj.condition,'Correct|Error.*',''); %regular expression replace
-%   valsGroupsTbl.epoch = spkCorr_jj.alignedName;
-%   stats_Anova{jj} = satAnova(valsGroupsTbl);
-  
   %prepare r_sc for plotting (index by epoch and task condition)
   idx_Acc = ismember(spkCorr_jj.condition, ['Accurate' trialOutcome{jj}]);
   idx_Fast = ismember(spkCorr_jj.condition, ['Fast' trialOutcome{jj}]);
@@ -64,7 +53,7 @@ for jj = 1:3
   idx_PostRew = ismember(spkCorr_jj.alignedName, 'PostReward');
   
   %collect r_sc for plotting
-  rsc_jj = spkCorr_jj.(windowTest);
+  rsc_jj = spkCorr_jj.(rhoColName);
   rsc_Acc{jj} = [rsc_jj(idx_Acc & idx_Baseline) , rsc_jj(idx_Acc & idx_Visual) , rsc_jj(idx_Acc & idx_PostSacc) , rsc_jj(idx_Acc & idx_PostRew)];
   rsc_Fast{jj} = [rsc_jj(idx_Fast & idx_Baseline) , rsc_jj(idx_Fast & idx_Visual) , rsc_jj(idx_Fast & idx_PostSacc) , rsc_jj(idx_Fast & idx_PostRew)];
   
@@ -106,13 +95,31 @@ errorbar((2:2:6), rsc_Epoch_Fast(1,:), rsc_Epoch_Fast(2,:), 'CapSize',0, 'Color'
 xticks([]); ytickformat('%3.2f')
 ppretty([3,3])
 
+%% Anova computation for different epochs etc...
 %Two-way between-subjects ANOVA with factors Condition (Fast, Accurate) and
 %Trial Outcome (Correct, Choice Error, Timing Error)
+epochs = {'Baseline','Visual','PostSaccade','PostReward'};
+rhoColName = 'rhoRaw_150ms';
+spkCorr.outcome = regexprep(spkCorr.condition,{'Fast','Accurate'},{'',''});
+spkCorr.satCondition = regexprep(spkCorr.condition,{'Correct','Error.*'},{'',''});
+statsAnova = struct();
+for ep = 1:numel(epochs)
+    epoch = epochs{ep};
+    idx = ismember(spkCorr.alignedName,epoch);
+    anovaTbl = table();
+    anovaTbl.yVals = spkCorr{idx,rhoColName};
+    anovaTbl.satCondition = spkCorr{idx,'satCondition'};
+    anovaTbl.outcome = spkCorr{idx,'outcome'};
+    statsAnova.(epoch) = satAnova(anovaTbl);
+end
+
+idx = ismember(spkCorr.condition, {['Accurate' trialOutcome{3}],['Fast' trialOutcome{3}]});
+tempSpkCorrTbl = spkCorr(idx,:);
 anovaTbl = table();
-anovaTbl.yVals = spkCorr_jj.(windowTest);
+anovaTbl.yVals = spkCorr.(rhoColName);
 anovaTbl.condition = regexprep(spkCorr_jj.condition,'Correct|Error.*',''); %regular expression replace
 anovaTbl.epoch = spkCorr_jj.alignedName;
-stats_Anova{jj} = satAnova(anovaTbl);
+statsAnova{jj} = satAnova(anovaTbl);
 
 clearvars -except SEF_* spkCorr stats_Anova rsc_Acc rsc_Fast
 
