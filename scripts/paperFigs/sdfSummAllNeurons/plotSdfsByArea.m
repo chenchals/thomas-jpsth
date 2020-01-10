@@ -22,6 +22,10 @@ filterPval = unique(unitsTbl.filter_Pval);
 satSdfDir = 'dataProcessed/dataset/satSdfs';
 
 %% Use results from:
+parpoolSize = 0;
+if ~isempty(gcp('nocreate'))
+    parpoolSize = Inf;
+end
 epoch = 'PostSaccade';
 outcome = 'Correct';
 pval = 0.05;
@@ -40,7 +44,7 @@ for s = 1:numel(isSignifs)
             fprintf(' no units! Done!\n');
             continue;
         end
-        parfor un = 1:numel(unitNums)
+        parfor (un = 1:numel(unitNums), parpoolSize)
             % compute average SDF for unit by condition and epoch
             unitNum = unitNums(un);
             temp = getNormalizedSdf(satSdfDir,unitNum);
@@ -96,8 +100,6 @@ end
 
 %% explore
 
-
-
 %% Other functions
 function [sigNonSigUnits] = getUnitNums(unitsTbl,epoch,outcome,pval)
     idx = ismember(unitsTbl.filter_Epoch,epoch) & ismember(unitsTbl.filter_Outcome,outcome) & unitsTbl.filter_Pval == pval;
@@ -106,12 +108,28 @@ end
 
 function [satSdfTbl] = getNormalizedSdf(satSdfDir,unitNum)
     satSdfTbl = table();
-    baselineWin = [-500 -100];
+    nTrialsForCondition = 50;
+    baselineWin = [-600 0];
     fn = fullfile(satSdfDir,num2str(unitNum,'Unit_%03d.mat'));
     sdfs = load(fn,'sdfs');
     sdfs = sdfs.sdfs;
+    % sdfs.outcome
+    sdfs.outcome = regexprep(sdfs.condition,{'Fast','Accurate'},{'',''});
+    % compute meanSdfs for all conditions by epoch
+    sdfs.meanV = cellfun(@mean,sdfs.Visual_sdfByTrial,'UniformOutput',false);
+    sdfs.meanPs = cellfun(@mean,sdfs.PostSaccade_sdfByTrial,'UniformOutput',false);
+    sdfs.meanPr = cellfun(@mean,sdfs.PostReward_sdfByTrial,'UniformOutput',false);
+    % 
+    
+    
+    
+    
+    
     % timestamps for SDFs
     tsV = sdfs.Visual_timeMs{1};
+
+    % 
+    
     % get Baseline FR - use visual epoch from all outcomes
     meanV = mean(cat(1,sdfs.Visual_sdfByTrial{:}),1);
     frBl = mean(meanV(find(tsV==baselineWin(1)):find(tsV==baselineWin(2))));
