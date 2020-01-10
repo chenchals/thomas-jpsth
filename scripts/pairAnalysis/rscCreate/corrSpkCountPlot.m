@@ -37,7 +37,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
     psthYTickLabel(psthYTicks==0) = {'0'};
     psthYaxisLabel = 'Spk. Count';
     % common for all Rsc plots
-    rho_pval_idx = find(~cellfun(@isempty,regexp(spikeCorr.Properties.VariableNames,'rho_pval_(50|100|200)ms','match')));
+    rho_pval_idx = find(~cellfun(@isempty,regexp(spikeCorr.Properties.VariableNames,'rho_pval_(50|100|200)ms$','match')));
     rho_pval_cols = spikeCorr.Properties.VariableNames(rho_pval_idx)';
     allRsc = {};
     allRsc = arrayfun(@(x) [allRsc{:};spikeCorr{:,x}],rho_pval_idx(:),'UniformOutput',false);
