@@ -68,6 +68,7 @@ for s = 1:numel(isSignifs)
             condition = conds{c};
             cIdx = find(idx & ismember(sdfsTbl.condition,condition));
             if isempty(cIdx)
+                fprintf(' no units! Done!\n');
                 continue;
             end
             %cat(1,sdfs.Visual_sdfByTrial{:})
@@ -115,10 +116,13 @@ function [satSdfTbl] = getNormalizedSdf(satSdfDir,unitNum)
     meanV = mean(cat(1,sdfs.Visual_sdfByTrial{:}),1);
     frBl = mean(meanV(find(tsV==baselineWin(1)):find(tsV==baselineWin(2))));
     % get max FR - use all epochs from all outcomes
-    allFr = [meanV,...
-             mean(cat(1,sdfs.PostSaccade_sdfByTrial{:}),1),...
-             mean(cat(1,sdfs.PostReward_sdfByTrial{:}),1)];
-    frMax = max(abs(allFr));
+    meanPs = mean(cat(1,sdfs.PostSaccade_sdfByTrial{:}),1);
+    meanPr = mean(cat(1,sdfs.PostReward_sdfByTrial{:}),1);
+    meanAll = [meanV,meanPs,meanPr];
+    frMaxAll = max(abs(meanAll));
+    frMaxV = max(max(cat(1,sdfs.Visual_sdfByTrial{:})-frBl)); % there are no negative FRs
+    frMaxPs = max(max(cat(1,sdfs.PostSaccade_sdfByTrial{:})-frBl)); % there are no negative FRs
+    frMaxPr = max(max(cat(1,sdfs.PostReward_sdfByTrial{:})-frBl)); % there are no negative FRs
     % Create output table
     satSdfTbl.unitNum = sdfs.unitNum;
     satSdfTbl.condition = sdfs.condition;
@@ -127,17 +131,17 @@ function [satSdfTbl] = getNormalizedSdf(satSdfDir,unitNum)
     % Visual
     satSdfTbl.VisualAlignedEvent = sdfs.Visual_alignedEvent;
     satSdfTbl.VisualTs = sdfs.Visual_timeMs;
-    t = arrayfun(@(x) (sdfs.Visual_sdfByTrial{x}-frBl)./(frMax-frBl),(1:size(sdfs,1))','UniformOutput',false);
+    t = arrayfun(@(x) (sdfs.Visual_sdfByTrial{x}-frBl)./(frMaxV),(1:size(sdfs,1))','UniformOutput',false);
     satSdfTbl.VisualSdf = cellfun(@(x) mean(x,1),t,'UniformOutput',false);
     % PostSaccade
     satSdfTbl.PostSaccadeAlignedEvent = sdfs.PostSaccade_alignedEvent;
     satSdfTbl.PostSaccadeTs = sdfs.PostSaccade_timeMs;
-    t = arrayfun(@(x) (sdfs.PostSaccade_sdfByTrial{x}-frBl)./(frMax-frBl),(1:size(sdfs,1))','UniformOutput',false);
+    t = arrayfun(@(x) (sdfs.PostSaccade_sdfByTrial{x}-frBl)./(frMaxPs),(1:size(sdfs,1))','UniformOutput',false);
     satSdfTbl.PostSaccadeSdf = cellfun(@(x) mean(x,1),t,'UniformOutput',false);
     % PostReward
     satSdfTbl.PostRewardAlignedEvent = sdfs.PostReward_alignedEvent;
     satSdfTbl.PostRewardTs = sdfs.PostReward_timeMs;
-    t = arrayfun(@(x) (sdfs.PostReward_sdfByTrial{x}-frBl)./(frMax-frBl),(1:size(sdfs,1))','UniformOutput',false);
+    t = arrayfun(@(x) (sdfs.PostReward_sdfByTrial{x}-frBl)./(frMaxPr),(1:size(sdfs,1))','UniformOutput',false);
     satSdfTbl.PostRewardSdf = cellfun(@(x) mean(x,1),t,'UniformOutput',false);
 
 end
