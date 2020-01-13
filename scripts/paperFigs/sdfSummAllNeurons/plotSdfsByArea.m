@@ -31,7 +31,7 @@ outcome = 'Correct';
 pval = 0.05;
 currUnitsByArea = getUnitNums(unitsTbl,epoch,outcome,pval);
 unitAreas = {'SEF','FEF','SC'}; % sameArea_SEF_X, sameArea_SEF_Y
-sdfsTbl = table();
+satSdfsTbl = table();
 isSignifs = [1 0];
 for s = 1:numel(isSignifs)
     signif = isSignifs(s);
@@ -45,32 +45,33 @@ for s = 1:numel(isSignifs)
             continue;
         end
         parfor (un = 1:numel(unitNums), parpoolSize)
+        %for un = 1:numel(unitNums)
             % compute average SDF for unit by condition and epoch
             unitNum = unitNums(un);
             temp = getNormalizedSdf(satSdfDir,unitNum);
             temp.isRscSignificant = repmat(signif,size(temp,1),1);
             temp.unitArea = repmat({unitArea},size(temp,1),1);
-            sdfsTbl = [sdfsTbl;temp];            
+            satSdfsTbl = [satSdfsTbl;temp];            
         end
         fprintf('Done!\n');
     end
 end
 
 %% Aggregate SDFs of all units by area by significance
-sdfsImageTbl = table();
+satSdfsImageTbl = table();
 for s = 1:numel(isSignifs)
     signif = isSignifs(s);
     for a = 1:numel(unitAreas)
         unitArea = unitAreas{a};
-        idx = sdfsTbl.isRscSignificant == signif ...
-            & ismember(sdfsTbl.unitArea,unitArea); 
-        conds = unique(sdfsTbl.condition,'stable');
+        idx = satSdfsTbl.isRscSignificant == signif ...
+            & ismember(satSdfsTbl.unitArea,unitArea); 
+        conds = unique(satSdfsTbl.condition,'stable');
         fprintf('Doing area %s...',unitArea);
         for c = 1:numel(conds)
             % aggregate all SDFs by condition for all epochs
             temp = table();
             condition = conds{c};
-            cIdx = find(idx & ismember(sdfsTbl.condition,condition));
+            cIdx = find(idx & ismember(satSdfsTbl.condition,condition));
             if isempty(cIdx)
                 fprintf(' no units! Done!\n');
                 continue;
@@ -80,19 +81,19 @@ for s = 1:numel(isSignifs)
             temp.isRscSignificant = signif;
             temp.unitArea = {unitArea};
             % Visual (includes Baseline)
-            temp.VisualAlignedEvent = sdfsTbl.VisualAlignedEvent(cIdx(1));
-            temp.VisualTs = sdfsTbl.VisualTs(cIdx(1));
-            temp.VisualSdfs = {cat(1,sdfsTbl.VisualSdf{cIdx})};
+            temp.VisualAlignedEvent = satSdfsTbl.VisualAlignedEvent(cIdx(1));
+            temp.VisualTs = satSdfsTbl.VisualTs(cIdx(1));
+            temp.VisualSdfs = {cat(1,satSdfsTbl.VisualSdf{cIdx})};
             % PostSaccade 
-            temp.PostSaccadeAlignedEvent = sdfsTbl.PostSaccadeAlignedEvent(cIdx(1));
-            temp.PostSaccadeTs = sdfsTbl.PostSaccadeTs(cIdx(1));
-            temp.PostSaccadeSdfs = {cat(1,sdfsTbl.PostSaccadeSdf{cIdx})};
+            temp.PostSaccadeAlignedEvent = satSdfsTbl.PostSaccadeAlignedEvent(cIdx(1));
+            temp.PostSaccadeTs = satSdfsTbl.PostSaccadeTs(cIdx(1));
+            temp.PostSaccadeSdfs = {cat(1,satSdfsTbl.PostSaccadeSdf{cIdx})};
             % PostReward 
-            temp.PostRewardAlignedEvent = sdfsTbl.PostRewardAlignedEvent(cIdx(1));
-            temp.PostRewardTs = sdfsTbl.PostRewardTs(cIdx(1));
-            temp.PostRewardSdfs = {cat(1,sdfsTbl.PostRewardSdf{cIdx})};
+            temp.PostRewardAlignedEvent = satSdfsTbl.PostRewardAlignedEvent(cIdx(1));
+            temp.PostRewardTs = satSdfsTbl.PostRewardTs(cIdx(1));
+            temp.PostRewardSdfs = {cat(1,satSdfsTbl.PostRewardSdf{cIdx})};
             % Add row for condition
-            sdfsImageTbl = [sdfsImageTbl;temp];            
+            satSdfsImageTbl = [satSdfsImageTbl;temp];            
         end
         fprintf('Done!\n');
     end
@@ -106,8 +107,7 @@ function [sigNonSigUnits] = getUnitNums(unitsTbl,epoch,outcome,pval)
     sigNonSigUnits = unitsTbl(idx,{'filter_IsRscSignificant','SEF','FEF','SC'}) ;
 end
 
-function [satSdfTbl] = getNormalizedSdf(satSdfDir,unitNum)
-    satSdfTbl = table();
+function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
     baselineWin = [-600 0];
     fn = fullfile(satSdfDir,num2str(unitNum,'Unit_%03d.mat'));
     sdfs = load(fn,'sdfs');
@@ -132,22 +132,24 @@ function [satSdfTbl] = getNormalizedSdf(satSdfDir,unitNum)
     % (allFastVisual-trial-sdfs - frBL)/(frMax-frBl)
     satConds = unique(sdfs.satCondition);
     epochs = {'Visual','PostSaccade','PostReward'};
-    
+    satSdfsTbl = table();    
     for sc = 1:numel(satConds)
+        tempSatSdfTbl = table();   
         satCondition = satConds{sc};
-        satSdfTbl.unitNum = unitNum;
-        satSdfTbl.condition = {satCondition};
-        satSdfTbl.frBaseline = frBl;
-        satSdfTbl.frMaxAllConditionsEpochs = frMaxAll;       
+        tempSatSdfTbl.unitNum = unitNum;
+        tempSatSdfTbl.condition = {satCondition};
+        tempSatSdfTbl.frBaseline = frBl;
+        tempSatSdfTbl.frMaxAllConditionsEpochs = frMaxAll;       
         idxSatCond = ismember(sdfs.satCondition,satCondition);
         for ep = 1:numel(epochs)
             epoch = epochs{ep};
             meanSatSdf = mean(cat(1,sdfs.([epoch '_sdfByTrial']){idxSatCond}),1);
             normSatSdf = (meanSatSdf-frBl)./(frMaxAll-frBl);
-            satSdfTbl.([epoch 'AlignedEvent']) = sdfs.([epoch '_alignedEvent']){1};
-            satSdfTbl.([epoch 'TimeMs']) = sdfs.([epoch '_timeMs']){1};
-            satSdfTbl.([epoch 'SatSdfMean']) = meanSatSdf;
-            satSdfTbl.([epoch 'SatSdfNormalized']) = normSatSdf;
-        end       
+            tempSatSdfTbl.([epoch 'AlignedEvent']) = sdfs.([epoch '_alignedEvent']){1};
+            tempSatSdfTbl.([epoch 'TimeMs']) = sdfs.([epoch '_timeMs']){1};
+            tempSatSdfTbl.([epoch 'SatSdfMean']) = meanSatSdf;
+            tempSatSdfTbl.([epoch 'SatSdfNormalized']) = normSatSdf;
+        end  
+        satSdfsTbl = [satSdfsTbl;tempSatSdfTbl]; %#ok<*AGROW>
     end
 end
