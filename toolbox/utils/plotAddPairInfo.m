@@ -63,11 +63,6 @@ function plotAddPairInfo(H_axes, unitInfosTable)
     if contains(varNames,'SessionNotes')
          addSessionNotes(xPos,yHPos,fontSize,sessionNotes);
     end
-    
-    % write Analysis date
-    annotation('textbox','Position',[0.01 0.012 0.16 0.01],'String', char(datetime),...
-        'FontSize',fontSize*0.75,'FitBoxToText','off','EdgeColor','none','Interpreter','none');
-
 end
 
 %% Get next X position fron the previous plot extens

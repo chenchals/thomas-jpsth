@@ -367,6 +367,7 @@ function [] = corrSpkCountPlot(spkCountFile,pdfOutputDir,savePdfFlag)
         H_pairInfo = axes('parent',parentFig,'position',[0.01 0.01 0.98 0.06],...
             'box','on','XTick',[],'YTick',[],'layer','top','Tag','H_jpsthInfo');
         addPairInfo(H_pairInfo, cellPairInfo);
+        addAnalysisInfo(H_pairInfo,mfilename);
         drawnow;
         if savePdfFlag
             saveFigAs(outPdfFile);
@@ -453,7 +454,20 @@ function addPairInfo(H_axes,cellPairInfo)
   cellInfo.XY_Dist = cellPairInfo.XY_Dist;
   cellInfo.Properties.VariableNames = strrep(cellInfo.Properties.VariableNames,'X_','');
   cellInfo(2,:) = cellPairInfo(1,contains(cellPairInfo.Properties.VariableNames,'Y_'));
-  plotAddPairInfo(H_axes,cellInfo);  
+  plotAddPairInfo(H_axes,cellInfo);
+end
+
+function addAnalysisInfo(H_axes,mPlotFilename)
+    fs = 6;
+    if ismac
+        fs = 8;
+    end
+     axes(H_axes)
+    % write processing file name and date
+    str = sprintf('mFile: %s  -->  Date:%s',mPlotFilename,char(datetime));
+    annotation('textbox','Position',[0.01 0.012 0.16 0.01],'String', str,...
+        'FontSize',fs*0.75,'FitBoxToText','off','EdgeColor','none','Interpreter','none');
+
 end
 
 function addAnnotations(pairUid,pdfFile,xyAreas,chanStr,rowNames,colNames)
