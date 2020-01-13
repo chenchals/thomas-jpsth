@@ -108,32 +108,17 @@ end
 
 function [satSdfTbl] = getNormalizedSdf(satSdfDir,unitNum)
     satSdfTbl = table();
-    minTrialsPerCondition = 50;
     baselineWin = [-600 0];
     fn = fullfile(satSdfDir,num2str(unitNum,'Unit_%03d.mat'));
     sdfs = load(fn,'sdfs');
     sdfs = sdfs.sdfs;
+    % sdfs.satCondition
+    sdfs.satCondition = regexprep(sdfs.condition,{'Correct','Error.*'},{'',''});
     % sdfs.outcome
     sdfs.outcome = regexprep(sdfs.condition,{'Fast','Accurate'},{'',''});
-    % Filter sdfs for num of trials for minTrialsPerCondition
-    
-    
-    % compute meanSdfs for all conditions by epoch
-    sdfs.meanV = cellfun(@mean,sdfs.Visual_sdfByTrial,'UniformOutput',false);
-    sdfs.meanPs = cellfun(@mean,sdfs.PostSaccade_sdfByTrial,'UniformOutput',false);
-    sdfs.meanPr = cellfun(@mean,sdfs.PostReward_sdfByTrial,'UniformOutput',false);
-    % 
-    
-    
-    
-    
-    
     % timestamps for SDFs
     tsV = sdfs.Visual_timeMs{1};
-
-    % 
-    
-    % get Baseline FR - use visual epoch from all outcomes
+    % get Baseline FR - use visual epoch from all conditions (6 conditions)
     meanV = mean(cat(1,sdfs.Visual_sdfByTrial{:}),1);
     frBl = mean(meanV(find(tsV==baselineWin(1)):find(tsV==baselineWin(2))));
     % get max FR - use all epochs from all outcomes
@@ -141,28 +126,28 @@ function [satSdfTbl] = getNormalizedSdf(satSdfDir,unitNum)
     meanPr = mean(cat(1,sdfs.PostReward_sdfByTrial{:}),1);
     meanAll = [meanV,meanPs,meanPr];
     frMaxAll = max(abs(meanAll));
-    frMaxV = max(max(cat(1,sdfs.Visual_sdfByTrial{:})-frBl)); % there are no negative FRs
-    frMaxPs = max(max(cat(1,sdfs.PostSaccade_sdfByTrial{:})-frBl)); % there are no negative FRs
-    frMaxPr = max(max(cat(1,sdfs.PostReward_sdfByTrial{:})-frBl)); % there are no negative FRs
-    % Create output table
-    satSdfTbl.unitNum = sdfs.unitNum;
-    satSdfTbl.condition = sdfs.condition;
-    % do normalization for trail sdfs for all epochs for all outcomes
-    % (trial-sdf - frBL)/(frMax-frBl)
-    % Visual
-    satSdfTbl.VisualAlignedEvent = sdfs.Visual_alignedEvent;
-    satSdfTbl.VisualTs = sdfs.Visual_timeMs;
-    t = arrayfun(@(x) (sdfs.Visual_sdfByTrial{x}-frBl)./(frMaxV),(1:size(sdfs,1))','UniformOutput',false);
-    satSdfTbl.VisualSdf = cellfun(@(x) mean(x,1),t,'UniformOutput',false);
-    % PostSaccade
-    satSdfTbl.PostSaccadeAlignedEvent = sdfs.PostSaccade_alignedEvent;
-    satSdfTbl.PostSaccadeTs = sdfs.PostSaccade_timeMs;
-    t = arrayfun(@(x) (sdfs.PostSaccade_sdfByTrial{x}-frBl)./(frMaxPs),(1:size(sdfs,1))','UniformOutput',false);
-    satSdfTbl.PostSaccadeSdf = cellfun(@(x) mean(x,1),t,'UniformOutput',false);
-    % PostReward
-    satSdfTbl.PostRewardAlignedEvent = sdfs.PostReward_alignedEvent;
-    satSdfTbl.PostRewardTs = sdfs.PostReward_timeMs;
-    t = arrayfun(@(x) (sdfs.PostReward_sdfByTrial{x}-frBl)./(frMaxPr),(1:size(sdfs,1))','UniformOutput',false);
-    satSdfTbl.PostRewardSdf = cellfun(@(x) mean(x,1),t,'UniformOutput',false);
-
+    % do normalization for trail sdfs for all outcomes by SatCondition
+    % For Example Fast Visual =
+    % all-FastVisual trials=[FastErrorChoice, FastErrorTiming, FastErrorChoice]
+    % (allFastVisual-trial-sdfs - frBL)/(frMax-frBl)
+    satConds = unique(sdfs.satCondition);
+    epochs = {'Visual','PostSaccade','PostReward'};
+    
+    for sc = 1:numel(satConds)
+        satCondition = satConds{sc};
+        satSdfTbl.unitNum = unitNum;
+        satSdfTbl.condition = {satCondition};
+        satSdfTbl.frBaseline = frBl;
+        satSdfTbl.frMaxAllConditionsEpochs = frMaxAll;       
+        idxSatCond = ismember(sdfs.satCondition,satCondition);
+        for ep = 1:numel(epochs)
+            epoch = epochs{ep};
+            meanSatSdf = mean(cat(1,sdfs.([epoch '_sdfByTrial']){idxSatCond}),1);
+            normSatSdf = (meanSatSdf-frBl)./(frMaxAll-frBl);
+            satSdfTbl.([epoch 'AlignedEvent']) = sdfs.([epoch '_alignedEvent']){1};
+            satSdfTbl.([epoch 'TimeMs']) = sdfs.([epoch '_timeMs']){1};
+            satSdfTbl.([epoch 'SatSdfMean']) = meanSatSdf;
+            satSdfTbl.([epoch 'SatSdfNormalized']) = normSatSdf;
+        end       
+    end
 end
