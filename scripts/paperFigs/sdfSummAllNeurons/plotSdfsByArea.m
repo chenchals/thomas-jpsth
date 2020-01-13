@@ -108,13 +108,16 @@ end
 
 function [satSdfTbl] = getNormalizedSdf(satSdfDir,unitNum)
     satSdfTbl = table();
-    nTrialsForCondition = 50;
+    minTrialsPerCondition = 50;
     baselineWin = [-600 0];
     fn = fullfile(satSdfDir,num2str(unitNum,'Unit_%03d.mat'));
     sdfs = load(fn,'sdfs');
     sdfs = sdfs.sdfs;
     % sdfs.outcome
     sdfs.outcome = regexprep(sdfs.condition,{'Fast','Accurate'},{'',''});
+    % Filter sdfs for num of trials for minTrialsPerCondition
+    
+    
     % compute meanSdfs for all conditions by epoch
     sdfs.meanV = cellfun(@mean,sdfs.Visual_sdfByTrial,'UniformOutput',false);
     sdfs.meanPs = cellfun(@mean,sdfs.PostSaccade_sdfByTrial,'UniformOutput',false);
