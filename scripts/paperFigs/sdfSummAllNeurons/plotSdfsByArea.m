@@ -78,9 +78,10 @@ for sig = 1:numel(isSignifs)
                 continue;
             end
             fprintf('[%d units...]',numel(idx));
+            tempTbl = table();
             for ep = 1:numel(epochs)
                 epoch = epochs{ep};
-                tempTbl = table();
+
                 % Filter used for finding significant pairs
                 tempTbl.filterOutcome = {filter.outcome};
                 tempTbl.filterEpoch = {filter.epoch};
@@ -110,15 +111,73 @@ end
 isSignifs = [1 0];
 satConds = {'Fast','Accurate'};
 epochs = {'Visual','PostSaccade','PostReward'};
+unitAreas = {'SEF', 'FEF','SC'};
 plotNo = 0;
-
-for sig = 1:numel(isSignifs) % 2 column groups
-% use red to yellou (dark -> white) (0 -> 1)
-
-
+% use red to yellow (dark -> white) (0 -> 1)
+% Each row(6 plots): [(signif),V, PS, PR], [(not-signif),V, PS, PR]
+% Each col(6 plots): [Fast- SEF,FEF,SC], [Accurate- SEF, FEF, SC]
+pltSatCond = 'Fast';
+pltArea = 'SEF';
+% Plots are plotted column-wise
+for sig = 1:numel(isSignifs)
+    signif = isSignifs(sig);
+    for ep = 1:numel(epochs)
+        epoch = epochs{ep};
+        for sc = 1:numel(satConds)
+            satCondition = satConds{sc};
+            for ar = 1:numel(unitAreas)
+                unitArea = unitAreas{ar};
+                plotNo = plotNo + 1;
+                idx = find(ismember(satSdfsImageTbl.satCondition,satCondition)...
+                    & satSdfsImageTbl.isRscSignificant == signif ...
+                    & ismember(satSdfsImageTbl.unitArea,unitArea));
+                if isempty(idx)
+                    % not units for the area...
+                    continue;
+                end
+                tempSdf = satSdfsImageTbl(idx,:);
+                % get the SDFs and related information for plot
+                sdfImg = tempSdf.([epoch 'SatSdfNormalized']){1};
+                timeMs = tempSdf.([epoch 'TimeMs']){1};
+                yLabel = pltArea;
+                showImage(H_plots(plotNo),sdfImg,timeMs,epoch,unitArea);
+            end % for each area SEF,FEF,SC...
+        end % for each SAT condition Fast, Accurate
+    end % for each epoch Visual, PostSaccade, PostReward
+end % for each significance level 1=isSignificant, 0=isNotSignificant
 %% explore
 
 %% Other functions
+function [] = showImage(H_axis,sdfImg,timeMs,epoch,pltArea)
+    axes(H_axis);
+    yMax = size(sdfImg,1);
+    % show image
+    hImg = imagesc(sdfImg);
+    % row 1 = top of image, ie the SDF of sdfImg(1,:)
+    set(gca,'YDir','reverse');
+    xTickLabel = unique([0:-200:min(timeMs) 0:200:max(timeMs)]);
+    if ~xTickLabel(1) % first label is zero
+        xTickLabel = xTickLabel(1:end-1);
+    else
+        xTickLabel = xTickLabel(2:end-1);
+    end
+    % location of ticks on the image to correspond to tick labels
+    % xTickLoc = linspace(1, size(sdfImg, 2), numel(xTickLabel));
+    xTickLoc = arrayfun(@(x) find(timeMs==x),xTickLabel);
+    % Tick location for 0 ms (align Event time)
+    x0Loc = xTickLoc(xTickLabel==0);
+    % add zero line
+    line([x0Loc x0Loc],[0 yMax+1]);
+    
+    set(gca, 'XTick', xTickLoc)
+    set(gca,'XTickLabel', xTickLabel); 
+    set(gca,'XMinorGrid','on')
+    
+    
+
+end
+
+
 function [sigNonSigUnits] = getUnitNums(unitsTbl,epoch,outcome,pval)
     idx = ismember(unitsTbl.filter_Epoch,epoch) & ismember(unitsTbl.filter_Outcome,outcome) & unitsTbl.filter_Pval == pval;
     sigNonSigUnits = unitsTbl(idx,{'filter_IsRscSignificant','SEF','FEF','SC'}) ;
