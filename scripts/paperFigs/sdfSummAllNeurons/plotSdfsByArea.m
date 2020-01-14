@@ -59,6 +59,7 @@ end
 
 %% Aggregate SDFs of all units by (1)significance of r_sc, (2)area, (3)SAT condition (across all outcomes), and (4)epochs
 satSdfsImageTbl = table();
+isSignifs = [1 0];
 satConds = {'Fast','Accurate'};
 epochs = {'Visual','PostSaccade','PostReward'};
 for sig = 1:numel(isSignifs)
@@ -105,8 +106,14 @@ for sig = 1:numel(isSignifs)
     end
 end
 %% Show satSdfsImageTbl
+[H_plots,H_Figure] = getPlotHandles();
+isSignifs = [1 0];
+satConds = {'Fast','Accurate'};
+epochs = {'Visual','PostSaccade','PostReward'};
+plotNo = 0;
 
-
+for sig = 1:numel(isSignifs) % 2 column groups
+% use red to yellou (dark -> white) (0 -> 1)
 
 
 %% explore
@@ -161,5 +168,47 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
             tempSatSdfTbl.([epoch 'SatSdfNormalized']) = {normSatSdf};
         end  
         satSdfsTbl = [satSdfsTbl;tempSatSdfTbl]; %#ok<*AGROW>
+    end
+end
+
+% Get figure template
+function [H_plots,H_Figure] = getPlotHandles()
+    % For Heatmap of aggregated SDFs for each area
+    % 6 rows {3-Areas for Fast, 3-areas for Accurate}
+    % 6 cols {3-epochs for significant, 3-epochs for non-significant}
+    H_Figure = newFigure();
+    nRows = 6;
+    startOffset = 0.06;
+    pltH = 0.13;
+    pltWFor3Cols = 0.4;
+    gutterx = 0.005;
+    guttery = 0.015;
+    % conditions SDFs have different lengths of times (x axis).
+    % make widths proportional such that time unit ticks are of equal length
+    % visual:[-600 400] , postSaccade:[-200 600], postReward:[-100 400]
+    pltWProp = [1001 801 501];
+    % partition total plot width to the proportion above
+    pltWs = pltWProp.*(pltWFor3Cols/sum(pltWProp));
+    offsetsX = [0 pltWs(1)+gutterx sum(pltWs(1:2))+gutterx*2] + startOffset;
+    offsetsY = 0.95-pltH:-(pltH+guttery):guttery; % for 6 row-starts
+    pltCount = 0;
+    for col = 1:numel(offsetsY)
+        if col < 4
+            pltW = pltWs(col);
+            pos(1) = offsetsX(col);
+        else
+            pltW = pltWs(col-3);
+            pos(1) = (pltWFor3Cols + gutterx*16) + offsetsX(col-3);
+        end
+        pos(3:4) = [pltW pltH];
+        for ro = 1:nRows
+            if ro < 4
+                pos(2) = offsetsY(ro);
+            else
+                pos(2) = offsetsY(ro) - guttery*2;
+            end
+            pltCount = pltCount + 1;
+            H_plots(pltCount) = axes('parent',H_Figure,'position',pos,'box','on', 'layer','top','Tag',sprintf('H_plot%d',pltCount));
+        end
     end
 end
