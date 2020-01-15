@@ -9,7 +9,8 @@ tsPr = satSdfsTbl.PostRewardTimeMs{1}';
 % Make subplots for [V,PS,PR]
 [H_plots,H_figure] = getPlotHandles([numel(tsV),numel(tsPs),numel(tsPr)]);
 % use normalized or just mean sdfs?
-useSuffix = 'SatSdfNormalized';
+useMean = 'SatSdfMean';
+useNorm = 'SatSdfNormalized';
 v = 'Visual';
 ps = 'PostSaccade';
 pr = 'PostReward';
@@ -28,23 +29,42 @@ for un = 1:numel(unitNums)
         titleStr = [titleStr '   [Rsc *not* Significant]']; %#ok<*AGROW>
     end
     clrs = [fClr;aClr];
-    % get SDFs for all epochs
-    frV = cell2mat(sdfs.([v useSuffix])([fastIdx,accuIdx]))';
-    frPs = cell2mat(sdfs.([ps useSuffix])([fastIdx,accuIdx]))';
-    frPr = cell2mat(sdfs.([pr useSuffix])([fastIdx,accuIdx]))';
-    % update plots
-    updatePlot(H_plots(1),tsV,frV,v,'CueOn',clrs);
-    updatePlot(H_plots(2),tsPs,frPs,ps,'SaccadePrimary',clrs);
-    updatePlot(H_plots(3),tsPr,frPr,pr,'Reward',clrs);
-    % update yAxis
-    yMinMax = round(minmax([frV(:);frPs(:);frPr(:)]'),2);
-    yMinMax = yMinMax + [-0.05 0.05];
-    set(H_plots,'YLim',yMinMax);
-    set(get(H_plots(1),'YLabel'),'String',useSuffix);
-    set(H_plots(2:3),'YTickLabel',{});
+    for jj =1:2
+        if jj ==1
+            pltNoOffset = 0;
+            useSuffix = useNorm;
+        else
+            pltNoOffset = 3;
+            useSuffix = useMean;
+        end
+        % get SDFs for all epochs (use Mean)
+        frV = cell2mat(sdfs.([v useSuffix])([fastIdx,accuIdx]))';
+        frPs = cell2mat(sdfs.([ps useSuffix])([fastIdx,accuIdx]))';
+        frPr = cell2mat(sdfs.([pr useSuffix])([fastIdx,accuIdx]))';
+        % update plots
+        updatePlot(H_plots(pltNoOffset + 1),tsV,frV,v,'CueOn',clrs);
+        updatePlot(H_plots(pltNoOffset + 2),tsPs,frPs,ps,'SaccadePrimary',clrs);
+        updatePlot(H_plots(pltNoOffset + 3),tsPr,frPr,pr,'Reward',clrs);
+        % update yAxis
+        yMinMax = round(minmax([frV(:);frPs(:);frPr(:)]'),2);
+        yMinMax = yMinMax + [-0.05 0.05];
+        set(H_plots(pltNoOffset + (1:3)),'YLim',yMinMax);
+        set(get(H_plots(pltNoOffset + 1),'YLabel'),'String',useSuffix);
+        set(H_plots(pltNoOffset + (2:3)),'YTickLabel',{});
+    end % for jj...mean and norm sdfs
+    % remove xlabels and xticklabels from plots 1-3  
+    set(H_plots(1:3),'XTickLabel',{});
+    arrayfun(@(x) delete(get(H_plots(x),'XLabel')),1:3);
+     % remove epoch titles from subplots 4-6
+    arrayfun(@(x) delete(get(H_plots(x),'Title')),4:6)
+    % add zero lines to all plots
+    arrayfun(@(x) [line(H_plots(x),[0 0],get(H_plots(x),'YLim'),'color','k'),...
+        line(H_plots(x),get(H_plots(x),'XLim'),[0 0],'color','k')],...
+        1:6,'UniformOutput',false);
+    set(H_plots,'XMinorGrid','on')
     % add annotation
     h_a = annotation('textbox','String',titleStr,'FontSize',18,'FontWeight','bold',...
-        'Position',[0.3 0.98 0.5 0.04],'LineStyle','none');
+        'Position',[0.3 0.99 0.5 0.04],'LineStyle','none');
     pause
     % do nto delete annotation if it is the last unit
     if un < numel(unitNums)
@@ -68,24 +88,29 @@ function [H_plots,H_figure] = getPlotHandles(pltWProp)
     pos = [0.05 0.65 0.92 0.3];
     set(H_figure,'Position',pos);
     startOffset = 0.05;
-    pltH = 0.75;
+    pltH = 0.7;
     %total plot width to the proportion above
     pltWFor3Cols = 0.9;
     gutterx = 0.005;
+    guttery = 0.05;
     % conditions SDFs have different lengths of times (x axis).
     % make widths proportional such that time unit ticks are of equal length
     % visual:[-600 400] , postSaccade:[-200 600], postReward:[-100 400]
     % partition total plot width to the proportion above
     pltWs = pltWProp.*(pltWFor3Cols/sum(pltWProp));
     offsetsX = [0 pltWs(1)+ gutterx sum(pltWs(1:2))+gutterx*2] + startOffset;
-    offsetsY = 0.9-pltH; % for 1 row
     pltCount = 0;
+    nrows = 2;
+    pltH = pltH/2;
+    offsetsY = 0.9-pltH:-(pltH+guttery):guttery;
+    for row = 1: nrows       
     for col = 1:numel(offsetsX)
         pos(1) = offsetsX(col);
-        pos(2) = offsetsY;
+        pos(2) = offsetsY(row);
         pos(3:4) = [pltWs(col) pltH];
         pltCount = pltCount + 1;
         H_plots(pltCount) = axes('parent',H_figure,'position',pos,'box','on', 'layer','top','Tag',sprintf('H_plot%d',pltCount));
+    end
     end
 
 end
