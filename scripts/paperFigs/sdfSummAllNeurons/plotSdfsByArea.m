@@ -116,8 +116,6 @@ plotNo = 0;
 % use red to yellow (dark -> white) (0 -> 1)
 % Each row(6 plots): [(signif),V, PS, PR], [(not-signif),V, PS, PR]
 % Each col(6 plots): [Fast- SEF,FEF,SC], [Accurate- SEF, FEF, SC]
-pltSatCond = 'Fast';
-pltArea = 'SEF';
 % Plots are plotted column-wise
 for sig = 1:numel(isSignifs)
     signif = isSignifs(sig);
@@ -139,7 +137,7 @@ for sig = 1:numel(isSignifs)
                 % get the SDFs and related information for plot
                 sdfImg = tempSdf.([epoch 'SatSdfNormalized']){1};
                 timeMs = tempSdf.([epoch 'TimeMs']){1};
-                yLabel = pltArea;
+                yLabel = unitArea;
                 showImage(H_plots(plotNo),sdfImg,timeMs,epoch,unitArea);
             end % for each area SEF,FEF,SC...
         end % for each SAT condition Fast, Accurate
@@ -162,7 +160,6 @@ function [] = showImage(H_axis,sdfImg,timeMs,epoch,pltArea)
         xTickLabel = xTickLabel(2:end-1);
     end
     % location of ticks on the image to correspond to tick labels
-    % xTickLoc = linspace(1, size(sdfImg, 2), numel(xTickLabel));
     xTickLoc = arrayfun(@(x) find(timeMs==x),xTickLabel);
     % Tick location for 0 ms (align Event time)
     x0Loc = xTickLoc(xTickLabel==0);
@@ -181,7 +178,6 @@ function [sigNonSigUnits] = getUnitNums(unitsTbl,epoch,outcome,pval)
 end
 
 function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
-    baselineWin = [-600 0];
     fn = fullfile(satSdfDir,num2str(unitNum,'Unit_%03d.mat'));
     sdfs = load(fn,'sdfs');
     sdfs = sdfs.sdfs;
@@ -191,18 +187,9 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
     sdfs.outcome = regexprep(sdfs.condition,{'Fast','Accurate'},{'',''});
     % timestamps for SDFs
     tsV = sdfs.Visual_timeMs{1};
-    % get Baseline FR - use visual epoch from all conditions (6 conditions)
-    meanV = mean(cat(1,sdfs.Visual_sdfByTrial{:}),1);
-    frBl = mean(meanV(find(tsV==baselineWin(1)):find(tsV==baselineWin(2))));
-    % get max FR - use all epochs from all outcomes
-    meanPs = mean(cat(1,sdfs.PostSaccade_sdfByTrial{:}),1);
-    meanPr = mean(cat(1,sdfs.PostReward_sdfByTrial{:}),1);
-    meanAll = [meanV,meanPs,meanPr];
-    frMaxAll = max(abs(meanAll));
+    %% New method using Baseline Win = [-400 -200]
     % do normalization for trail sdfs for all outcomes by SatCondition
-    % For Example Fast Visual =
-    % all-FastVisual trials=[FastErrorChoice, FastErrorTiming, FastErrorChoice]
-    % (allFastVisual-trial-sdfs - frBL)/(frMax-frBl)
+    % Compute mean SDFs for all conditions
     satConds = unique(sdfs.satCondition);
     epochs = {'Visual','PostSaccade','PostReward'};
     satSdfsTbl = table();    
@@ -211,20 +198,43 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
         satCondition = satConds{sc};
         tempSatSdfTbl.unitNum = unitNum;
         tempSatSdfTbl.satCondition = {satCondition};
-        tempSatSdfTbl.frBaseline = frBl;
-        tempSatSdfTbl.frMaxAllConditionsEpochs = frMaxAll;       
         idxSatCond = ismember(sdfs.satCondition,satCondition);
+        tempSatSdfTbl.nTrials = sum(sdfs.Visual_nTrials(idxSatCond));
         for ep = 1:numel(epochs)
             epoch = epochs{ep};
             meanSatSdf = mean(cat(1,sdfs.([epoch '_sdfByTrial']){idxSatCond}),1);
-            normSatSdf = (meanSatSdf-frBl)./(frMaxAll-frBl);
             tempSatSdfTbl.([epoch 'AlignedEvent']) = sdfs.([epoch '_alignedEvent'])(1);
             tempSatSdfTbl.([epoch 'TimeMs']) = {sdfs.([epoch '_timeMs']){1}};
             tempSatSdfTbl.([epoch 'SatSdfMean']) = {meanSatSdf};
-            tempSatSdfTbl.([epoch 'SatSdfNormalized']) = {normSatSdf};
         end  
         satSdfsTbl = [satSdfsTbl;tempSatSdfTbl]; %#ok<*AGROW>
     end
+    %% Normalize SDFs by computing as follows 
+    % (1) frBl min(mean fr in baselineWin for Visual epoch for SAT)
+    % (2) fxMax max(max(mean fr for conds SAT [F/A] by [V,PS,PR])) 
+    nRows = size(satSdfsTbl,1);
+    baselineWin = [-400 200];
+    blIdx = find(tsV==baselineWin(1)):find(tsV==baselineWin(2));
+    % get mean SDFs by SAT for 3 epochs
+    frV = satSdfsTbl.VisualSatSdfMean;
+    frPs = satSdfsTbl.PostSaccadeSatSdfMean;
+    frPr = satSdfsTbl.PostRewardSatSdfMean;
+    % (1) frBl min(mean fr in baselineWin for Visual epoch for SAT)
+    frBl = min(cellfun(@(x) mean(x(blIdx)),frV));
+    % (2) fxMax max(max(mean fr for conds SAT [F/A] by [V,PS,PR])) 
+    frMax = max(cellfun(@max,[frV;frPs;frPr]));
+    % Add baseline Fr and max Fr to output table
+    satSdfsTbl.frBaseline = repmat(frBl,nRows,1);
+    satSdfsTbl.frMaxAllConditionsEpochs = repmat(frBl,nRows,1);
+    % Compute and add Normalized sdf for SAT: normalization =
+    % (frVector-BaselineFr)/(maxFr-BaselineFr)
+    % Visual
+    satSdfsTbl.VisualSatSdfNormalized = cellfun(@(x)(x-frBl)./(frMax-frBl),frV,'UniformOutput',false);
+    % PostSaccade
+    satSdfsTbl.PostSaccadeSatSdfNormalized = cellfun(@(x)(x-frBl)./(frMax-frBl),frPs,'UniformOutput',false);
+    %PostReward
+    satSdfsTbl.PostRewardSatSdfNormalized = cellfun(@(x)(x-frBl)./(frMax-frBl),frPr,'UniformOutput',false);
+     
 end
 
 % Get figure template

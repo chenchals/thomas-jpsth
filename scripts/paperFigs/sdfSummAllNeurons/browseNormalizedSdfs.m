@@ -63,8 +63,8 @@ for un = 1:numel(unitNums)
         1:6,'UniformOutput',false);
     set(H_plots,'XMinorGrid','on')
     % add annotation
-    h_a = annotation('textbox','String',titleStr,'FontSize',18,'FontWeight','bold',...
-        'Position',[0.3 0.99 0.5 0.04],'LineStyle','none');
+    h_a = annotation('textbox','String',titleStr,'FontSize',14,'FontWeight','bold',...
+        'Position',[0.3 0.94 0.5 0.04],'LineStyle','none');
     pause
     % do nto delete annotation if it is the last unit
     if un < numel(unitNums)
