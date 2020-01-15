@@ -171,12 +171,9 @@ function [] = showImage(H_axis,sdfImg,timeMs,epoch,pltArea)
     
     set(gca, 'XTick', xTickLoc)
     set(gca,'XTickLabel', xTickLabel); 
-    set(gca,'XMinorGrid','on')
-    
-    
+    set(gca,'XMinorGrid','on')    
 
 end
-
 
 function [sigNonSigUnits] = getUnitNums(unitsTbl,epoch,outcome,pval)
     idx = ismember(unitsTbl.filter_Epoch,epoch) & ismember(unitsTbl.filter_Outcome,outcome) & unitsTbl.filter_Pval == pval;
