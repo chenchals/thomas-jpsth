@@ -13,6 +13,8 @@
 % Yes, and let?s also implement the color density SDF raster plot so we can see variation across all neurons in given groups
 %
 %%
+outputPdfDir = 'dataProcessed/analysis/spkCorr/summary/sdfHeatmaps';
+
 unitsTbl = categorizeUnitsByRscSignif();
 % Filter criteria used to categorize units by Rsc
 filterEpochs = unique(unitsTbl.filter_Epoch);
@@ -29,6 +31,7 @@ end
 filter.epoch = 'PostSaccade';
 filter.outcome = 'Correct';
 filter.pval = 0.05;
+
 currUnitsByArea = getUnitNums(unitsTbl,filter.epoch,filter.outcome,filter.pval);
 unitAreas = {'SEF','FEF','SC'}; % sameArea_SEF_X, sameArea_SEF_Y
 satSdfsTbl = table();
@@ -110,6 +113,8 @@ end
 % use satSdfsImageTbl
 
 [H_plots,H_Figure] = getPlotHandles();
+fClr = [0 0.7 0];
+aClr = [1 0 0];
 isSignifs = [1 0];
 satConds = {'Fast','Accurate'};
 epochs = {'Visual','PostSaccade','PostReward'};
@@ -122,11 +127,13 @@ plotNo = 0;
 % Plots are plotted column-wise
 for sig = 1:numel(isSignifs)
     signif = isSignifs(sig);
+    annotateSignif = 1;
     for ep = 1:numel(epochs)
         epoch = epochs{ep};
         alignedEvent = alignedEvents{ep};
         for sc = 1:numel(satConds)
             satCondition = satConds{sc};
+            annotateSat = 1;
             for ar = 1:numel(unitAreas)
                 unitArea = unitAreas{ar};
                 plotNo = plotNo + 1;
@@ -135,7 +142,12 @@ for sig = 1:numel(isSignifs)
                     & ismember(satSdfsImageTbl.unitArea,unitArea));
                 if isempty(idx)
                     % not units for the area...
-                    set(H_plots(plotNo),'Visible','off');
+                    %set(H_plots(plotNo),'Visible','off');
+                    set(H_plots(plotNo),'XColor',[1 1 1],'YColor',[1 1 1],'YTickLabel',{});
+                    h = get(H_plots(plotNo),'YLabel');
+                    set(h,'String',{sprintf('%s ',unitArea),sprintf('[%d] ',0)});
+                    set(h,'Rotation',0,'FontWeight','bold','HorizontalAlignment','right');                   
+                    set(h,'Color','k');
                     continue;
                 end
                 % get the SDFs and related information for plot
@@ -152,6 +164,34 @@ for sig = 1:numel(isSignifs)
                     %delete title from current plot
                     delete(get(H_plots(plotNo),'Title'));
                 end
+                % Annotate SAT condition
+                if annotateSat 
+                    str = upper(satCondition);                    
+                    clr = fClr;
+                    pos = [0.01 0.91 0.3 0.04];
+                    if sc == 2
+                        pos = [0.01 0.45 0.3 0.04];
+                        clr = aClr;
+                    end
+                    if sig == 2
+                        pos(1) = 0.501;
+                    end
+                    h_a = annotation('textbox','String',str,'FontSize',18,'FontWeight','bold',...
+                        'Color',clr,'Position',pos,'LineStyle','none');
+                    annotateSat = 0;                                        
+                end
+                % Annotate Significant vs non-significant for the top row
+                if annotateSignif
+                    str = upper('Significant Units');
+                    pos = [0.15 0.925 0.3 0.04];
+                    if signif == 0
+                        str = upper('Non significant Units');
+                        pos = [0.65 0.925 0.3 0.04];
+                    end
+                    h_a = annotation('textbox','String',str,'FontSize',14,'FontWeight','bold',...
+                        'Position',pos,'LineStyle','none','HorizontalAlignment','center');
+                    annotateSignif = 0;
+                end
                 
             end % for each area SEF,FEF,SC...
         end % for each SAT condition Fast, Accurate
@@ -159,13 +199,29 @@ for sig = 1:numel(isSignifs)
 end % for each significance level 1=isSignificant, 0=isNotSignificant
 % Cleanup labels and ticks for the 6 by 3 and another 6 by 3 set of plots
 pltNos = reshape(1:36,6,6);
-% no title except for rows 1 and 4
-%pltIdx = pltNos([2,3,5,6],:);
-%arrayfun(@(x) delete(get(H_plots(x),'Title')),pltIdx);
 % No YLabels for all except for 1 and 4 columns
 pltIdx = pltNos(:,[2,3,5,6]);
 arrayfun(@(x) delete(get(H_plots(x),'YLabel')),pltIdx);
+% Add figure annotation
+oName = sprintf('sdfsHeatmap_%s_%s_%s.pdf',filter.outcome,filter.epoch,num2str(filter.pval*100,'Pval_%02d'));
+figTitle = 'Heatmap of normalized SDFs for all units';
+filterTitle = sprintf('Spike count corr. filtered for [%s, %s, and pval <= %s]',...
+                       filter.outcome,filter.epoch,num2str(filter.pval,'%0.02f')); 
+strs = {oName,figTitle,filterTitle};
 
+H1 = annotation('textbox','Position',[0.01 0.96 0.98 0.03],'String',strs{1},...
+               'FontSize',16,'FontWeight','bold','LineStyle','none','Interpreter','none',...
+           'Color',[0.5 0.5 0.5],'FontAngle','italic');
+H2 = annotation('textbox','Position',[0.32 0.97 0.98 0.03],'String',strs{2},...
+               'FontSize',18,'FontWeight','bold','LineStyle','none','Interpreter','none',...
+           'Color','k');
+H3 = annotation('textbox','Position',[0.6 0.96 0.98 0.03],'String',strs{3},...
+               'FontSize',16,'FontWeight','bold','LineStyle','none','Interpreter','none',...
+           'Color',[0.5 0.5 0.5]);
+% save pdfFile:
+saveFigPdf(oName);
+
+       
 %% explore
 
 %% Other functions
@@ -187,15 +243,17 @@ function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
     % Tick location for 0 ms (align Event time)
     x0Loc = xTickLoc(xTickLabel==0);
     % add zero line
-    line([x0Loc x0Loc],[0 yMax+1]);
+    line([x0Loc x0Loc],[0 yMax+1],'Color','k');
     % Labels etc
     title(epoch);
-    set(get(gca,'YLabel'),'String',sprintf('%s [n=%d]',unitArea,size(sdfImg,1)));
+    h = get(gca,'YLabel');
+    set(h,'String',{sprintf('%s ',unitArea),sprintf('[%d] ',size(sdfImg,1))});
+    set(h,'Rotation',0,'FontWeight','bold','HorizontalAlignment','right');
     set(gca,'YTickLabel',{});
     set(get(gca,'XLabel'),'String',sprintf('Time from %s (ms)',alignedEvent)) ;
     set(gca,'XTick', xTickLoc);
     set(gca,'XTickLabel', xTickLabel);
-    set(gca,'XMinorGrid','on');
+    set(gca,'XMinorGrid','on', 'GridColor','k');
 end
 
 function [sigNonSigUnits] = getUnitNums(unitsTbl,epoch,outcome,pval)
@@ -271,10 +329,10 @@ function [H_plots,H_Figure] = getPlotHandles()
     H_Figure = newFigure();
     nRows = 6;
     startOffset = 0.06;
-    pltH = 0.13;
+    pltH = 0.125;
     pltWFor3Cols = 0.4;
     gutterx = 0.005;
-    guttery = 0.015;
+    guttery = 0.010;
     % conditions SDFs have different lengths of times (x axis).
     % make widths proportional such that time unit ticks are of equal length
     % visual:[-600 400] , postSaccade:[-200 600], postReward:[-100 400]
@@ -282,7 +340,7 @@ function [H_plots,H_Figure] = getPlotHandles()
     % partition total plot width to the proportion above
     pltWs = pltWProp.*(pltWFor3Cols/sum(pltWProp));
     offsetsX = [0 pltWs(1)+gutterx sum(pltWs(1:2))+gutterx*2] + startOffset;
-    offsetsY = 0.95-pltH:-(pltH+guttery):guttery; % for 6 row-starts
+    offsetsY = 0.92-pltH:-(pltH+guttery):guttery; % for 6 row-starts
     pltCount = 0;
     for col = 1:numel(offsetsY)
         if col < 4
@@ -297,7 +355,7 @@ function [H_plots,H_Figure] = getPlotHandles()
             if ro < 4
                 pos(2) = offsetsY(ro);
             else
-                pos(2) = offsetsY(ro) - guttery*2;
+                pos(2) = offsetsY(ro) - guttery*6;
             end
             pltCount = pltCount + 1;
             H_plots(pltCount) = axes('parent',H_Figure,'position',pos,'box','on', 'layer','top','Tag',sprintf('H_plot%d',pltCount));
