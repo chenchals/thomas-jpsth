@@ -107,10 +107,13 @@ for sig = 1:numel(isSignifs)
     end
 end
 %% Show satSdfsImageTbl
+% use satSdfsImageTbl
+
 [H_plots,H_Figure] = getPlotHandles();
 isSignifs = [1 0];
 satConds = {'Fast','Accurate'};
 epochs = {'Visual','PostSaccade','PostReward'};
+alignedEvents = {'CueOn','SaccadePrimary','Reward'};
 unitAreas = {'SEF', 'FEF','SC'};
 plotNo = 0;
 % use red to yellow (dark -> white) (0 -> 1)
@@ -121,6 +124,7 @@ for sig = 1:numel(isSignifs)
     signif = isSignifs(sig);
     for ep = 1:numel(epochs)
         epoch = epochs{ep};
+        alignedEvent = alignedEvents{ep};
         for sc = 1:numel(satConds)
             satCondition = satConds{sc};
             for ar = 1:numel(unitAreas)
@@ -131,6 +135,7 @@ for sig = 1:numel(isSignifs)
                     & ismember(satSdfsImageTbl.unitArea,unitArea));
                 if isempty(idx)
                     % not units for the area...
+                    set(H_plots(plotNo),'Visible','off');
                     continue;
                 end
                 tempSdf = satSdfsImageTbl(idx,:);
@@ -138,15 +143,24 @@ for sig = 1:numel(isSignifs)
                 sdfImg = tempSdf.([epoch 'SatSdfNormalized']){1};
                 timeMs = tempSdf.([epoch 'TimeMs']){1};
                 yLabel = unitArea;
-                showImage(H_plots(plotNo),sdfImg,timeMs,epoch,unitArea);
+                showImage(H_plots(plotNo),sdfImg,timeMs,epoch,alignedEvent,unitArea);
             end % for each area SEF,FEF,SC...
         end % for each SAT condition Fast, Accurate
     end % for each epoch Visual, PostSaccade, PostReward
 end % for each significance level 1=isSignificant, 0=isNotSignificant
+% Cleanup labels and ticks for the 6 by 3 and another 6 by 3 set of plots
+pltNos = reshape(1:36,6,6);
+% no title except for rows 1 and 4
+pltIdx = pltNos([2,3,5,6],:);
+arrayfun(@(x) delete(get(H_plots(x),'Title')),pltIdx);
+% No YLabels for all except for 1 and 4 columns
+pltIdx = pltNos(:,[2,3,5,6]);
+arrayfun(@(x) delete(get(H_plots(x),'YLabel')),pltIdx);
+
 %% explore
 
 %% Other functions
-function [] = showImage(H_axis,sdfImg,timeMs,epoch,pltArea)
+function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
     axes(H_axis);
     yMax = size(sdfImg,1);
     % show image
@@ -165,10 +179,14 @@ function [] = showImage(H_axis,sdfImg,timeMs,epoch,pltArea)
     x0Loc = xTickLoc(xTickLabel==0);
     % add zero line
     line([x0Loc x0Loc],[0 yMax+1]);
-    
-    set(gca, 'XTick', xTickLoc)
+    % Labels etc
+    title(epoch);
+    set(get(gca,'YLabel'),'String',sprintf('%s [n=%d]',unitArea,size(sdfImg,1)));
+    set(gca,'YTickLabel',{});
+    set(get(gca,'XLabel'),'String',sprintf('Time from %s (ms)',alignedEvent)) ;
+    set(gca,'XTick', xTickLoc);
     set(gca,'XTickLabel', xTickLabel); 
-    set(gca,'XMinorGrid','on')    
+    set(gca,'XMinorGrid','on');
 
 end
 
