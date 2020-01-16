@@ -9,9 +9,9 @@
 %   b.       Summary plot for FEF.
 %   c.       Summary plot forSC.
 %   d.       Thomas & Chenchal to meet in 069.
-%  
+%
 % Yes, and let?s also implement the color density SDF raster plot so we can see variation across all neurons in given groups
-%  
+%
 %%
 unitsTbl = categorizeUnitsByRscSignif();
 % Filter criteria used to categorize units by Rsc
@@ -45,13 +45,13 @@ for sig = 1:numel(isSignifs)
             continue;
         end
         parfor (un = 1:numel(unitNums), parpoolSize)
-        %for un = 1:numel(unitNums)
+            %for un = 1:numel(unitNums)
             % compute average SDF for unit by condition and epoch
             unitNum = unitNums(un);
-            tempSatSdfTbl = getNormalizedSdf(satSdfDir,unitNum); 
+            tempSatSdfTbl = getNormalizedSdf(satSdfDir,unitNum);
             tempSatSdfTbl.isRscSignificant = repmat(signif,size(tempSatSdfTbl,1),1);
             tempSatSdfTbl.unitArea = repmat({unitArea},size(tempSatSdfTbl,1),1);
-            satSdfsTbl = [satSdfsTbl;tempSatSdfTbl];            
+            satSdfsTbl = [satSdfsTbl;tempSatSdfTbl];
         end
         fprintf('Done!\n');
     end
@@ -81,27 +81,27 @@ for sig = 1:numel(isSignifs)
             tempTbl = table();
             for ep = 1:numel(epochs)
                 epoch = epochs{ep};
-
+                
                 % Filter used for finding significant pairs
                 tempTbl.filterOutcome = {filter.outcome};
                 tempTbl.filterEpoch = {filter.epoch};
                 tempTbl.filterPval = {filter.pval};
-                % 
+                %
                 tempTbl.unitArea = {unitArea};
                 tempTbl.unitNums = {satSdfsTbl.unitNum(idx)};
                 tempTbl.numUnits = numel(tempTbl.unitNums{1});
                 tempTbl.isRscSignificant = signif;
-                tempTbl.satCondition = {satCondition};                
+                tempTbl.satCondition = {satCondition};
                 tempTbl.frBaseline =  {satSdfsTbl.frBaseline(idx)};
-                tempTbl.frMaxAllConditionsEpochs = {satSdfsTbl.frMaxAllConditionsEpochs(idx)};       
+                tempTbl.frMaxAllConditionsEpochs = {satSdfsTbl.frMaxAllConditionsEpochs(idx)};
                 tempTbl.([epoch 'AlignedEvent']) = satSdfsTbl.([epoch 'AlignedEvent'])(idx(1));
                 tempTbl.([epoch 'TimeMs']) = satSdfsTbl.([epoch 'TimeMs'])(idx(1));
                 tempTbl.([epoch 'SatSdfMean']) = {cat(1,satSdfsTbl.([epoch 'SatSdfMean']){idx})};
                 tempTbl.([epoch 'SatSdfNormalized']) = {cat(1,satSdfsTbl.([epoch 'SatSdfNormalized']){idx})};
-           
+                
             end
             % Add row for condition
-            satSdfsImageTbl = [satSdfsImageTbl;tempTbl];            
+            satSdfsImageTbl = [satSdfsImageTbl;tempTbl];
         end
         fprintf('Done!\n');
     end
@@ -138,12 +138,21 @@ for sig = 1:numel(isSignifs)
                     set(H_plots(plotNo),'Visible','off');
                     continue;
                 end
-                tempSdf = satSdfsImageTbl(idx,:);
                 % get the SDFs and related information for plot
+                tempSdf = satSdfsImageTbl(idx,:);
                 sdfImg = tempSdf.([epoch 'SatSdfNormalized']){1};
                 timeMs = tempSdf.([epoch 'TimeMs']){1};
                 yLabel = unitArea;
                 showImage(H_plots(plotNo),sdfImg,timeMs,epoch,alignedEvent,unitArea);
+                
+                % set xticklabel of this plot if exists
+                if ar>1
+                    set(H_plots(plotNo-1),'XTickLabel',{});
+                    delete(get(H_plots(plotNo-1),'XLabel'));
+                    %delete title from current plot
+                    delete(get(H_plots(plotNo),'Title'));
+                end
+                
             end % for each area SEF,FEF,SC...
         end % for each SAT condition Fast, Accurate
     end % for each epoch Visual, PostSaccade, PostReward
@@ -151,8 +160,8 @@ end % for each significance level 1=isSignificant, 0=isNotSignificant
 % Cleanup labels and ticks for the 6 by 3 and another 6 by 3 set of plots
 pltNos = reshape(1:36,6,6);
 % no title except for rows 1 and 4
-pltIdx = pltNos([2,3,5,6],:);
-arrayfun(@(x) delete(get(H_plots(x),'Title')),pltIdx);
+%pltIdx = pltNos([2,3,5,6],:);
+%arrayfun(@(x) delete(get(H_plots(x),'Title')),pltIdx);
 % No YLabels for all except for 1 and 4 columns
 pltIdx = pltNos(:,[2,3,5,6]);
 arrayfun(@(x) delete(get(H_plots(x),'YLabel')),pltIdx);
@@ -185,9 +194,8 @@ function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
     set(gca,'YTickLabel',{});
     set(get(gca,'XLabel'),'String',sprintf('Time from %s (ms)',alignedEvent)) ;
     set(gca,'XTick', xTickLoc);
-    set(gca,'XTickLabel', xTickLabel); 
+    set(gca,'XTickLabel', xTickLabel);
     set(gca,'XMinorGrid','on');
-
 end
 
 function [sigNonSigUnits] = getUnitNums(unitsTbl,epoch,outcome,pval)
@@ -210,9 +218,9 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
     % Compute mean SDFs for all conditions
     satConds = unique(sdfs.satCondition);
     epochs = {'Visual','PostSaccade','PostReward'};
-    satSdfsTbl = table();    
+    satSdfsTbl = table();
     for sc = 1:numel(satConds)
-        tempSatSdfTbl = table();   
+        tempSatSdfTbl = table();
         satCondition = satConds{sc};
         tempSatSdfTbl.unitNum = unitNum;
         tempSatSdfTbl.satCondition = {satCondition};
@@ -224,12 +232,12 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
             tempSatSdfTbl.([epoch 'AlignedEvent']) = sdfs.([epoch '_alignedEvent'])(1);
             tempSatSdfTbl.([epoch 'TimeMs']) = {sdfs.([epoch '_timeMs']){1}};
             tempSatSdfTbl.([epoch 'SatSdfMean']) = {meanSatSdf};
-        end  
+        end
         satSdfsTbl = [satSdfsTbl;tempSatSdfTbl]; %#ok<*AGROW>
     end
-    %% Normalize SDFs by computing as follows 
+    %% Normalize SDFs by computing as follows
     % (1) frBl min(mean fr in baselineWin for Visual epoch for SAT)
-    % (2) fxMax max(max(mean fr for conds SAT [F/A] by [V,PS,PR])) 
+    % (2) fxMax max(max(mean fr for conds SAT [F/A] by [V,PS,PR]))
     nRows = size(satSdfsTbl,1);
     baselineWin = [-400 200];
     blIdx = find(tsV==baselineWin(1)):find(tsV==baselineWin(2));
@@ -239,7 +247,7 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
     frPr = satSdfsTbl.PostRewardSatSdfMean;
     % (1) frBl min(mean fr in baselineWin for Visual epoch for SAT)
     frBl = min(cellfun(@(x) mean(x(blIdx)),frV));
-    % (2) fxMax max(max(mean fr for conds SAT [F/A] by [V,PS,PR])) 
+    % (2) fxMax max(max(mean fr for conds SAT [F/A] by [V,PS,PR]))
     frMax = max(cellfun(@max,[frV;frPs;frPr]));
     % Add baseline Fr and max Fr to output table
     satSdfsTbl.frBaseline = repmat(frBl,nRows,1);
@@ -252,7 +260,7 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
     satSdfsTbl.PostSaccadeSatSdfNormalized = cellfun(@(x)(x-frBl)./(frMax-frBl),frPs,'UniformOutput',false);
     %PostReward
     satSdfsTbl.PostRewardSatSdfNormalized = cellfun(@(x)(x-frBl)./(frMax-frBl),frPr,'UniformOutput',false);
-     
+
 end
 
 % Get figure template
