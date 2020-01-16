@@ -1,3 +1,5 @@
+function [satSdfsTbl, satSdfsImageTbl] = plotSatSdfsHeatmapByArea(unitsTbl,useOutcome,useEpoch,usePval)
+
 %% Jan 06, 2020
 % 2.       What types of neurons contribute to significant r_sc at any point during the trial?
 %   a.       Summary plot with SDFs of all such neurons in SEF.
@@ -15,12 +17,6 @@
 %%
 outputPdfDir = 'dataProcessed/analysis/spkCorr/summary/sdfHeatmaps';
 
-unitsTbl = categorizeUnitsByRscSignif();
-% Filter criteria used to categorize units by Rsc
-filterEpochs = unique(unitsTbl.filter_Epoch);
-filterOutcomes = unique(unitsTbl.filter_Outcome);
-filterPval = unique(unitsTbl.filter_Pval);
-
 satSdfDir = 'dataProcessed/dataset/satSdfs';
 
 %% Use results from:
@@ -28,11 +24,14 @@ parpoolSize = 0;
 if ~isempty(gcp('nocreate'))
     parpoolSize = Inf;
 end
-filter.epoch = 'PostSaccade';
-filter.outcome = 'Correct';
-filter.pval = 0.05;
+useFilter.epoch = useEpoch; %'PostSaccade';
+useFilter.outcome = useOutcome; %'Correct';
+useFilter.pval = usePval; %0.05;
 
-currUnitsByArea = getUnitNums(unitsTbl,filter.epoch,filter.outcome,filter.pval);
+fprintf('Doing plotSatSdfsHeatmapByArea for outcome = %s, epoch = %s, and pval <= %0.02f\n',...
+        useFilter.outcome,useFilter.epoch,useFilter.pval)
+
+currUnitsByArea = getUnitNums(unitsTbl,useFilter.epoch,useFilter.outcome,useFilter.pval);
 unitAreas = {'SEF','FEF','SC'}; % sameArea_SEF_X, sameArea_SEF_Y
 satSdfsTbl = table();
 isSignifs = [1 0];
@@ -86,9 +85,9 @@ for sig = 1:numel(isSignifs)
                 epoch = epochs{ep};
                 
                 % Filter used for finding significant pairs
-                tempTbl.filterOutcome = {filter.outcome};
-                tempTbl.filterEpoch = {filter.epoch};
-                tempTbl.filterPval = {filter.pval};
+                tempTbl.filterOutcome = {useFilter.outcome};
+                tempTbl.filterEpoch = {useFilter.epoch};
+                tempTbl.filterPval = {useFilter.pval};
                 %
                 tempTbl.unitArea = {unitArea};
                 tempTbl.unitNums = {satSdfsTbl.unitNum(idx)};
@@ -146,7 +145,7 @@ for sig = 1:numel(isSignifs)
                     set(H_plots(plotNo),'XColor',[1 1 1],'YColor',[1 1 1],'YTickLabel',{});
                     h = get(H_plots(plotNo),'YLabel');
                     set(h,'String',{sprintf('%s ',unitArea),sprintf('[%d] ',0)});
-                    set(h,'Rotation',0,'FontWeight','bold','HorizontalAlignment','right');                   
+                    set(h,'Rotation',0,'FontWeight','bold','HorizontalAlignment','right');
                     set(h,'Color','k');
                     continue;
                 end
@@ -165,8 +164,8 @@ for sig = 1:numel(isSignifs)
                     delete(get(H_plots(plotNo),'Title'));
                 end
                 % Annotate SAT condition
-                if annotateSat 
-                    str = upper(satCondition);                    
+                if annotateSat
+                    str = upper(satCondition);
                     clr = fClr;
                     pos = [0.01 0.91 0.3 0.04];
                     if sc == 2
@@ -178,7 +177,7 @@ for sig = 1:numel(isSignifs)
                     end
                     h_a = annotation('textbox','String',str,'FontSize',18,'FontWeight','bold',...
                         'Color',clr,'Position',pos,'LineStyle','none');
-                    annotateSat = 0;                                        
+                    annotateSat = 0;
                 end
                 % Annotate Significant vs non-significant for the top row
                 if annotateSignif
@@ -203,26 +202,27 @@ pltNos = reshape(1:36,6,6);
 pltIdx = pltNos(:,[2,3,5,6]);
 arrayfun(@(x) delete(get(H_plots(x),'YLabel')),pltIdx);
 % Add figure annotation
-oName = sprintf('sdfsHeatmap_%s_%s_%s.pdf',filter.outcome,filter.epoch,num2str(filter.pval*100,'Pval_%02d'));
+oName = sprintf('sdfsHeatmap_%s_%s_%s.pdf',useFilter.outcome,useFilter.epoch,num2str(useFilter.pval*100,'Pval_%02d'));
 figTitle = 'Heatmap of normalized SDFs for all units';
 filterTitle = sprintf('Spike count corr. filtered for [%s, %s, and pval <= %s]',...
-                       filter.outcome,filter.epoch,num2str(filter.pval,'%0.02f')); 
+    useFilter.outcome,useFilter.epoch,num2str(useFilter.pval,'%0.02f'));
 strs = {oName,figTitle,filterTitle};
 
-H1 = annotation('textbox','Position',[0.01 0.96 0.98 0.03],'String',strs{1},...
-               'FontSize',16,'FontWeight','bold','LineStyle','none','Interpreter','none',...
-           'Color',[0.5 0.5 0.5],'FontAngle','italic');
-H2 = annotation('textbox','Position',[0.32 0.97 0.98 0.03],'String',strs{2},...
-               'FontSize',18,'FontWeight','bold','LineStyle','none','Interpreter','none',...
-           'Color','k');
-H3 = annotation('textbox','Position',[0.6 0.96 0.98 0.03],'String',strs{3},...
-               'FontSize',16,'FontWeight','bold','LineStyle','none','Interpreter','none',...
-           'Color',[0.5 0.5 0.5]);
+annotation('textbox','Position',[0.01 0.96 0.98 0.03],'String',strs{1},...
+    'FontSize',16,'FontWeight','bold','LineStyle','none','Interpreter','none',...
+    'Color',[0.5 0.5 0.5],'FontAngle','italic');
+annotation('textbox','Position',[0.32 0.97 0.98 0.03],'String',strs{2},...
+    'FontSize',18,'FontWeight','bold','LineStyle','none','Interpreter','none',...
+    'Color','k');
+annotation('textbox','Position',[0.6 0.96 0.98 0.03],'String',strs{3},...
+    'FontSize',16,'FontWeight','bold','LineStyle','none','Interpreter','none',...
+    'Color',[0.5 0.5 0.5]);
 % save pdfFile:
 saveFigPdf(oName);
 
-       
-%% explore
+end
+
+
 
 %% Other functions
 function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
@@ -309,7 +309,7 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
     frMax = max(cellfun(@max,[frV;frPs;frPr]));
     % Add baseline Fr and max Fr to output table
     satSdfsTbl.frBaseline = repmat(frBl,nRows,1);
-    satSdfsTbl.frMaxAllConditionsEpochs = repmat(frBl,nRows,1);
+    satSdfsTbl.frMaxAllConditionsEpochs = repmat(frMax,nRows,1);
     % Compute and add Normalized sdf for SAT: normalization =
     % (frVector-BaselineFr)/(maxFr-BaselineFr)
     % Visual
