@@ -108,6 +108,13 @@ for sig = 1:numel(isSignifs)
         fprintf('Done!\n');
     end
 end
+%% add Sorting order of units column
+visStartWin = find(satSdfsImageTbl.VisualTimeMs{1}==0);
+visEndWin = visStartWin + 300;
+[temp,satSdfsImageTbl.VisualSortOrder] = cellfun(@(x) sortSdfsMat(x,visStartWin,visEndWin),...
+    satSdfsImageTbl.VisualSatSdfNormalized,'UniformOutput',false);
+
+
 %% Show satSdfsImageTbl
 % use satSdfsImageTbl
 
@@ -154,6 +161,9 @@ for sig = 1:numel(isSignifs)
                 sdfImg = tempSdf.([epoch 'SatSdfNormalized']){1};
                 timeMs = tempSdf.([epoch 'TimeMs']){1};
                 yLabel = unitArea;
+                sortOrder = tempSdf.VisualSortOrder{1};
+                sdfImg = sdfImg(sortOrder,:);
+                
                 showImage(H_plots(plotNo),sdfImg,timeMs,epoch,alignedEvent,unitArea);
                 
                 % set xticklabel of this plot if exists
@@ -220,6 +230,8 @@ annotation('textbox','Position',[0.6 0.96 0.98 0.03],'String',strs{3},...
 % save pdfFile:
 saveFigPdf(oName);
 
+delete(H_Figure);
+
 end
 
 
@@ -227,7 +239,6 @@ end
 %% Other functions
 function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
     axes(H_axis);
-    yMax = size(sdfImg,1);
     % show image
     hImg = imagesc(sdfImg);
     % row 1 = top of image, ie the SDF of sdfImg(1,:)
@@ -243,6 +254,7 @@ function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
     % Tick location for 0 ms (align Event time)
     x0Loc = xTickLoc(xTickLabel==0);
     % add zero line
+    yMax = size(sdfImg,1);
     line([x0Loc x0Loc],[0 yMax+1],'Color','k');
     % Labels etc
     title(epoch);
