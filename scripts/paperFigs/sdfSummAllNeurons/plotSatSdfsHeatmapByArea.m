@@ -111,9 +111,8 @@ end
 %% add Sorting order of units column
 visStartWin = find(satSdfsImageTbl.VisualTimeMs{1}==0);
 visEndWin = visStartWin + 300;
-[temp,satSdfsImageTbl.VisualSortOrder] = cellfun(@(x) sortSdfsMat(x,visStartWin,visEndWin),...
+[~,satSdfsImageTbl.VisualSortOrder] = cellfun(@(x) sortSdfsMat(x,visStartWin,visEndWin),...
     satSdfsImageTbl.VisualSatSdfNormalized,'UniformOutput',false);
-
 
 %% Show satSdfsImageTbl
 % use satSdfsImageTbl
@@ -160,12 +159,9 @@ for sig = 1:numel(isSignifs)
                 tempSdf = satSdfsImageTbl(idx,:);
                 sdfImg = tempSdf.([epoch 'SatSdfNormalized']){1};
                 timeMs = tempSdf.([epoch 'TimeMs']){1};
-                yLabel = unitArea;
                 sortOrder = tempSdf.VisualSortOrder{1};
                 sdfImg = sdfImg(sortOrder,:);
-                
-                showImage(H_plots(plotNo),sdfImg,timeMs,epoch,alignedEvent,unitArea);
-                
+                showImage(H_plots(plotNo),sdfImg,timeMs,epoch,alignedEvent,unitArea);                
                 % set xticklabel of this plot if exists
                 if ar>1
                     set(H_plots(plotNo-1),'XTickLabel',{});
@@ -185,7 +181,7 @@ for sig = 1:numel(isSignifs)
                     if sig == 2
                         pos(1) = 0.501;
                     end
-                    h_a = annotation('textbox','String',str,'FontSize',18,'FontWeight','bold',...
+                    annotation('textbox','String',str,'FontSize',18,'FontWeight','bold',...
                         'Color',clr,'Position',pos,'LineStyle','none');
                     annotateSat = 0;
                 end
@@ -197,7 +193,7 @@ for sig = 1:numel(isSignifs)
                         str = upper('Non significant Units');
                         pos = [0.65 0.925 0.3 0.04];
                     end
-                    h_a = annotation('textbox','String',str,'FontSize',14,'FontWeight','bold',...
+                    annotation('textbox','String',str,'FontSize',14,'FontWeight','bold',...
                         'Position',pos,'LineStyle','none','HorizontalAlignment','center');
                     annotateSignif = 0;
                 end
@@ -213,7 +209,7 @@ pltIdx = pltNos(:,[2,3,5,6]);
 arrayfun(@(x) delete(get(H_plots(x),'YLabel')),pltIdx);
 % Add colorbar to plot 14 (2nd row 3 rd plot)
 c_pos = [0.485 0.7 0.01 0.15];
-h_c = colorbar(H_plots(14),'Position',c_pos,'Limits',[-1 1]);
+colorbar(H_plots(14),'Position',c_pos,'Limits',[-1 1]);
 
 % Add figure annotation
 oName = sprintf('sdfsHeatmap_%s_%s_%s.pdf',useFilter.outcome,useFilter.epoch,num2str(useFilter.pval*100,'Pval_%02d'));
@@ -223,17 +219,16 @@ filterTitle = sprintf('Spike count corr. filtered for [%s, %s, and pval <= %s]',
 strs = {oName,figTitle,filterTitle};
 
 annotation('textbox','Position',[0.01 0.96 0.98 0.03],'String',strs{1},...
-    'FontSize',15,'FontWeight','bold','LineStyle','none','Interpreter','none',...
+    'FontSize',13,'FontWeight','bold','LineStyle','none','Interpreter','none',...
     'Color',[0.5 0.5 0.5],'FontAngle','italic');
-annotation('textbox','Position',[0.32 0.97 0.98 0.03],'String',strs{2},...
-    'FontSize',17,'FontWeight','bold','LineStyle','none','Interpreter','none',...
-    'Color','k');
-annotation('textbox','Position',[0.6 0.96 0.98 0.03],'String',strs{3},...
+annotation('textbox','Position',[0.31 0.97 0.98 0.03],'String',strs{2},...
     'FontSize',15,'FontWeight','bold','LineStyle','none','Interpreter','none',...
+    'Color','k');
+annotation('textbox','Position',[0.58 0.96 0.98 0.03],'String',strs{3},...
+    'FontSize',13,'FontWeight','bold','LineStyle','none','Interpreter','none',...
     'Color',[0.5 0.5 0.5]);
 % save pdfFile:
 saveFigPdf(oName);
-
 delete(H_Figure);
 
 end
@@ -244,7 +239,7 @@ end
 function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
     axes(H_axis);
     % show image
-    hImg = imagesc(sdfImg);
+    imagesc(sdfImg);
     % row 1 = top of image, ie the SDF of sdfImg(1,:)
     set(gca,'YDir','reverse');
     xTickLabel = unique([0:-200:min(timeMs) 0:200:max(timeMs)]);
@@ -304,7 +299,7 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
             epoch = epochs{ep};
             meanSatSdf = mean(cat(1,sdfs.([epoch '_sdfByTrial']){idxSatCond}),1);
             tempSatSdfTbl.([epoch 'AlignedEvent']) = sdfs.([epoch '_alignedEvent'])(1);
-            tempSatSdfTbl.([epoch 'TimeMs']) = {sdfs.([epoch '_timeMs']){1}};
+            tempSatSdfTbl.([epoch 'TimeMs']) = {sdfs.([epoch '_timeMs']){1}}; %#ok<CCAT1>
             tempSatSdfTbl.([epoch 'SatSdfMean']) = {meanSatSdf};
         end
         satSdfsTbl = [satSdfsTbl;tempSatSdfTbl]; %#ok<*AGROW>
