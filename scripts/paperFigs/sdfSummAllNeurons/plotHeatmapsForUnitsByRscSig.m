@@ -17,9 +17,9 @@
 categorizedUnitsTbl = categorizeUnitsByRscSignif();
 
 % Filter criteria that can be used to categorize units by Rsc
-filterEpochs = unique(categorizedUnitsTbl.filter_Epoch);
-filterOutcomes = unique(categorizedUnitsTbl.filter_Outcome);
-filterPvals = unique(categorizedUnitsTbl.filter_Pval);
+filterEpochs = unique(categorizedUnitsTbl.filter_Epoch); %{'PostSaccade'} ;%
+filterOutcomes = unique(categorizedUnitsTbl.filter_Outcome); %{'Correct'}; %
+filterPvals = unique(categorizedUnitsTbl.filter_Pval); %0.05;%
 
 %% 
 for oc = 1:numel(filterOutcomes)
@@ -36,7 +36,7 @@ end
 
 
 %%
-function [outSdfsSorted,outSortOrder] = sortSdfsMat(inSdfsMat,stWin,enWin)
+function [outSdfsSorted,outSortOrder] = sortSdfsMatPlaceHolder(inSdfsMat,stWin,enWin)
 %% sorting
 %stWin = 601;
 %enWin = stWin + 300;

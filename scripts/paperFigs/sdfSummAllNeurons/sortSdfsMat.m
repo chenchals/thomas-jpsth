@@ -1,25 +1,26 @@
 function [outSdfsSorted,outSortOrder] = sortSdfsMat(inSdfsMat,stWin,enWin)
-%% sorting
-%stWin = 601;
-%enWin = stWin + 300;
-nRows = size(inSdfsMat,1);
+    % [riseMs,durationMs,signOfMaxFr] = arrayfun(@(x) findRiseOf(inSdfsMat(x,stWin:enWin)),(1:nRows)');
+    outSortOrder = orderByHistogramSum(inSdfsMat,stWin,enWin);
+    outSdfsSorted = inSdfsMat(outSortOrder,:);
 
-%% 1st sort by max value
-absMaxIdx = arrayfun(@(x) find(abs(inSdfsMat(x,:))>=max(abs(inSdfsMat(x,:))),1),(1:nRows)');
-maxVals = arrayfun(@(x) inSdfsMat(x,absMaxIdx(x)),(1:nRows)');
-% [maxValsOrd,maxOrd]=sort(maxVals,'descend');
+end
 
-%% second sort by start of vis activity, use Z
-Zv = inSdfsMat(:,stWin:enWin);
-zVTime = arrayfun(@(x) findRiseOf(Zv(x,:))+stWin,(1:nRows)');
-% [zVTimeOrd,zVtimeOrd] = sort(startOfVis,'descend');
 
-%%
-[zMaxVtm,maxTmOrd]= sortrows([maxVals zVTime],[1,2],{'descend','ascend'});
+function [idx] = orderByHistogramSum(inSdfsMat,stWin,enWin)
+    nRows = size(inSdfsMat,1); 
+    ZZ = inSdfsMat(:,stWin:enWin);
+    vecMin = min(ZZ(:));
+    vecMax = max(ZZ(:));
 
-outSortOrder = maxTmOrd;
-outSdfsSorted = inSdfsMat(outSortOrder,:);
+    edges = linspace(vecMin,vecMax,100);
+    d = unique(diff(edges));
+    binC = edges(1:end-1)+d(1);
 
+    [hCounts] = arrayfun(@(x) histcounts(inSdfsMat(x,stWin:enWin),edges),(1:nRows)','UniformOutput',false);
+    hCounts = cell2mat(hCounts);
+    hCountsB = sum(hCounts.*repmat(binC,size(hCounts,1),1),2);
+
+    [~,idx]=sort(hCountsB,'descend');
 end
 
 function [idx] = findRiseOf(vec)
