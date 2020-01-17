@@ -238,8 +238,9 @@ end
 %% Other functions
 function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
     axes(H_axis);
+    CLims = [-1 1];
     % show image
-    imagesc(sdfImg);
+    imagesc(sdfImg,CLims);
     % row 1 = top of image, ie the SDF of sdfImg(1,:)
     set(gca,'YDir','reverse');
     xTickLabel = unique([0:-200:min(timeMs) 0:200:max(timeMs)]);

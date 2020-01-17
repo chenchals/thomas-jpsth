@@ -1,4 +1,4 @@
-function [anovaResults] = satAnova(valsGroupsTbl)
+function [anovaResults] = satAnova(valsGroupsTbl,anoveModelName,doMultCompareFlag,alpha)
 %SATANOVA Do a multiway anova for the given table of inputs
 %   Column1 = Y-Values numeric
 %   Columns (2 to end) = groups/factors over which the anonan is run
@@ -6,8 +6,9 @@ function [anovaResults] = satAnova(valsGroupsTbl)
 % ***Note: dont use "factor" *** --> Its is a matlab funtion for primes  doc FACTOR
 % see also ANOVAN, MULTCOMPARE
 
-model_Anova = 'linear'; %'interaction'
-performMultCompare = true;
+%anoveModelName = 'linear'; %'interaction'
+%doMultCompareFlag = true;
+
 anovaDisplay = 'off'; %'on'
 
 yVals = valsGroupsTbl{:,1};
@@ -26,27 +27,27 @@ end
 anovaResults = struct();
 anovaTblVarNames = {'Source', 'SumSq' 'df' 'IsSingular' 'MeanSq' 'F'  'ProbGtF'};
 
-[~,temp,anovaStats] = anovan(yVals,groups,'model',model_Anova,'varnames',groupNames, 'display',anovaDisplay);
+[~,temp,anovaStats] = anovan(yVals,groups,'model',anoveModelName,'varnames',groupNames, 'display',anovaDisplay);
 anovaResults.anovaTbl = cell2table(temp(2:end,:),'VariableNames',anovaTblVarNames);
 
 % Compare results for different LEVELS *WITHIN* each group/Factor independently 
 % for bonferroni use 'CType', ... see doc multcompare
-if (performMultCompare)
-for gr = 1:numel(groupNames)   
-    [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',gr,'Alpha',0.05);
-    anovaResults.(groupNames{gr}) = annotateMultcompareResults(temp,grpNames);
-end
-
-% Compare results for different LEVEL combinations *ACROSS* each group/Factor independently
-  nWays = 2;
-  n2GrpComparisions = combnk(1:numel(groupNames),nWays);
-
-  for jj = 1:size(n2GrpComparisions,1)
-      idx = n2GrpComparisions(jj,:);
-      fn = char(join(groupNames(idx),'_'));
-      [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',idx,'Alpha',0.05);
-      anovaResults.(fn) = annotateMultcompareResults(temp,grpNames);
-  end
+if (doMultCompareFlag)
+    for gr = 1:numel(groupNames)
+        [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',gr,'Alpha',alpha);
+        anovaResults.(groupNames{gr}) = annotateMultcompareResults(temp,grpNames);
+    end
+    
+    % Compare results for different LEVEL combinations *ACROSS* each group/Factor independently
+    nWays = 2;
+    n2GrpComparisions = combnk(1:numel(groupNames),nWays);
+    
+    for jj = 1:size(n2GrpComparisions,1)
+        idx = n2GrpComparisions(jj,:);
+        fn = char(join(groupNames(idx),'_'));
+        [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',idx,'Alpha',alpha);
+        anovaResults.(fn) = annotateMultcompareResults(temp,grpNames);
+    end
 end
 
 %% If there are 3 groups also do a 3 way comparision
@@ -57,7 +58,7 @@ if numel(groupNames) > 2
     for jj = 1:size(n3GrpComparisions,1)
         idx = n3GrpComparisions(jj,:);
         fn = char(join(groupNames(idx),'_'));
-        [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',idx,'Alpha',0.05);
+        [temp,~,~,grpNames] = multcompare(anovaStats,'Dimension',idx,'Alpha',alpha);
         anovaResults.(fn) = annotateMultcompareResults(temp,grpNames);
     end
 end
