@@ -71,6 +71,7 @@ for sig = 1:numel(isSignifs)
         unitArea = unitAreas{ar};
         fprintf('Aggregating SDFs for heatmap area %s...',unitArea);
         idxAr = ismember(satSdfsTbl.unitArea,unitArea);
+        unitsSortOrder = [];
         for sc = 1:numel(satConds)
             satCondition = satConds{sc};
             idxSat = ismember(satSdfsTbl.satCondition,satCondition);
@@ -82,8 +83,7 @@ for sig = 1:numel(isSignifs)
             fprintf('[%d units...]',numel(idx));
             tempTbl = table();
             for ep = 1:numel(epochs)
-                epoch = epochs{ep};
-                
+                epoch = epochs{ep};                
                 % Filter used for finding significant pairs
                 tempTbl.filterOutcome = {useFilter.outcome};
                 tempTbl.filterEpoch = {useFilter.epoch};
@@ -99,8 +99,17 @@ for sig = 1:numel(isSignifs)
                 tempTbl.([epoch 'AlignedEvent']) = satSdfsTbl.([epoch 'AlignedEvent'])(idx(1));
                 tempTbl.([epoch 'TimeMs']) = satSdfsTbl.([epoch 'TimeMs'])(idx(1));
                 tempTbl.([epoch 'SatSdfMean']) = {cat(1,satSdfsTbl.([epoch 'SatSdfMean']){idx})};
-                tempTbl.([epoch 'SatSdfNormalized']) = {cat(1,satSdfsTbl.([epoch 'SatSdfNormalized']){idx})};
+                tempTbl.([epoch 'SatSdfNormalized']) = {cat(1,satSdfsTbl.([epoch 'SatSdfNormalized']){idx})}; 
                 
+                % add a UnitSortOrderByVisual for Visual epoch
+                if strcmp(epoch,'Visual')
+                    if sc == 1 % use only one SAT condition for sorting
+                        visStartWin = find(tempTbl.VisualTimeMs{1}==0);
+                        visEndWin = visStartWin + 300;
+                        [~, unitsSortOrder] = sortSdfsMat(tempTbl.VisualSatSdfNormalized{1},visStartWin,visEndWin);
+                    end
+                    tempTbl.VisualSortOrderForUnits = {unitsSortOrder};
+                end
             end
             % Add row for condition
             satSdfsImageTbl = [satSdfsImageTbl;tempTbl];
@@ -108,15 +117,9 @@ for sig = 1:numel(isSignifs)
         fprintf('Done!\n');
     end
 end
-%% add Sorting order of units column
-visStartWin = find(satSdfsImageTbl.VisualTimeMs{1}==0);
-visEndWin = visStartWin + 300;
-[~,satSdfsImageTbl.VisualSortOrder] = cellfun(@(x) sortSdfsMat(x,visStartWin,visEndWin),...
-    satSdfsImageTbl.VisualSatSdfNormalized,'UniformOutput',false);
 
 %% Show satSdfsImageTbl
 % use satSdfsImageTbl
-
 [H_plots,H_Figure] = getPlotHandles();
 fClr = [0 0.7 0];
 aClr = [1 0 0];
@@ -159,7 +162,7 @@ for sig = 1:numel(isSignifs)
                 tempSdf = satSdfsImageTbl(idx,:);
                 sdfImg = tempSdf.([epoch 'SatSdfNormalized']){1};
                 timeMs = tempSdf.([epoch 'TimeMs']){1};
-                sortOrder = tempSdf.VisualSortOrder{1};
+                sortOrder = tempSdf.VisualSortOrderForUnits{1};
                 sdfImg = sdfImg(sortOrder,:);
                 showImage(H_plots(plotNo),sdfImg,timeMs,epoch,alignedEvent,unitArea);                
                 % set xticklabel of this plot if exists
@@ -232,8 +235,6 @@ saveFigPdf(oName);
 delete(H_Figure);
 
 end
-
-
 
 %% Other functions
 function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
