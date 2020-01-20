@@ -1,11 +1,38 @@
-
+%% Data setup
 inSdfsMat = satSdfsImageTbl.Correct_PostSaccade_005.VisualSatSdfNormalized{1};
 inSdfsTs = satSdfsImageTbl.Correct_PostSaccade_005.VisualTimeMs{1};
 
-stWin = 701;
+stWin = 601;
 enWin = stWin + 300;
 nRows = size(inSdfsMat,1);
 
+%% Current method
+[out1,outSort1] = sortSdfsMat(inSdfsMat,stWin,enWin);
+
+imagesc(out1,[-1 1])
+
+
+
+%% test Amir's method:
+%[SigModTime, ModTime] = detectModulation(diffFunc, Mean_BaseLine, SD_BaseLine, CP1, CP2, Cdur1, Cdur2, continuityFiller);
+
+
+for ii = 1:nRows
+    frbl = 0;
+    stdBl = 0.2;
+    diffFunc = inSdfsMat(ii,:);
+    CP1 = 2;
+    CP2 = 3;
+    Cdur1 = 50;
+    Cdur2 = 50;
+    continuityFiller = 20;
+    
+    [SigModTime, ModTime] = detectModulation(diffFunc, frBl, stdBl, CP1, CP2, Cdur1, Cdur2, continuityFiller);
+
+end
+
+
+%% Testing different sorts 
 %% 1st sort by max value
 absMaxIdx = arrayfun(@(x) find(abs(inSdfsMat(x,:))>=max(abs(inSdfsMat(x,:))),1),(1:nRows)');
 maxVals = arrayfun(@(x) inSdfsMat(x,absMaxIdx(x)),(1:nRows)');

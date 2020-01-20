@@ -95,6 +95,7 @@ for sig = 1:numel(isSignifs)
                 tempTbl.isRscSignificant = signif;
                 tempTbl.satCondition = {satCondition};
                 tempTbl.frBaseline =  {satSdfsTbl.frBaseline(idx)};
+                tempTbl.frBaselineStd =  {satSdfsTbl.frBaselineStd(idx)};
                 tempTbl.frMaxAllConditionsEpochs = {satSdfsTbl.frMaxAllConditionsEpochs(idx)};
                 tempTbl.([epoch 'AlignedEvent']) = satSdfsTbl.([epoch 'AlignedEvent'])(idx(1));
                 tempTbl.([epoch 'TimeMs']) = satSdfsTbl.([epoch 'TimeMs'])(idx(1));
@@ -318,10 +319,12 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
     frPr = satSdfsTbl.PostRewardSatSdfMean;
     % (1) frBl min(mean fr in baselineWin for Visual epoch for SAT)
     frBl = min(cellfun(@(x) mean(x(blIdx)),frV));
+    frBlStd = mean(cellfun(@(x) std(x(blIdx)),frV));
     % (2) fxMax max(max(mean fr for conds SAT [F/A] by [V,PS,PR]))
     frMax = max(cellfun(@max,[frV;frPs;frPr]));
     % Add baseline Fr and max Fr to output table
     satSdfsTbl.frBaseline = repmat(frBl,nRows,1);
+    satSdfsTbl.frBaselineStd = repmat(frBlStd,nRows,1);
     satSdfsTbl.frMaxAllConditionsEpochs = repmat(frMax,nRows,1);
     % Compute and add Normalized sdf for SAT: normalization =
     % (frVector-BaselineFr)/(maxFr-BaselineFr)

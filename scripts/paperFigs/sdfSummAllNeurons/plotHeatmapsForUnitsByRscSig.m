@@ -17,9 +17,9 @@
 categorizedUnitsTbl = categorizeUnitsByRscSignif();
 
 % Filter criteria that can be used to categorize units by Rsc
-filterEpochs = unique(categorizedUnitsTbl.filter_Epoch); %{'PostSaccade'} ;%
-filterOutcomes = unique(categorizedUnitsTbl.filter_Outcome); %{'Correct'}; %
-filterPvals = unique(categorizedUnitsTbl.filter_Pval); %0.05;%
+filterEpochs = {'PostSaccade'} ;%unique(categorizedUnitsTbl.filter_Epoch); %{'PostSaccade'} ;%
+filterOutcomes = {'Correct'}; %unique(categorizedUnitsTbl.filter_Outcome); %{'Correct'}; %
+filterPvals = 0.05;%unique(categorizedUnitsTbl.filter_Pval); %0.05;%
 
 %% 
 for oc = 1:numel(filterOutcomes)
