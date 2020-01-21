@@ -311,7 +311,7 @@ function [satSdfsTbl] = getNormalizedSdf(satSdfDir,unitNum)
     % (1) frBl min(mean fr in baselineWin for Visual epoch for SAT)
     % (2) fxMax max(max(mean fr for conds SAT [F/A] by [V,PS,PR]))
     nRows = size(satSdfsTbl,1);
-    baselineWin = [-400 200];
+    baselineWin = [-400 -200];
     blIdx = find(tsV==baselineWin(1)):find(tsV==baselineWin(2));
     % get mean SDFs by SAT for 3 epochs
     frV = satSdfsTbl.VisualSatSdfMean;
