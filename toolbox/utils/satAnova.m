@@ -28,8 +28,20 @@ anovaResults = struct();
 anovaTblVarNames = {'Source', 'SumSq' 'df' 'IsSingular' 'MeanSq' 'F'  'ProbGtF'};
 
 [~,temp,anovaStats] = anovan(yVals,groups,'model',anoveModelName,'varnames',groupNames, 'display',anovaDisplay);
-anovaResults.anovaTbl = cell2table(temp(2:end,:),'VariableNames',anovaTblVarNames);
-
+anovaTbl = cell2table(temp(2:end,:),'VariableNames',anovaTblVarNames);
+% add '*' p(F >= .05) and '**' p(F >=  .01)
+idx = find(~ismember(anovaTbl.Source,{'Error','Total'}));
+for jj = 1:numel(idx)
+    str = '';
+    probGtF = anovaTbl.ProbGtF{jj};
+    if probGtF <= 0.01
+        str = '**';
+    elseif probGtF<=0.05
+        str = '*';
+    end
+    anovaTbl.signifStr{jj} = str;
+end
+anovaResults.anovaTbl = anovaTbl;
 % Compare results for different LEVELS *WITHIN* each group/Factor independently 
 % for bonferroni use 'CType', ... see doc multcompare
 if (doMultCompareFlag)
