@@ -19,7 +19,7 @@ for p = 1:numel(plotDirs)
         mkdir(plotDirs{p})
     end
 end
-
+%%
 tic
 for d = 1:numel(corrDirs)
     scFiles = dir([corrDirs{d},'/spkCorr*.mat']);
