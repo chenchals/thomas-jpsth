@@ -386,9 +386,9 @@ end
 
 %%
 function [] = annotateErrorRewardGrade(cellPairInfo)
-    fs = 8;
+    fs = 6;
     if ismac
-        fs = 10;
+        fs = 8;
     end
     errorRewardlabel1 ={
         sprintf('%15s ','Unit')
@@ -480,11 +480,11 @@ end
 
 function addAnnotations(pairUid,pdfFile,xyAreas,chanStr,rowNames,colNames)
     %
-    fontSize = 18;%24
-    annotation('textbox',[0.02 0.97 0.05 0.03],'String',pairUid,'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    fontSize = 15;%24
+    annotation('textbox',[0.02 0.96 0.05 0.03],'String',pairUid,'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
     [~,fn,ext] = fileparts(pdfFile);
-    annotation('textbox',[0.15 0.97 0.05 0.03],'String',[fn ext],'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
-    annotation('textbox',[0.50 0.97 0.05 0.03],'String',xyAreas,'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    annotation('textbox',[0.15 0.96 0.05 0.03],'String',[fn ext],'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
+    annotation('textbox',[0.50 0.96 0.05 0.03],'String',xyAreas,'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none')
     h = annotation('textbox',[0.60 0.97 0.10 0.03],'String',chanStr,'FontSize',fontSize,'FontWeight','bold','FontAngle','italic','FitBoxToText','on','EdgeColor','none','Interpreter','none');
     if contains(chanStr,'Same')
         set(h,'Color','r');
