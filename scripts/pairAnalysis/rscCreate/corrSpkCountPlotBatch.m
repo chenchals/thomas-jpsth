@@ -12,7 +12,7 @@ corrDirs = {
 %     'dataProcessed/analysis/spkCorr/spkCorr_SC-NSEFN/mat'   
 %     'dataProcessed/analysis/spkCorr/spkCorr_NSEFN-NSEFN/mat'
 %     };
-plotDirs = regexprep(corrDirs,'/mat$','/pdf2');
+plotDirs = regexprep(corrDirs,'/mat$','/pdf2NoWaveform');
 
 for p = 1:numel(plotDirs)
     if ~exist(plotDirs{p},'dir')
@@ -26,7 +26,7 @@ for d = 1:numel(corrDirs)
     scFiles = strcat({scFiles.folder}',filesep,{scFiles.name}');
     pdfDir = plotDirs{d};
     savePdfFlag = 1;
-    for f = 1:1 %numel(scFiles)      
+    for f = 1:numel(scFiles)      
         corrSpkCountPlot(scFiles{f},pdfDir,savePdfFlag);       
     end
 end
