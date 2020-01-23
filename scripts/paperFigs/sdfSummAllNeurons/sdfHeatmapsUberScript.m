@@ -19,4 +19,18 @@ useNormalized = 0; subDirName = 'noFilterMean';
 useNormalized = 1; subDirName = 'noFilterNorm';
 [sdfsNoFilter,sdfsImgsNoFilter] = plotHeatmapsNoFilter(unitsNoFilterTbl,useNormalized,subDirName);
 toc
-%%
+%% filter for Baseline firing rate for SEF and FEF cells
+unitsList = unique([allSpkCorr.X_unitNum;allSpkCorr.Y_unitNum]);
+blFrWin = [-600 0];
+sdfsDir = 'dataProcessed/dataset/satSdfs';
+for un = 1:numel(unitsList)
+   unitNum = unitsList(un);
+   fn = fullfile(sdfsDir,num2str(unitNum,'Unit_%03d.mat'));
+   temp = load(fn,'sdfs');
+   ts = temp.sdfs.Visual_timeMs{1};
+   idx = find(ts>= blFrWin(1) & ts <= blFrWin(2));
+   temp = cat(1,temp.sdfs.Visual_sdfByTrial{:});
+   temp = temp(:,idx);
+   fr = mean(mean(temp));
+   
+end
