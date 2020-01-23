@@ -1,4 +1,4 @@
-
+function [satSdfsTbl,satSdfsImageTbl] = plotHeatmapsNoFilter(categorizedUnitsTbl,useNormalized,subDirName)
 %% Jan 06, 2020
 % 2.       What types of neurons contribute to significant r_sc at any point during the trial?
 %   a.       Summary plot with SDFs of all such neurons in SEF.
@@ -14,12 +14,13 @@
 % Yes, and let?s also implement the color density SDF raster plot so we can see variation across all neurons in given groups
 %
 %% Categorize units by filtering on R_sc significance
-categorizedUnitsTbl = categorizeUnitsByRscSignif();
-
+% categorizedUnitsTbl = categorizeUnitsByRscSignif();
 % Filter criteria that can be used to categorize units by Rsc
 filterEpochs = unique(categorizedUnitsTbl.filter_Epoch); %{'PostSaccade'} ;%
 filterOutcomes = unique(categorizedUnitsTbl.filter_Outcome); %{'Correct'}; %
 filterPvals = unique(categorizedUnitsTbl.filter_Pval); %0.05;%
+%useNormalized = 0;
+%subDirName = 'noFilterMean';
 
 %% 
 for oc = 1:numel(filterOutcomes)
@@ -29,7 +30,12 @@ for oc = 1:numel(filterOutcomes)
         for pv = 1:numel(filterPvals)
             usePval = filterPvals(pv);
             str = sprintf('%s_%s_%s',useOutcome,useEpoch,num2str(usePval*100,'%03d'));
-            [satSdfsTbl.(str),satSdfsImageTbl.(str)] = plotSatSdfsHeatmapByArea(categorizedUnitsTbl,useOutcome,useEpoch,usePval);
+            [satSdfsTbl.(str),satSdfsImageTbl.(str)] = ...
+                plotSatSdfsHeatmapByArea(categorizedUnitsTbl,...
+                                         useOutcome,useEpoch,usePval,...
+                                         useNormalized,subDirName);
         end        
     end
+end
+
 end

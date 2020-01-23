@@ -1,4 +1,4 @@
-function [satSdfsTbl, satSdfsImageTbl] = plotSatSdfsHeatmapByArea(unitsTbl,useOutcome,useEpoch,usePval)
+function [satSdfsTbl, satSdfsImageTbl] = plotSatSdfsHeatmapByArea(unitsTbl,useOutcome,useEpoch,usePval,useNormalized,subDirName)
 
 %% Jan 06, 2020
 % 2.       What types of neurons contribute to significant r_sc at any point during the trial?
@@ -15,8 +15,10 @@ function [satSdfsTbl, satSdfsImageTbl] = plotSatSdfsHeatmapByArea(unitsTbl,useOu
 % Yes, and let?s also implement the color density SDF raster plot so we can see variation across all neurons in given groups
 %
 %%
-outputPdfDir = 'dataProcessed/analysis/spkCorr/summary/sdfHeatmaps';
-
+outputPdfDir = fullfile('dataProcessed/analysis/spkCorr/summary/sdfHeatmaps',subDirName);
+if ~exist(outputPdfDir,'dir')
+    mkdir(outputPdfDir);
+end
 satSdfDir = 'dataProcessed/dataset/satSdfs';
 
 %% Use results from:
@@ -118,6 +120,17 @@ for sig = 1:numel(isSignifs)
         fprintf('Done!\n');
     end
 end
+%% For normalized plots set CLimits
+cLims = [-1 1]; % so as to account for supression
+if ~useNormalized
+    % find grand men and max for all the sdfs across all areas,
+    % epochs,signifs, sat
+    allSdfMats = [satSdfsImageTbl.VisualSatSdfMean;...
+                  satSdfsImageTbl.PostSaccadeSatSdfMean;...
+                  satSdfsImageTbl.PostRewardSatSdfMean];
+    cLims(1) = min(cellfun(@(x) min(min(x)),allSdfMats)); 
+    cLims(2) = max(cellfun(@(x) max(max(x)),allSdfMats)); 
+end
 
 %% Show satSdfsImageTbl
 % use satSdfsImageTbl
@@ -161,11 +174,15 @@ for sig = 1:numel(isSignifs)
                 end
                 % get the SDFs and related information for plot
                 tempSdf = satSdfsImageTbl(idx,:);
-                sdfImg = tempSdf.([epoch 'SatSdfNormalized']){1};
+                if useNormalized
+                    sdfImg = tempSdf.([epoch 'SatSdfNormalized']){1};
+                else
+                    sdfImg = tempSdf.([epoch 'SatSdfMean']){1};
+                end
                 timeMs = tempSdf.([epoch 'TimeMs']){1};
                 sortOrder = tempSdf.VisualSortOrderForUnits{1};
                 sdfImg = sdfImg(sortOrder,:);
-                showImage(H_plots(plotNo),sdfImg,timeMs,epoch,alignedEvent,unitArea);                
+                showImage(H_plots(plotNo),sdfImg,timeMs,epoch,alignedEvent,unitArea,cLims);                
                 % set xticklabel of this plot if exists
                 if ar>1
                     set(H_plots(plotNo-1),'XTickLabel',{});
@@ -213,7 +230,7 @@ pltIdx = pltNos(:,[2,3,5,6]);
 arrayfun(@(x) delete(get(H_plots(x),'YLabel')),pltIdx);
 % Add colorbar to plot 14 (2nd row 3 rd plot)
 c_pos = [0.485 0.7 0.01 0.15];
-colorbar(H_plots(14),'Position',c_pos,'Limits',[-1 1]);
+colorbar(H_plots(14),'Position',c_pos,'Limits',cLims);
 
 % Add figure annotation
 oName = sprintf('sdfsHeatmap_%s_%s_%s.pdf',useFilter.outcome,useFilter.epoch,num2str(useFilter.pval*100,'Pval_%02d'));
@@ -232,17 +249,17 @@ annotation('textbox','Position',[0.58 0.96 0.98 0.03],'String',strs{3},...
     'FontSize',13,'FontWeight','bold','LineStyle','none','Interpreter','none',...
     'Color',[0.5 0.5 0.5]);
 % save pdfFile:
-saveFigPdf(oName);
+saveFigPdf(fullfile(outputPdfDir,oName));
 delete(H_Figure);
 
 end
 
 %% Other functions
-function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea)
+function [] = showImage(H_axis,sdfImg,timeMs,epoch,alignedEvent,unitArea,cLims)
     axes(H_axis);
-    CLims = [-1 1];
+    % cLims = [-1 1];
     % show image
-    imagesc(sdfImg,CLims);
+    imagesc(sdfImg,cLims);
     % row 1 = top of image, ie the SDF of sdfImg(1,:)
     set(gca,'YDir','reverse');
     xTickLabel = unique([0:-200:min(timeMs) 0:200:max(timeMs)]);
