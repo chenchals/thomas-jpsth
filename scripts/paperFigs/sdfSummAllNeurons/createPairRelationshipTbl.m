@@ -10,6 +10,7 @@
     fnRho = 'dataProcessed/analysis/spkCorr/summary/spkCorrAllPairsStaticRhoPval.mat';
         % Load data
     temp = load(fnRho,'-regexp'); % load cross areas and self areas
+    temp.spkCorrColumnDefs=[];
     allSpkCorr = table();
     fns = fieldnames(temp);
     for jj = 1:numel(fns)
