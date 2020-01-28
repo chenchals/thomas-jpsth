@@ -42,19 +42,19 @@
 function [sdfsNoFilterMean,sdfsImgsNoFilterMean] = doNoFiltrMeanFr(allSpkCorr)
 unitsNoFilterTbl = categorizeUnitsByRscSignif(allSpkCorr);
 useNormalized = 0; subDirName = 'noFilterMean';
-[sdfsNoFilterMean,sdfsImgsNoFilterMean] = plotHeatmapsNoFilter(unitsNoFilterTbl,useNormalized,subDirName);
+[sdfsNoFilterMean,sdfsImgsNoFilterMean] = plotHeatmapPanels(unitsNoFilterTbl,useNormalized,subDirName);
 end
 
 function [sdfsNoFilter,sdfsImgsNoFilter] = doNoFiltrNormFr(allSpkCorr)
 unitsNoFilterTbl = categorizeUnitsByRscSignif(allSpkCorr);
 useNormalized = 1; subDirName = 'noFilterNorm';
-[sdfsNoFilter,sdfsImgsNoFilter] = plotHeatmapsNoFilter(unitsNoFilterTbl,useNormalized,subDirName);
+[sdfsNoFilter,sdfsImgsNoFilter] = plotHeatmapPanels(unitsNoFilterTbl,useNormalized,subDirName);
 end
 
 %% Plot all units by significance FILTER: BASELINE FIRING RATE for SEF and FEF cells
 %    Set1: Baseline FR >= Median FR Baseline epoch; 
 %    Set2: Baseline FR < Median FR Baseline epoch; 
-function [sdfsMedianFrGt,sdfsImgsMedianFrGt,sdfsMedianFrLt,sdfsImgsMedianFrLt,allSpkCorr] = ...
+function [sdfsMedianFrBlGt,sdfsImgsMedianFrBlGt,sdfsMedianFrBlLt,sdfsImgsMedianFrBlLt,allSpkCorr] = ...
         doMednFrBsLnEpochFiltrNorm(allSpkCorr)
 
     parpoolSize = 0;
@@ -126,11 +126,11 @@ function [sdfsMedianFrGt,sdfsImgsMedianFrGt,sdfsMedianFrLt,sdfsImgsMedianFrLt,al
     % process heatmaps for median gt table
     unitsMedianFrGtTbl = categorizeUnitsByRscSignif(medianFrGtTbl);
     useNormalized = 1; subDirName = 'medianFrGtNorm';
-    [sdfsMedianFrGt,sdfsImgsMedianFrGt] = plotHeatmapsNoFilter(unitsMedianFrGtTbl,useNormalized,subDirName);
+    [sdfsMedianFrBlGt,sdfsImgsMedianFrBlGt] = plotHeatmapPanels(unitsMedianFrGtTbl,useNormalized,subDirName);
     % process heatmaps for median lt table
     unitsMedianFrLtTbl = categorizeUnitsByRscSignif(medianFrLtTbl);
     useNormalized = 1; subDirName = 'medianFrLtNorm';
-    [sdfsMedianFrLt,sdfsImgsMedianFrLt] = plotHeatmapsNoFilter(unitsMedianFrLtTbl,useNormalized,subDirName);
+    [sdfsMedianFrBlLt,sdfsImgsMedianFrBlLt] = plotHeatmapPanels(unitsMedianFrLtTbl,useNormalized,subDirName);
 
 end
 %% Plot all units by significance FILTER: POST-SACCADE FIRING RATE for SEF and FEF cells
@@ -205,11 +205,11 @@ function [sdfsMedianFrPostSaccGt,sdfsImgsMedianFrPostSaccGt,...
     % process heatmaps for median gt table
     unitsMedianFrGtTbl = categorizeUnitsByRscSignif(medianPostSaccFrGtTbl);
     useNormalized = 1; subDirName = 'medianPostSaccFrGtNorm';
-    [sdfsMedianFrPostSaccGt,sdfsImgsMedianFrPostSaccGt] = plotHeatmapsNoFilter(unitsMedianFrGtTbl,useNormalized,subDirName);
+    [sdfsMedianFrPostSaccGt,sdfsImgsMedianFrPostSaccGt] = plotHeatmapPanels(unitsMedianFrGtTbl,useNormalized,subDirName);
     % process heatmaps for median lt table
     unitsMedianFrLtTbl = categorizeUnitsByRscSignif(medianPostSaccFrLtTbl);
     useNormalized = 1; subDirName = 'medianPostSaccFrLtNorm';
-    [sdfsMedianFrPostSaccLt,sdfsImgsMedianFrPostSaccLt] = plotHeatmapsNoFilter(unitsMedianFrLtTbl,useNormalized,subDirName);
+    [sdfsMedianFrPostSaccLt,sdfsImgsMedianFrPostSaccLt] = plotHeatmapPanels(unitsMedianFrLtTbl,useNormalized,subDirName);
 
 end
 

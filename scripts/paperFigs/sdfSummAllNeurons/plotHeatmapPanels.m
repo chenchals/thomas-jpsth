@@ -1,4 +1,4 @@
-function [satSdfsTbl,satSdfsImageTbl] = plotHeatmapsNoFilter(categorizedUnitsTbl,useNormalized,subDirName)
+function [satSdfsTbl,satSdfsImageTbl] = plotHeatmapPanels(categorizedUnitsTbl,useNormalized,subDirName)
 %% Jan 06, 2020
 % 2.       What types of neurons contribute to significant r_sc at any point during the trial?
 %   a.       Summary plot with SDFs of all such neurons in SEF.
