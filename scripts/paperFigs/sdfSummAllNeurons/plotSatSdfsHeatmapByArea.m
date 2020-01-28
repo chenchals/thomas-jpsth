@@ -248,6 +248,9 @@ annotation('textbox','Position',[0.31 0.97 0.98 0.03],'String',strs{2},...
 annotation('textbox','Position',[0.58 0.96 0.98 0.03],'String',strs{3},...
     'FontSize',13,'FontWeight','bold','LineStyle','none','Interpreter','none',...
     'Color',[0.5 0.5 0.5]);
+%Do a plot for annotation
+h_p = axes('parent',H_Figure,'Position',[0.01 0.45 0.001 0.001],'box','off');
+t = text(0,0,subDirName,'Rotation',90,'FontSize',12,'FontWeight','bold','FontAngle','italic');
 % save pdfFile:
 saveFigPdf(fullfile(outputPdfDir,oName));
 delete(H_Figure);
