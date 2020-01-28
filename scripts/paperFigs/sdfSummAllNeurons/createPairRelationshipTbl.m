@@ -71,10 +71,34 @@
     useTbl = useTbl(:,useCols);
     %%
     % group cross area pairs
+    fx_renmedCols= @(tbl) regexprep(tbl.Properties.VariableNames, 'sum_','');
     sameAreaPairs = 0;
     temp = useTbl(useTbl.sameAreaPair==sameAreaPairs,:);
     crossAreaTbl = grpstats(temp, ...
         {'monkey','sess','sessNum','unitNum','unitArea','satCondition','outcome','epoch'},{'sum'});
+    %crossAreaTbl.Properties.VariableNames = regexprep(crossAreaTbl.Properties.VariableNames, 'sum_', '');
+    crossAreaTbl.Properties.VariableNames = fx_renmedCols(crossAreaTbl);
+    %% Plot the counts of neurons with (+) significant, (-) significant, and non-significant correlation,
+    %% by area (SEF, FEF, SC), for the PostSaccade epoch during Correct trials.
+    
+    tmpTbl = crossAreaTbl;
+%     tmpTbl.Properties.RowNames = {}; %clear out row names in preparation for groupStats
+    
+    epoch = 'PostSaccade';
+    outcome = 'Correct';
+    tmpTbl = tmpTbl(ismember(tmpTbl.epoch, epoch) & ismember(tmpTbl.outcome, outcome), :);
+    
+    plotCols = {
+      'unitArea'
+      'satCondition'
+      'signifPlusRho'
+      'signifMinusRho'
+      'nonSignifRho'
+      'pairCount'};
+    %t = tmpTbl(:,plotCols);
+    
+    outTbl = grpstats(tmpTbl(:,plotCols), {'satCondition','unitArea'}, {'sum'});
+    outTbl.Properties.VariableNames = fx_renmedCols(outTbl);
     
     %% Function to spot check...
     function [] = checkNotYet(inFinalCountsTbl,unitNum,outcome,epoch)
