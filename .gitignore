@@ -4,3 +4,5 @@ data*
 *.pdf
 temp_spkCorrStackPlotData.mat
 sdfsHeatmapByArea-OnMac.zip
+.RData
+.Rhistory

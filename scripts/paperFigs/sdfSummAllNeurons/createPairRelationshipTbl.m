@@ -28,7 +28,7 @@
     allSpkCorr.sameAreaPair(strcmp(allSpkCorr.X_area,allSpkCorr.Y_area)) = 1;
     allSpkCorr.sameChannelPair(allSpkCorr.XY_Dist == 0) = 1;
     allSpkCorr.pairCount = ones(size(allSpkCorr,1),1);
-    %%
+
     % Use columns:
     rhoCol = 'rhoRaw_150ms';
     pvalCol = 'pvalRaw_150ms';
@@ -38,10 +38,12 @@
     plusRho = tTbl.(rhoCol) >= 0;
     minusRho = tTbl.(rhoCol) < 0;
     
-    
     tTbl.signifPlusRho(plusRho & signifPval) = 1 ;
     tTbl.signifMinusRho(minusRho & signifPval) = 1 ;
     tTbl.nonSignifRho(~signifPval) = 1;
+    
+    % for Hierarchical Edge Bundling plot in R
+    % writetable(tTbl,'rcode/spkCorrVals.csv')
     
 %% seperate X_unit and Y_unit anddd aggregate as unitNum column table
     % table size will become 2x
