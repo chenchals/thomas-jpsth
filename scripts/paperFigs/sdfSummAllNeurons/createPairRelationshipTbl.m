@@ -42,8 +42,8 @@
     tTbl.signifPlusRho(plusRho & signifPval) = 1 ;
     tTbl.signifMinusRho(minusRho & signifPval) = 1 ;
     tTbl.nonSignifRho(~signifPval) = 1;
-
-    % seperate X_unit and Y_unit anddd aggregate as unitNum column table
+    
+%% seperate X_unit and Y_unit anddd aggregate as unitNum column table
     % table size will become 2x
     tTbl1 = tTbl;
     tTbl1.unitNum = tTbl1.X_unitNum;
