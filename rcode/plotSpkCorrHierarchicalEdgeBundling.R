@@ -47,6 +47,45 @@ loop.count <- c(1:dim(monkySessNum)[1])
 # the connections are in spkCorr, which we will filter for epoch, outcome, satCondition
 use.cols<-c("X_unitNum","Y_unitNum","X_area","Y_area","signifAlpha","sessNum","monkey")
 
+# temp<- select(filter(spkCorr, epoch == "PostSaccade" 
+#                            & outcome == "Correct" 
+#                            & satCondition == "Fast"
+#                      ),)
+
+temp<- spkCorr %>% filter(epoch == "PostSaccade" & outcome == "Correct" & satCondition == "Fast")
+
+# SEF-FEF connections
+connSefFef<-temp[temp$X_area == "SEF" & temp$Y_area == "FEF",]
+# The connection object must refer to the ids of the leaves:
+sefFefFrom  <-  match( connSefFef$X_unitNum, vertices$name)
+sefFefTo  <-  match( connSefFef$Y_unitNum, vertices$name)
+# SEF-SC connections
+connSefSc<-temp[temp$X_area == "SEF" & temp$Y_area == "SC",]
+# The connection object must refer to the ids of the leaves:
+sefScFrom  <-  match( connSefSc$X_unitNum, vertices$name)
+sefScTo  <-  match( connSefSc$Y_unitNum, vertices$name)
+
+
+p<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
+  geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05, colour=area, alpha=0.2, size=2 )) +
+  theme_void()
+psefFef <- p + geom_conn_bundle(data = get_con(from = sefFefFrom, to = sefFefTo), colour="red", alpha=0.9, width=0.1, tension=0.2) 
+psefSc <- p + geom_conn_bundle(data = get_con(from = sefScFrom, to = sefScTo), colour="green", alpha=0.9, width=0.1, tension=0.2) 
+
+pAll <- p + 
+        geom_conn_bundle(data = get_con(from = sefFefFrom, to = sefFefTo), colour="red", alpha=0.9, width=0.5, tension=0.8) +
+        geom_conn_bundle(data = get_con(from = sefScFrom, to = sefScTo), colour="green", alpha=0.9, width=0.5, tension=0.8)
+
+sig<-temp[temp$X_area == "SEF" & temp$Y_area == "FEF" & temp$signifAlpha == 1 ,]
+sefFefBndlsig<-geom_conn_bundle(data = get_con(from = match( sig$X_unitNum, vertices$name), to = match( sig$Y_unitNum, vertices$name)),
+                                colour="red", alpha=0.9, width=0.5, tension=0.8)
+sig<-temp[temp$X_area == "SEF" & temp$Y_area == "FEF" & temp$signifAlpha == 0 ,]
+sefFefBndlnotsig<-geom_conn_bundle(data = get_con(from = match( sig$X_unitNum, vertices$name), to = match( sig$Y_unitNum, vertices$name)),
+                                colour="red", alpha=0.2, width=0.5, tension=0.8)
+
+p
+
+
 for (s in loop.count)
 {
   monk <- monkySessNum$monkey[s]
@@ -62,8 +101,8 @@ for (s in loop.count)
   
 
 # The connection object must refer to the ids of the leaves:
-from  <-  match( connect$X_unitNum, vertices$name)
-to  <-  match( connect$Y_unitNum, vertices$name)
+from2  <-  match( connect$X_unitNum, vertices$name)
+to2  <-  match( connect$Y_unitNum, vertices$name)
 
 # ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
 #   geom_conn_bundle(data = get_con(from = from, to = to), alpha=0.2, colour="skyblue", tension = .5) + 
@@ -72,7 +111,8 @@ to  <-  match( connect$Y_unitNum, vertices$name)
 
 ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
   geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05, colour=area, alpha=0.2, size=2 )) +
-  geom_conn_bundle(data = get_con(from = from, to = to), colour="skyblue", alpha=0.4, width=0.2, tension=0.8) +
+  geom_conn_bundle(data = get_con(from = from2, to = to2), colour="skyblue", alpha=0.9, width=0.1, tension=0.2) +
+  geom_conn_bundle(data = get_con(from = from5, to = to5), colour="red", alpha=0.9, width=0.1, tension=0.2) +
   theme_void()
  
 #p
