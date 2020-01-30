@@ -4,12 +4,68 @@
 # Use: read.csv('[thomas-jpsth/rcode]/spkCorrVals.csv')
 # Use R scripts from examples to munge data and plot
 
-# load_libraries-------------------
+# load_libraries---------------------------------------------------------------
 # Libraries
 library(dplyr)
 library(ggraph)
 library(igraph)
 library(hashmap)
+library(gridExtra)
+
+# anonymous_functions_for_plotting---------------------------------------------
+# Functions need o be compiled before they can be used...:-)
+# Pick the connections (pairs) to be lotted so we can fine the nodeIds and do the plot 
+fx_filter <- function(df,filt) 
+  df %>% filter( satCondition == filt.satCond & outcome == filt.outcome & epoch == filt.epoch )
+
+fx_plotIt<- function(df,filt,plt_base)
+{
+  # warm color
+  plusColorSefSc<-"darkorange"
+  plusColorSefFef<-"tomato"
+  # cool color
+  minusColorSefSc<-"royalblue"
+  minusColorSefFef<-"slateblue1"
+  w<-1
+  t<-0.8
+  # SEF-FEF Plus Rho signf and non-signif
+  temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms <= 0.01,]
+  plt_plusFefSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
+                                   colour=plusColorSefFef, alpha=0.8, width=w, tension=t, linetype="solid")
+  temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms > 0.01,]
+  plt_plusFefNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
+                                      colour=plusColorSefFef, alpha=0.2, width=w, tension=t, linetype="longdash")
+  # SEF-FEF Minus Rho signf and non-signif
+  temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms < 0 & df$pvalRaw_150ms <= 0.01,]
+  plt_minusFefSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
+                                    colour=minusColorSefFef, alpha=0.8, width=w, tension=t, linetype="solid")
+  temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms < 0 & df$pvalRaw_150ms > 0.01,]
+  plt_minusFefNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
+                                       colour=minusColorSefFef, alpha=0.2, width=w, tension=t, linetype="longdash")
+  
+  # SEF-SC Plus Rho signf and non-signif
+  temp<-df[df$X_area == "SEF" & df$Y_area == "SC" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms <= 0.01,]
+  plt_plusScSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
+                                  colour=plusColorSefSc, alpha=0.8, width=w, tension=t, linetype="solid")
+  temp<-df[df$X_area == "SEF" & df$Y_area == "SC" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms > 0.01,]
+  plt_plusScNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
+                                     colour=plusColorSefSc, alpha=0.2, width=w, tension=t, linetype="longdash")
+  # SEF-SC Minus Rho signf and non-signif
+  temp<-df[df$X_area == "SEF" & df$Y_area == "SC" & df$rhoRaw_150ms < 0 & df$pvalRaw_150ms <= 0.01,]
+  plt_minusScSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
+                                   colour=minusColorSefSc, alpha=0.8, width=w, tension=t, linetype="solid")
+  temp<-df[df$X_area == "SEF" & df$Y_area == "SC" & df$rhoRaw_150ms < 0 & df$pvalRaw_150ms > 0.01,]
+  plt_minusScNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
+                                      colour=minusColorSefSc, alpha=0.2, width=w, tension=t, linetype="longdash")
+  # return the plot or plot it if return val is not asked
+  plt_base + plt_minusFefNotSig + plt_minusFefSig + plt_plusFefNotSig + plt_plusFefSig +
+    plt_minusScNotSig + plt_minusScSig + plt_plusScNotSig + plt_plusScSig +
+    ggtitle(paste(toupper(filt.satCond),"-",filt.outcome,"-",filt.epoch,sep=""),"___ p<=0.01, - - - p>0.01")
+  
+}
+
+
+# Do_For_AllSpkCorrs-----------------------------------------------------------
 
 spkCorr<-read.csv('spkCorrVals.csv')
 
@@ -23,8 +79,7 @@ spkCorr<-read.csv('spkCorrVals.csv')
 # convert unitNums, sessNum to character type
 cols.num <- c("X_unitNum","Y_unitNum","sessNum")
 spkCorr[cols.num] <- sapply(spkCorr[cols.num],as.character)
-spkCorr$signifAlpha <- spkCorr$signifPlusRho + spkCorr$signifMinusRho
-spkCorr$signifAlpha[spkCorr$signifAlpha == 0] <- 0.3
+spkCorr$signifPlusMinus <- spkCorr$signifPlusRho + spkCorr$signifMinusRho
 
 # Brain areas
 d1 <- data.frame(from="origin", to=c("SEF","FEF","SC"))
@@ -42,49 +97,38 @@ vertices$area  <-  edges$from[ match( vertices$name, edges$to ) ]
 # Create a graph object with the igraph library
 mygraph <- graph_from_data_frame( edges, vertices=vertices )
 # This is a network object, you visualize it as a network like shown in the network section!
-monkySessNum<-unique(spkCorr[,c("monkey","sessNum")])
-loop.count <- c(1:dim(monkySessNum)[1])
-# the connections are in spkCorr, which we will filter for epoch, outcome, satCondition
-use.cols<-c("X_unitNum","Y_unitNum","X_area","Y_area","signifAlpha","sessNum","monkey")
-
-# temp<- select(filter(spkCorr, epoch == "PostSaccade" 
-#                            & outcome == "Correct" 
-#                            & satCondition == "Fast"
-#                      ),)
-
-temp<- spkCorr %>% filter(epoch == "PostSaccade" & outcome == "Correct" & satCondition == "Fast")
-
-# SEF-FEF connections
-connSefFef<-temp[temp$X_area == "SEF" & temp$Y_area == "FEF",]
-# The connection object must refer to the ids of the leaves:
-sefFefFrom  <-  match( connSefFef$X_unitNum, vertices$name)
-sefFefTo  <-  match( connSefFef$Y_unitNum, vertices$name)
-# SEF-SC connections
-connSefSc<-temp[temp$X_area == "SEF" & temp$Y_area == "SC",]
-# The connection object must refer to the ids of the leaves:
-sefScFrom  <-  match( connSefSc$X_unitNum, vertices$name)
-sefScTo  <-  match( connSefSc$Y_unitNum, vertices$name)
-
-
-p<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
+plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
   geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05, colour=area, alpha=0.2, size=2 )) +
   theme_void()
-psefFef <- p + geom_conn_bundle(data = get_con(from = sefFefFrom, to = sefFefTo), colour="red", alpha=0.9, width=0.1, tension=0.2) 
-psefSc <- p + geom_conn_bundle(data = get_con(from = sefScFrom, to = sefScTo), colour="green", alpha=0.9, width=0.1, tension=0.2) 
 
-pAll <- p + 
-        geom_conn_bundle(data = get_con(from = sefFefFrom, to = sefFefTo), colour="red", alpha=0.9, width=0.5, tension=0.8) +
-        geom_conn_bundle(data = get_con(from = sefScFrom, to = sefScTo), colour="green", alpha=0.9, width=0.5, tension=0.8)
 
-sig<-temp[temp$X_area == "SEF" & temp$Y_area == "FEF" & temp$signifAlpha == 1 ,]
-sefFefBndlsig<-geom_conn_bundle(data = get_con(from = match( sig$X_unitNum, vertices$name), to = match( sig$Y_unitNum, vertices$name)),
-                                colour="red", alpha=0.9, width=0.5, tension=0.8)
-sig<-temp[temp$X_area == "SEF" & temp$Y_area == "FEF" & temp$signifAlpha == 0 ,]
-sefFefBndlnotsig<-geom_conn_bundle(data = get_con(from = match( sig$X_unitNum, vertices$name), to = match( sig$Y_unitNum, vertices$name)),
-                                colour="red", alpha=0.2, width=0.5, tension=0.8)
+layout(matrix(c(1,2), byrow = TRUE))
+# Create a graph object with the igraph library
+mygraph <- graph_from_data_frame( edges, vertices=vertices )
+  
+# This is a network object, you visualize it as a network like shown in the network section!
+plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
+  geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05, colour=area, alpha=0.2, size=2 )) +
+  theme_void()
+# plot Fast
+filt.satCond<-"Fast"
+filt.outcome<-"Correct"
+filt.epoch<-"PostSaccade"
+p1<-fx_plotIt(fx_filter(spkCorr,filt),filt,plt)
+# overwrite Fast with Accurate
+filt.satCond<-"Accurate"
+p2<-fx_plotIt(fx_filter(spkCorr,filt),filt,plt)
 
-p
+grid.arrange(p1,p2,nrow=1)
 
+
+# DO_Per_Session---------------------------------------------------------------
+
+fx_NotYetSessions<- function()
+{
+
+monkySessNum<-unique(spkCorr[,c("monkey","sessNum")])
+loop.count <- c(1:dim(monkySessNum)[1])
 
 for (s in loop.count)
 {
@@ -117,8 +161,8 @@ ggraph(mygraph, layout = 'dendrogram', circular = TRUE) +
  
 #p
 }
+}
 
 
-# Use the 'value' column of the connection data frame for the color:
-#p +  geom_conn_bundle(data = get_con(from = from, to = to), aes(colour=c(1:135)) )
-
+# Linetypes:
+#lt=c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash", "1F", "F1", "4C88C488", "12345678")
