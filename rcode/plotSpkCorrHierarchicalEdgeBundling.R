@@ -28,10 +28,11 @@ fx_plotIt<- function(df,filt,plt_base)
   minusColorSefFef<-"slateblue1"
   w<-0.4
   t<-0.8
-  # SEF-FEF Plus Rho signf and non-signif
+  # SEF-FEF Plus Rho signf 
   temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms <= 0.01,]
   plt_plusFefSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
                                    colour=plusColorSefFef, alpha=0.8, width=w, tension=t, linetype="solid")
+  # SEF-FEF Plus Rho non-signif
   temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms > 0.01,]
   plt_plusFefNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
                                       colour=plusColorSefFef, alpha=0.2, width=w, tension=t, linetype="longdash")
@@ -42,7 +43,6 @@ fx_plotIt<- function(df,filt,plt_base)
   temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms < 0 & df$pvalRaw_150ms > 0.01,]
   plt_minusFefNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
                                        colour=minusColorSefFef, alpha=0.2, width=w, tension=t, linetype="longdash")
-  
   # SEF-SC Plus Rho signf and non-signif
   temp<-df[df$X_area == "SEF" & df$Y_area == "SC" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms <= 0.01,]
   plt_plusScSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
@@ -62,7 +62,7 @@ fx_plotIt<- function(df,filt,plt_base)
   
   plt_base + plt_minusFefNotSig + plt_minusFefSig + plt_plusFefNotSig + plt_plusFefSig +
     plt_minusScNotSig + plt_minusScSig + plt_plusScNotSig + plt_plusScSig +
-    ggtitle(,"___ p<=0.01, - - - p>0.01")
+    ggtitle(titleStr,"___ p<=0.01, - - - p>0.01")
   
 }
 
@@ -102,23 +102,13 @@ mygraph <- graph_from_data_frame( edges, vertices=vertices )
 plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
   geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05, colour=area, alpha=0.2, size=2 )) +
   theme_void()
-
-
-layout(matrix(c(1,2), byrow = TRUE))
-# Create a graph object with the igraph library
-mygraph <- graph_from_data_frame( edges, vertices=vertices )
-  
-# This is a network object, you visualize it as a network like shown in the network section!
-plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
-  geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05, colour=area, alpha=0.2, size=2 )) +
-  theme_void()
 # plot Fast
 filt.satCond<-"Fast"
 filt.outcome<-"Correct"
 filt.epoch<-"PostSaccade"
 filt.sess<-"All"
 p1<-fx_plotIt(fx_filter(spkCorr,filt),filt,plt)
-# overwrite Fast with Accurate
+# plot Accurate
 filt.satCond<-"Accurate"
 p2<-fx_plotIt(fx_filter(spkCorr,filt),filt,plt)
 
