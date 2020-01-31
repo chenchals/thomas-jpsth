@@ -26,7 +26,7 @@ fx_plotIt<- function(df,filt,plt_base)
   # cool color
   minusColorSefSc<-"royalblue"
   minusColorSefFef<-"slateblue1"
-  w<-1
+  w<-0.4
   t<-0.8
   # SEF-FEF Plus Rho signf and non-signif
   temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms <= 0.01,]
@@ -58,9 +58,11 @@ fx_plotIt<- function(df,filt,plt_base)
   plt_minusScNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, vertices$name), to = match( temp$Y_unitNum, vertices$name)),
                                       colour=minusColorSefSc, alpha=0.2, width=w, tension=t, linetype="longdash")
   # return the plot or plot it if return val is not asked
+  titleStr<-paste(toupper(filt.satCond),"-",filt.outcome,"-",filt.epoch,sep="")
+  
   plt_base + plt_minusFefNotSig + plt_minusFefSig + plt_plusFefNotSig + plt_plusFefSig +
     plt_minusScNotSig + plt_minusScSig + plt_plusScNotSig + plt_plusScSig +
-    ggtitle(paste(toupper(filt.satCond),"-",filt.outcome,"-",filt.epoch,sep=""),"___ p<=0.01, - - - p>0.01")
+    ggtitle(,"___ p<=0.01, - - - p>0.01")
   
 }
 
@@ -114,6 +116,7 @@ plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) +
 filt.satCond<-"Fast"
 filt.outcome<-"Correct"
 filt.epoch<-"PostSaccade"
+filt.sess<-"All"
 p1<-fx_plotIt(fx_filter(spkCorr,filt),filt,plt)
 # overwrite Fast with Accurate
 filt.satCond<-"Accurate"
@@ -124,43 +127,18 @@ grid.arrange(p1,p2,nrow=1)
 
 # DO_Per_Session---------------------------------------------------------------
 
-fx_NotYetSessions<- function()
-{
-
 monkySessNum<-unique(spkCorr[,c("monkey","sessNum")])
 loop.count <- c(1:dim(monkySessNum)[1])
-
+plt_list <- list()
 for (s in loop.count)
 {
   monk <- monkySessNum$monkey[s]
   sessNum <- monkySessNum$sessNum[s]
   
   temp <- spkCorr[spkCorr$sessNum == sessNum & spkCorr$monkey == monk,]
-  connect <- select(filter(temp, epoch == "PostSaccade" 
-                           & outcome == "Correct" 
-                           & satCondition == "Fast"
-                           & X_area == "SEF"
-                           & Y_area != "SEF"),
-                    all_of(use.cols))
   
-
-# The connection object must refer to the ids of the leaves:
-from2  <-  match( connect$X_unitNum, vertices$name)
-to2  <-  match( connect$Y_unitNum, vertices$name)
-
-# ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
-#   geom_conn_bundle(data = get_con(from = from, to = to), alpha=0.2, colour="skyblue", tension = .5) + 
-#   geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05)) +
-#   theme_void()
-
-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
-  geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05, colour=area, alpha=0.2, size=2 )) +
-  geom_conn_bundle(data = get_con(from = from2, to = to2), colour="skyblue", alpha=0.9, width=0.1, tension=0.2) +
-  geom_conn_bundle(data = get_con(from = from5, to = to5), colour="red", alpha=0.9, width=0.1, tension=0.2) +
-  theme_void()
  
 #p
-}
 }
 
 
