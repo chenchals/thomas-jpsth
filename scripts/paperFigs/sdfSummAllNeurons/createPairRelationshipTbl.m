@@ -21,12 +21,13 @@
   
     % add functional types for X and Y units: unitInfo colNames are
     funcTypeCols = {'visGrade','visType','moveGrade','errGrade','rewGrade','poorIso'};
+    funcTypeColsRegex = strcat('^',funcTypeCols,'$');
     allSpkCorr = innerjoin(allSpkCorr,unitInfo,'LeftKeys','X_unitNum',...
         'RightKeys','unitNum','RightVariables',funcTypeCols);
-    allSpkCorr.Properties.VariableNames = regexprep(allSpkCorr.Properties.VariableNames,funcTypeCols,strcat('X_',funcTypeCols));
+    allSpkCorr.Properties.VariableNames = regexprep(allSpkCorr.Properties.VariableNames,funcTypeColsRegex,strcat('X_',funcTypeCols));
     allSpkCorr = innerjoin(allSpkCorr,unitInfo,'LeftKeys','Y_unitNum',...
         'RightKeys','unitNum','RightVariables',funcTypeCols);
-    allSpkCorr.Properties.VariableNames = regexprep(allSpkCorr.Properties.VariableNames,funcTypeCols,strcat('Y_',funcTypeCols));
+    allSpkCorr.Properties.VariableNames = regexprep(allSpkCorr.Properties.VariableNames,funcTypeColsRegex,strcat('Y_',funcTypeCols));
     
   
     % add monkey, sessNum, and sess
