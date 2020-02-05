@@ -17,7 +17,11 @@ library(gridExtra)
 # Pick the connections (pairs) to be lotted so we can fine the nodeIds and do the plot 
 fx_filter <- function(df,filt) 
 {
-  df %>% filter( satCondition == filt.satCond & outcome == filt.outcome & epoch == filt.epoch )
+  df <- df %>% filter( satCondition == filt.satCond & outcome == filt.outcome & epoch == filt.epoch )
+  if (!filt.sess == "All"){
+    df <- df %>% filter(sess == filt.sess)
+  }
+  return(df)
 }
 
 fx_get_HEB <- function(df,
@@ -27,7 +31,7 @@ fx_get_HEB <- function(df,
                        sigFlag,
                        verts)
 {
-  w <- 1
+  w <- 0.5
   t <- 0.9
   temp <- df[df$X_area == X_area & df$Y_area == Y_area, ]
   if (plusRhoFlag == TRUE & dim(temp)[1] > 0) {
@@ -54,6 +58,7 @@ fx_get_HEB <- function(df,
           to = match(temp$Y_unitNum, verts$name)
         ),
         aes(colour = visMovType),
+        #aes(colour = "grey15"),
         alpha = a,
         width = w,
         tension = t,
@@ -65,58 +70,31 @@ fx_get_HEB <- function(df,
   }
 }
 
-fx_plotIt <- function(df, filt, plt_base, verts)
+fx_plotIt <- function(df, filt,  plt_base, verts)
 {
-  # SEF-FEF Plus Rho signif and non-signif
+  # Use call to: 
+  # fx_get_HEB <- function(df,X_area,Y_area,plusRhoFlag,sigFlag,verts)
+  # SEF-FEF Plus Rho signif
   plt_plusFefSig <- fx_get_HEB(df, "SEF", "FEF", TRUE, TRUE, verts)
-  plt_plusFefNotSig <- fx_get_HEB(df, "SEF", "FEF", TRUE, FALSE, verts)
-  # SEF-FEF Minus Rho signif and non-signif
+  # SEF-FEF Minus Rho signif 
   plt_minusFefSig <- fx_get_HEB(df, "SEF", "FEF", FALSE, TRUE, verts)
-  plt_minusFefNotSig <- fx_get_HEB(df, "SEF", "FEF", FALSE, FALSE, verts)
-  # SEF-SC Plus Rho signif and non-signif
+  # SEF-SC Plus Rho signif 
   plt_plusScSig <- fx_get_HEB(df, "SEF", "SC", TRUE, TRUE, verts)
-  plt_plusScNotSig <- fx_get_HEB(df, "SEF", "FEF", TRUE, FALSE, verts)
-  # SEF-SC Minus Rho signif and non-signif
+  # SEF-SC Minus Rho signif 
   plt_minusScSig <- fx_get_HEB(df, "SEF", "SC", FALSE, TRUE, verts)
-  plt_minusScNotSig <- fx_get_HEB(df, "SEF", "FEF", FALSE, FALSE, verts)
-  
+
   pltOut <- list()
-  # return signif & nonSignif plot or plot it if return val is not asked
-  titleStr <-
-    paste(toupper(filt.satCond),
-          "-",
-          filt.outcome,
-          "-",
-          filt.epoch,
-          sep = "")
-  pltOut$signifNonSignif <-
-    plt_base + plt_minusFefNotSig + plt_minusFefSig + plt_plusFefNotSig + plt_plusFefSig +
-    plt_minusScNotSig + plt_minusScSig + plt_plusScNotSig + plt_plusScSig +
-    ggtitle(titleStr, "___ p<=0.01, - - - p>0.01")
-  
   # return signif plot
   titleStr <-
     paste(toupper(filt.satCond),
-          "-",
           filt.outcome,
-          "-",
           filt.epoch,
-          sep = "")
+          filt.sess,
+          sep = "-")
   pltOut$signif <-
     plt_base  + plt_minusFefSig  + plt_plusFefSig + plt_minusScSig + plt_plusScSig +
     ggtitle(titleStr, "___ p<=0.01")
-  # return nonSignif plot
-  titleStr <-
-    paste(toupper(filt.satCond),
-          "-",
-          filt.outcome,
-          "-",
-          filt.epoch,
-          sep = "")
-  pltOut$nonSignif <-
-    plt_base  + plt_minusFefNotSig  + plt_plusFefNotSig + plt_minusScNotSig + plt_plusScNotSig +
-    ggtitle(titleStr, "- - - p>0.01")
-  
+
   return(pltOut)
   
 }
@@ -220,20 +198,50 @@ plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) +
             fontface=2) + 
   theme_void()
   
-# get plots for Fast
-filt.satCond<-"Fast"
-filt.outcome<-"ErrorChoice"
-filt.epoch<-"PostSaccade"
-filt.sess<-"All"
-pltFast<-fx_plotIt(fx_filter(spkCorr,filt),filt,plt,vertices)
 
-# get plots for Accurate
-filt.satCond<-"Accurate"
-pltAccu<-fx_plotIt(fx_filter(spkCorr,filt),filt,plt,vertices)
-# plot a grid...
-ZZ<-gridExtra::arrangeGrob(grobs = c(pltFast,pltAccu),nrow = 2, ncol = 3 )
-grid.arrange(ZZ)
+# plot_for_all_sessions-----------------------
+outcomes <- c("Correct", "ErrorChoice", "ErrorTiming")
+sessNames <- c("All",unique(spkCorr$sess))
+oPath = "../dataProcessed/analysis/spkCorr/networkPlotsColor"
 
+
+for (sess in sessNames)
+{
+  filt.sess <- sess
+  for (outcome in outcomes)
+  {
+    filt.outcome <- outcome
+    filt.epoch <- "PostSaccade"
+    outFilename <- paste(filt.outcome, filt.epoch, filt.sess, sep = "_")
+    outFilename <- paste(outFilename, ".pdf", sep = "")
+    
+    # get plots for Fast
+    filt.satCond <- "Fast"
+    pltFast <-
+      fx_plotIt(fx_filter(spkCorr, filt), filt, plt, vertices)
+    # get plots for Accurate
+    filt.satCond <- "Accurate"
+    pltAccu <-
+      fx_plotIt(fx_filter(spkCorr, filt), filt, plt, vertices)
+    
+    # return a grob...
+    ZZ <- arrangeGrob(
+      grobs = c(pltFast, pltAccu),
+      nrow = 2,
+      ncol = 1
+    )
+    
+    # save to pdf file
+    ggsave(
+      outFilename,
+      path = oPath,
+      ZZ,
+      width = 8,
+      height = 10,
+      units = "in"
+    )
+  }
+}
 
 # # DO_Per_Session---------------------------------------------------------------
 # 
