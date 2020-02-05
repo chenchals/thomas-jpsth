@@ -55,18 +55,15 @@ fx_get_HEB <- function(df,
   if (dim(temp)[1] > 0) {
     outHeb <-
       geom_conn_bundle(
-        data = get_con(
-          from = match(temp$X_unitNum, verts$name),
-          to = match(temp$Y_unitNum, verts$name)
-        ),
-        aes(colour = visMovType),
+          data = get_con(from = match(temp$X_unitNum, verts$name),
+          to = match(temp$Y_unitNum, verts$name)),show.legend = FALSE,
+          aes(colour = visMovUnitColor),
         #aes(colour = "grey15"),
         alpha = a,
         width = w,
         tension = t,
         linetype = plusMinusLineType
       )
-    
   } else{
     outHeb <- NULL
   }
@@ -95,6 +92,7 @@ fx_plotIt <- function(df, filt,  plt_base, verts)
           sep = "-")
   pltOut$signif <-
     plt_base  + plt_minusFefSig  + plt_plusFefSig + plt_minusScSig + plt_plusScSig +
+    scale_edge_color_identity(guide = "none") +
     ggtitle(titleStr, "___ p<=0.01")
 
   return(pltOut)
@@ -152,40 +150,49 @@ allEdges$errorRewardType <- "NA"
 allEdges$errorRewardType[abs(allEdges$errGrade) >= 2] <- "Error"
 allEdges$errorRewardType[abs(allEdges$rewGrade) >= 2] <- "Reward"
 allEdges$errorRewardType[abs(allEdges$errGrade) >= 2 & abs(allEdges$rewGrade) >= 2] <- "Error & Reward"
-# Add column for custom sorting for visMovType column
-allEdges$sortVisMov <- 10
+# Add column for custom sorting and colors for visMovType column
+allEdges$sortVisMov <- 0
 allEdges$sortVisMov[allEdges$visMovType == "Vis"] <- 1
 allEdges$sortVisMov[allEdges$visMovType == "Mov"] <- 2
 allEdges$sortVisMov[allEdges$visMovType == "VisMov"] <- 3
 allEdges$sortVisMov[allEdges$visMovType == "Other"] <- 4
+# <chr>   <chr>      
+# 1 #00BFC4 Vis        
+# 2 #F8766D Mov        
+# 3 #C77CFF VisMov     
+# 4 #7CAE00 Other
+allEdges$visMovUnitColor <- "grey50"
+allEdges$visMovUnitColor[allEdges$visMovType == "Vis"] <- "#00BFC4"
+allEdges$visMovUnitColor[allEdges$visMovType == "Mov"] <- "#F8766D"
+allEdges$visMovUnitColor[allEdges$visMovType == "VisMov"] <- "#C77CFF"
+allEdges$visMovUnitColor[allEdges$visMovType == "Other"] <- "#7CAE00"
+
 # Add column for custom sorting for errorRewardType column
 # see: http://sape.inf.usi.ch/quick-reference/ggplot2/shape
-allEdges$sortErrorReward <- ""
-allEdges$sortErrorReward[allEdges$errorRewardType == "Error"] <- "c" #  choice error
-allEdges$sortErrorReward[allEdges$errorRewardType == "Reward"] <- "t" #  timing error
-allEdges$sortErrorReward[allEdges$errorRewardType == "Error & Reward"] <- "x" # both
+allEdges$errorRewardTxt <- ""
+allEdges$errorRewardTxt[allEdges$errorRewardType == "Error"] <- "c" #  choice error
+allEdges$errorRewardTxt[allEdges$errorRewardType == "Reward"] <- "t" #  timing error
+allEdges$errorRewardTxt[allEdges$errorRewardType == "Error & Reward"] <- "x" # both
 # Add column for custom sorting for area column (from: column brain, SEF,FEF,SC)
 allEdges$sortArea <- NA
 allEdges$sortArea[allEdges$area == "SEF"] <- 0 # open square
 allEdges$sortArea[allEdges$area == "FEF"] <- 1 # open circle
 allEdges$sortArea[allEdges$area == "SC"] <- 2 # open triangle
 # Sort allEdges
-sortedEdges <- allEdges %>% group_by(sortArea,sortVisMov,sortErrorReward)
+sortedEdges <- allEdges %>% group_by(sortArea,sortVisMov,errorRewardTxt)
 #sortedEdges <- sortedEdges %>% arrange(sortArea,sortVisMov,visType,visGrade,moveGrade,sortErrorReward,as.numeric(unitNum),errGrade,rewGrade)
-sortedEdges <- sortedEdges %>% arrange(sortArea,sortVisMov,sortErrorReward,as.numeric(unitNum))
+sortedEdges <- sortedEdges %>% arrange(sortArea,sortVisMov,errorRewardTxt,as.numeric(unitNum))
 
 # Create_vertices_of_nodes_and_plot--------------------------------------------
 # create a vertices data.frame. One line per object of our edges, giving features of nodes.
 vertices <- as_tibble(data.frame(name = unique(c(as.character(sortedEdges$from), as.character(sortedEdges$to)) ) ))
 # Let's add a column with the group of each name. It will be useful later to color points
 idx <- match( vertices$name, sortedEdges$to )
-vertices$sortArea  <-  sortedEdges$sortArea[idx]
 vertices$area  <-  sortedEdges$area[idx]
-
 vertices$visMovType  <-  sortedEdges$visMovType[idx]
-vertices$sortVisMov  <-  as.factor(sortedEdges$sortVisMov[idx])
+vertices$visMovUnitColor  <-  sortedEdges$visMovUnitColor[idx]
 vertices$errorRewardType  <-  sortedEdges$errorRewardType[ idx ]
-vertices$sortErrorReward  <-  sortedEdges$sortErrorReward[ idx ]
+vertices$errorRewardTxt  <-  sortedEdges$errorRewardTxt[ idx ]
 
 # Create a graph object with the igraph library
 mygraph <- graph_from_data_frame( sortedEdges, vertices=vertices )
@@ -193,22 +200,24 @@ mygraph <- graph_from_data_frame( sortedEdges, vertices=vertices )
 plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
   scale_shape_discrete(solid = FALSE) +
   geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05, shape=area,
-                      colour=visMovType), stroke = 1) +
+                      colour=visMovUnitColor), stroke = 1) +
+  scale_color_identity(
+    "Func Type",
+    labels = vertices$visMovType,
+    breaks = vertices$visMovUnitColor,
+    guide = "legend"
+  ) +
   #Change fontface. Allowed values : 1(normal),# 2(bold), 3(italic), 4(bold.italic)
-  geom_text(aes(x = x*1.1, y=y*1.1,label=sortErrorReward,
-                colour=visMovType),
-            fontface=2) + 
+  geom_text(aes(x = x*1.1, y=y*1.1,label=errorRewardTxt,colour=visMovUnitColor),
+            fontface=2, show.legend = FALSE) +
+  coord_equal() +
   theme_void()
-  
 
 # plot_for_all_sessions-----------------------
 outcomes <- c("Correct", "ErrorChoice", "ErrorTiming")
 sessNames <- c("All",unique(spkCorr$sess))
 oPath = "../dataProcessed/analysis/spkCorr/networkPlotsColor"
 
-sessNames <- c("All")
-outcomes <- c("Correct")
-oPath <- "."
 for (sess in sessNames)
 {
   filt.sess <- sess
@@ -246,23 +255,6 @@ for (sess in sessNames)
     )
   }
 }
-
-# # DO_Per_Session---------------------------------------------------------------
-# 
-# monkySessNum<-unique(spkCorr[,c("monkey","sessNum")])
-# loop.count <- c(1:dim(monkySessNum)[1])
-# plt_list <- list()
-# for (s in loop.count)
-# {
-#   monk <- monkySessNum$monkey[s]
-#   sessNum <- monkySessNum$sessNum[s]
-#   
-#   temp <- spkCorr[spkCorr$sessNum == sessNum & spkCorr$monkey == monk,]
-#   
-#  
-# #p
-# }
-
-
+# other_info-------
 # Linetypes:
 #lt=c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash", "1F", "F1", "4C88C488", "12345678")
