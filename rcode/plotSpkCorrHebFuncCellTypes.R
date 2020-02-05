@@ -16,65 +16,109 @@ library(gridExtra)
 # Functions need o be compiled before they can be used...:-)
 # Pick the connections (pairs) to be lotted so we can fine the nodeIds and do the plot 
 fx_filter <- function(df,filt) 
-  df %>% filter( satCondition == filt.satCond & outcome == filt.outcome & epoch == filt.epoch )
-
-fx_plotIt<- function(df,filt,plt_base,verts)
 {
-  # warm color
-  plusColorSefSc<-"darkorange"
-  plusColorSefFef<-"tomato"
-  # cool color
-  minusColorSefSc<-"royalblue"
-  minusColorSefFef<-"slateblue1"
-  w<-1
-  t<-0.9
-  # SEF-FEF Plus Rho signf 
-  temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms <= 0.01,]
-  plt_plusFefSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, verts$name), to = match( temp$Y_unitNum, verts$name)),
-                                   aes(colour=visMovType), alpha=0.8, width=w, tension=t, linetype="solid")
-  # SEF-FEF Plus Rho non-signif
-  temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms > 0.01,]
-  plt_plusFefNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, verts$name), to = match( temp$Y_unitNum, verts$name)),
-                                      aes(colour=visMovType), alpha=0.2, width=w, tension=t, linetype="longdash")
-  # SEF-FEF Minus Rho signf and non-signif
-  temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms < 0 & df$pvalRaw_150ms <= 0.01,]
-  plt_minusFefSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, verts$name), to = match( temp$Y_unitNum, verts$name)),
-                                    aes(colour=visMovType), alpha=0.8, width=w, tension=t, linetype="solid")
-  temp<-df[df$X_area == "SEF" & df$Y_area == "FEF" & df$rhoRaw_150ms < 0 & df$pvalRaw_150ms > 0.01,]
-  plt_minusFefNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, verts$name), to = match( temp$Y_unitNum, verts$name)),
-                                       aes(colour=visMovType), alpha=0.2, width=w, tension=t, linetype="longdash")
-  # SEF-SC Plus Rho signf and non-signif
-  temp<-df[df$X_area == "SEF" & df$Y_area == "SC" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms <= 0.01,]
-  plt_plusScSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, verts$name), to = match( temp$Y_unitNum, verts$name)),
-                                  aes(colour=visMovType), alpha=0.8, width=w, tension=t, linetype="solid")
-  temp<-df[df$X_area == "SEF" & df$Y_area == "SC" & df$rhoRaw_150ms >= 0 & df$pvalRaw_150ms > 0.01,]
-  plt_plusScNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, verts$name), to = match( temp$Y_unitNum, verts$name)),
-                                     aes(colour=visMovType), alpha=0.2, width=w, tension=t, linetype="longdash")
-  # SEF-SC Minus Rho signf and non-signif
-  temp<-df[df$X_area == "SEF" & df$Y_area == "SC" & df$rhoRaw_150ms < 0 & df$pvalRaw_150ms <= 0.01,]
-  plt_minusScSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, verts$name), to = match( temp$Y_unitNum, verts$name)),
-                                   aes(colour=visMovType), alpha=0.8, width=w, tension=t, linetype="solid")
-  temp<-df[df$X_area == "SEF" & df$Y_area == "SC" & df$rhoRaw_150ms < 0 & df$pvalRaw_150ms > 0.01,]
-  plt_minusScNotSig<-geom_conn_bundle(data = get_con(from = match( temp$X_unitNum, verts$name), to = match( temp$Y_unitNum, verts$name)),
-                                      aes(colour=visMovType), alpha=0.2, width=w, tension=t, linetype="longdash")
+  df %>% filter( satCondition == filt.satCond & outcome == filt.outcome & epoch == filt.epoch )
+}
+
+fx_get_HEB <- function(df,
+                       X_area,
+                       Y_area,
+                       plusRhoFlag,
+                       sigFlag,
+                       verts)
+{
+  w <- 1
+  t <- 0.9
+  temp <- df[df$X_area == X_area & df$Y_area == Y_area, ]
+  if (plusRhoFlag == TRUE & dim(temp)[1] > 0) {
+    temp <- temp[temp$rhoRaw_150ms >= 0, ]
+  } else{
+    temp <- temp[temp$rhoRaw_150ms < 0, ]
+  }
+
+  if (sigFlag == TRUE & dim(temp)[1] > 0) {
+    temp <- temp[temp$pvalRaw_150ms <= 0.01, ]
+    a <- 0.8
+    ltype <- "solid"
+  } else{
+    temp <- temp[temp$pvalRaw_150ms > 0.01, ]
+    a <- 0.2
+    ltype <- "longdash"
+  }
+
+  if (dim(temp)[1] > 0) {
+    outHeb <-
+      geom_conn_bundle(
+        data = get_con(
+          from = match(temp$X_unitNum, verts$name),
+          to = match(temp$Y_unitNum, verts$name)
+        ),
+        aes(colour = visMovType),
+        alpha = a,
+        width = w,
+        tension = t,
+        linetype = ltype
+      )
+    
+  } else{
+    outHeb <- NULL
+  }
+}
+
+fx_plotIt <- function(df, filt, plt_base, verts)
+{
+  # SEF-FEF Plus Rho signif and non-signif
+  plt_plusFefSig <- fx_get_HEB(df, "SEF", "FEF", TRUE, TRUE, verts)
+  plt_plusFefNotSig <- fx_get_HEB(df, "SEF", "FEF", TRUE, FALSE, verts)
+  # SEF-FEF Minus Rho signif and non-signif
+  plt_minusFefSig <- fx_get_HEB(df, "SEF", "FEF", FALSE, TRUE, verts)
+  plt_minusFefNotSig <- fx_get_HEB(df, "SEF", "FEF", FALSE, FALSE, verts)
+  # SEF-SC Plus Rho signif and non-signif
+  plt_plusScSig <- fx_get_HEB(df, "SEF", "SC", TRUE, TRUE, verts)
+  plt_plusScNotSig <- fx_get_HEB(df, "SEF", "FEF", TRUE, FALSE, verts)
+  # SEF-SC Minus Rho signif and non-signif
+  plt_minusScSig <- fx_get_HEB(df, "SEF", "SC", FALSE, TRUE, verts)
+  plt_minusScNotSig <- fx_get_HEB(df, "SEF", "FEF", FALSE, FALSE, verts)
+  
   pltOut <- list()
   # return signif & nonSignif plot or plot it if return val is not asked
-  titleStr <- paste(toupper(filt.satCond),"-",filt.outcome,"-",filt.epoch,sep="")
-  pltOut$signifNonSignif <- plt_base + plt_minusFefNotSig + plt_minusFefSig + plt_plusFefNotSig + plt_plusFefSig +
+  titleStr <-
+    paste(toupper(filt.satCond),
+          "-",
+          filt.outcome,
+          "-",
+          filt.epoch,
+          sep = "")
+  pltOut$signifNonSignif <-
+    plt_base + plt_minusFefNotSig + plt_minusFefSig + plt_plusFefNotSig + plt_plusFefSig +
     plt_minusScNotSig + plt_minusScSig + plt_plusScNotSig + plt_plusScSig +
-    ggtitle(titleStr,"___ p<=0.01, - - - p>0.01")
-
-    # return signif plot 
-    titleStr <- paste(toupper(filt.satCond),"-",filt.outcome,"-",filt.epoch,sep="")
-    pltOut$signif <- plt_base  + plt_minusFefSig  + plt_plusFefSig + plt_minusScSig + plt_plusScSig +
-      ggtitle(titleStr,"___ p<=0.01")
-    # return nonSignif plot 
-    titleStr <- paste(toupper(filt.satCond),"-",filt.outcome,"-",filt.epoch,sep="")
-    pltOut$nonSignif <- plt_base  + plt_minusFefNotSig  + plt_plusFefNotSig + plt_minusScNotSig + plt_plusScNotSig +
-      ggtitle(titleStr,"- - - p>0.01")
-    
-    return(pltOut)
- 
+    ggtitle(titleStr, "___ p<=0.01, - - - p>0.01")
+  
+  # return signif plot
+  titleStr <-
+    paste(toupper(filt.satCond),
+          "-",
+          filt.outcome,
+          "-",
+          filt.epoch,
+          sep = "")
+  pltOut$signif <-
+    plt_base  + plt_minusFefSig  + plt_plusFefSig + plt_minusScSig + plt_plusScSig +
+    ggtitle(titleStr, "___ p<=0.01")
+  # return nonSignif plot
+  titleStr <-
+    paste(toupper(filt.satCond),
+          "-",
+          filt.outcome,
+          "-",
+          filt.epoch,
+          sep = "")
+  pltOut$nonSignif <-
+    plt_base  + plt_minusFefNotSig  + plt_plusFefNotSig + plt_minusScNotSig + plt_plusScNotSig +
+    ggtitle(titleStr, "- - - p>0.01")
+  
+  return(pltOut)
+  
 }
 
 # Read_spkCorr_vals_and_createEdges--------------------------------------------
@@ -159,6 +203,7 @@ vertices$sortArea  <-  sortedEdges$sortArea[idx]
 vertices$area  <-  sortedEdges$area[idx]
 
 vertices$visMovType  <-  sortedEdges$visMovType[idx]
+vertices$sortVisMov  <-  as.factor(sortedEdges$sortVisMov[idx])
 vertices$errorRewardType  <-  sortedEdges$errorRewardType[ idx ]
 vertices$sortErrorReward  <-  sortedEdges$sortErrorReward[ idx ]
 
@@ -168,15 +213,16 @@ mygraph <- graph_from_data_frame( sortedEdges, vertices=vertices )
 plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) + 
   scale_shape_discrete(solid = FALSE) +
   geom_node_point(aes(filter = leaf, x = x*1.05, y=y*1.05, shape=area,
-                      colour=visMovType, stroke = 1)) +
+                      colour=visMovType), stroke = 1) +
   #Change fontface. Allowed values : 1(normal),# 2(bold), 3(italic), 4(bold.italic)
-  geom_text(aes(x = x*1.1, y=y*1.1,label=sortErrorReward,colour=visMovType),
+  geom_text(aes(x = x*1.1, y=y*1.1,label=sortErrorReward,
+                colour=visMovType),
             fontface=2) + 
   theme_void()
   
 # get plots for Fast
 filt.satCond<-"Fast"
-filt.outcome<-"ErrorTiming"
+filt.outcome<-"ErrorChoice"
 filt.epoch<-"PostSaccade"
 filt.sess<-"All"
 pltFast<-fx_plotIt(fx_filter(spkCorr,filt),filt,plt,vertices)
