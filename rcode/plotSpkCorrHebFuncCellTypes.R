@@ -36,18 +36,20 @@ fx_get_HEB <- function(df,
   temp <- df[df$X_area == X_area & df$Y_area == Y_area, ]
   if (plusRhoFlag == TRUE & dim(temp)[1] > 0) {
     temp <- temp[temp$rhoRaw_150ms >= 0, ]
+    plusMinusLineType <- "solid"
   } else{
     temp <- temp[temp$rhoRaw_150ms < 0, ]
+    plusMinusLineType <- "dotted"
   }
 
   if (sigFlag == TRUE & dim(temp)[1] > 0) {
     temp <- temp[temp$pvalRaw_150ms <= 0.01, ]
     a <- 0.8
-    ltype <- "solid"
+    
   } else{
     temp <- temp[temp$pvalRaw_150ms > 0.01, ]
     a <- 0.2
-    ltype <- "longdash"
+    
   }
 
   if (dim(temp)[1] > 0) {
@@ -62,7 +64,7 @@ fx_get_HEB <- function(df,
         alpha = a,
         width = w,
         tension = t,
-        linetype = ltype
+        linetype = plusMinusLineType
       )
     
   } else{
@@ -204,7 +206,9 @@ outcomes <- c("Correct", "ErrorChoice", "ErrorTiming")
 sessNames <- c("All",unique(spkCorr$sess))
 oPath = "../dataProcessed/analysis/spkCorr/networkPlotsColor"
 
-
+sessNames <- c("All")
+outcomes <- c("Correct")
+oPath <- "."
 for (sess in sessNames)
 {
   filt.sess <- sess
