@@ -6,10 +6,9 @@
 
 # load_libraries---------------------------------------------------------------
 # Libraries
-library(dplyr)
-library(ggraph)
+library(tidyverse)
 library(igraph)
-library(hashmap)
+library(ggraph)
 library(gridExtra)
 
 # anonymous_functions_for_plotting---------------------------------------------
@@ -95,8 +94,6 @@ edges <- rbind(d1,d2)
 vertices <- data.frame(name = unique(c(as.character(edges$from), as.character(edges$to)) ) )
 # Let's add a column with the group of each name. It will be useful later to color points
 vertices$area  <-  edges$from[ match( vertices$name, edges$to ) ]
-
-vertices$monkey<-
 
 # Create a graph object with the igraph library
 mygraph <- graph_from_data_frame( edges, vertices=vertices )
