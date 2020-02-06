@@ -57,8 +57,8 @@ fx_get_HEB <- function(df,
       geom_conn_bundle(
           data = get_con(from = match(temp$X_unitNum, verts$name),
           to = match(temp$Y_unitNum, verts$name)),show.legend = FALSE,
-          aes(colour = visMovUnitColor),
-        #aes(colour = "grey15"),
+        aes(colour = visMovUnitColor),
+        #color = "grey25",
         alpha = a,
         width = w,
         tension = t,
@@ -193,6 +193,7 @@ vertices$visMovType  <-  sortedEdges$visMovType[idx]
 vertices$visMovUnitColor  <-  sortedEdges$visMovUnitColor[idx]
 vertices$errorRewardType  <-  sortedEdges$errorRewardType[ idx ]
 vertices$errorRewardTxt  <-  sortedEdges$errorRewardTxt[ idx ]
+vertices$errorRewardTxtColor <- vertices$visMovUnitColor
 
 # Create a graph object with the igraph library
 mygraph <- graph_from_data_frame( sortedEdges, vertices=vertices )
@@ -208,15 +209,16 @@ plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) +
     guide = "legend"
   ) +
   #Change fontface. Allowed values : 1(normal),# 2(bold), 3(italic), 4(bold.italic)
-  geom_text(aes(x = x*1.1, y=y*1.1,label=errorRewardTxt,colour=visMovUnitColor),
-            fontface=2, show.legend = FALSE) +
+  geom_text(aes(x = x*1.1, y=y*1.1,label=errorRewardTxt,colour=errorRewardTxtColor),
+           fontface=2, show.legend = FALSE,) +
   coord_equal() +
   theme_void()
+plt
 
 # plot_for_all_sessions-----------------------
 outcomes <- c("Correct", "ErrorChoice", "ErrorTiming")
 sessNames <- c("All",unique(spkCorr$sess))
-oPath = "../dataProcessed/analysis/spkCorr/networkPlotsColor"
+oPath = "../dataProcessed/analysis/spkCorr/networkPlotsZZZ"
 
 for (sess in sessNames)
 {
@@ -243,7 +245,8 @@ for (sess in sessNames)
       nrow = 2,
       ncol = 1
     )
-    
+    # to view on console
+    # grid.arrange(ZZ)
     # save to pdf file
     ggsave(
       outFilename,
