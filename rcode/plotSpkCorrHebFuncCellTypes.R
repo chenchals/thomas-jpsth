@@ -218,7 +218,7 @@ plt
 # plot_for_all_sessions-----------------------
 outcomes <- c("Correct", "ErrorChoice", "ErrorTiming")
 sessNames <- c("All",unique(spkCorr$sess))
-oPath = "../dataProcessed/analysis/spkCorr/networkPlotsZZZ"
+oPath = "../dataProcessed/analysis/spkCorr/networkPlotsSEF_SC"
 
 for (sess in sessNames)
 {

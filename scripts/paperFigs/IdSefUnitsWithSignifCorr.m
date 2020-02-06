@@ -60,7 +60,6 @@ for u = 1:numel(sefUnits)
             
             t.numFefConn(1) = size(fef,1);
             t.numScConn(1) = size(sc,1);
-            
             cu ='';
             if ~isempty(fef.Y_unitNum)
                 cu = sprintf('%d,',fef.Y_unitNum);
@@ -74,6 +73,10 @@ for u = 1:numel(sefUnits)
             end
             cu = ['[',cu(1:end-1),']'];
             t.scUnits{1} = cu;
+            % as cell array
+            t.fefUnitsNum{1} = fef.Y_unitNum;
+            t.scUnitsNum{1} = sc.Y_unitNum;
+ 
             
             outTable = [outTable;t];
         end
