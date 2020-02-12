@@ -17,9 +17,9 @@ library(gridExtra)
 # Pick the connections (pairs) to be lotted so we can fine the nodeIds and do the plot 
 fx_filter <- function(df,filt) 
 {
-  df <- df %>% filter( satCondition == filt.satCond & outcome == filt.outcome & epoch == filt.epoch )
-  if (!filt.sess == "All"){
-    df <- df %>% filter(sess == filt.sess)
+  df <- df %>% filter( satCondition == filt$satCond & outcome == filt$outcome & epoch == filt$epoch )
+  if (!filt$sess == "All"){
+    df <- df %>% filter(sess == filt$sess)
   }
   return(df)
 }
@@ -85,10 +85,10 @@ fx_plotIt <- function(df, filt,  plt_base, verts)
   pltOut <- list()
   # return signif plot
   titleStr <-
-    paste(toupper(filt.satCond),
-          filt.outcome,
-          filt.epoch,
-          filt.sess,
+    paste(toupper(filt$satCond),
+          filt$outcome,
+          filt$epoch,
+          filt$sess,
           sep = "-")
   pltOut$signif <-
     plt_base  + plt_minusFefSig  + plt_plusFefSig + plt_minusScSig + plt_plusScSig +
@@ -215,27 +215,68 @@ plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) +
   theme_void()
 plt
 
+# plot_specific_conds_allSessPostSacc-------------------------
+
+fx_paperFig <- function(inOutcome, inEpoch, inDf)
+{
+  oPath = "../dataProcessed/analysis/spkCorr/networkPlotsPaperFig"
+  filt <- list()
+  filt$outcome <- inOutcome 
+  filt$sess <- "All"
+  filt$epoch <- inEpoch 
+  outFilename <- paste(filt$outcome, filt$epoch, filt$sess, sep = "_")
+  outFilename <- paste(outFilename, ".tiff", sep = "")
+  # get plots for Fast
+  filt$satCond <- "Fast"
+  pltFast <-
+    fx_plotIt(fx_filter(inDf, filt), filt, plt, vertices)
+  # get plots for Accurate
+  filt$satCond <- "Accurate"
+  pltAccu <-
+    fx_plotIt(fx_filter(inDf, filt), filt, plt, vertices)
+  
+  # return a grob...
+  ZZ <- arrangeGrob(grobs = c(pltFast, pltAccu),
+                    nrow = 2,
+                    ncol = 1)
+  ggsave(
+    outFilename,
+    path = oPath,
+    ZZ,
+    width = 8,
+    height = 10,
+    units = "in"
+  )
+  return(ZZ)
+}
+
+fx_paperFig("ErrorChoice","Baseline",spkCorr)
+fx_paperFig("ErrorChoice","PostSaccade",spkCorr)
+fx_paperFig("ErrorTiming","Baseline",spkCorr)
+fx_paperFig("ErrorTiming","PostSaccade",spkCorr)
+
+
 # plot_for_all_sessions-----------------------
 outcomes <- c("Correct", "ErrorChoice", "ErrorTiming")
 sessNames <- c("All",unique(spkCorr$sess))
 oPath = "../dataProcessed/analysis/spkCorr/networkPlotsSEF_SC"
-
+filt <- list()
 for (sess in sessNames)
 {
-  filt.sess <- sess
+  filt$sess <- sess
   for (outcome in outcomes)
   {
-    filt.outcome <- outcome
-    filt.epoch <- "PostSaccade"
-    outFilename <- paste(filt.outcome, filt.epoch, filt.sess, sep = "_")
+    filt$outcome <- outcome
+    filt$epoch <- "PostSaccade"
+    outFilename <- paste(filt$outcome, filt$epoch, filt$sess, sep = "_")
     outFilename <- paste(outFilename, ".pdf", sep = "")
     
     # get plots for Fast
-    filt.satCond <- "Fast"
+    filt$satCond <- "Fast"
     pltFast <-
       fx_plotIt(fx_filter(spkCorr, filt), filt, plt, vertices)
     # get plots for Accurate
-    filt.satCond <- "Accurate"
+    filt$satCond <- "Accurate"
     pltAccu <-
       fx_plotIt(fx_filter(spkCorr, filt), filt, plt, vertices)
     
