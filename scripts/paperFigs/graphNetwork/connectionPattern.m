@@ -36,7 +36,11 @@ rscTbl.signifRsc(idx) = -1*ones(numel(idx,1));
 
 %% count number of significant connections to build a heatmap matrix
 % 1. colNames =
-%           {'satCondition','rscSign','sefConnType','SEFvisMoveType','nPairs','nSignif','FEF_1','FEF_2','SC_1','SC_2'}
+%           {'satCondition','rscSign','sefConnType','SEFvisMoveType','nPairs','nSignif',...
+%            'FEF_Grp1','FEF_Grp2','SC_Grp1','SC_Grp2',... % split nConnections as 1 + (n-1)
+%            'FEF_1','FEF_2','SC_1','SC_2'... % split nConnections n/2
+%            };
+%
 %           satCondition = {'Fast','Accurate'}
 %           rscSign = {'all','positive','negative'}
 %           sefConnType = {'single','multiple'} does a single sef unit
@@ -50,6 +54,7 @@ rscTbl.signifRsc(idx) = -1*ones(numel(idx,1));
 %         * 2 (sefConnType) 
 %       = 48 rows for each outcome epoch combination
 % 3. updating matrix-entry for a row: 
+%   Case1: Partial Connection count:  
 %      Example: current SEF unit is Vis then
 %      a. number of significant connections nc == 1
 %         i. if connection is to FEF then 
@@ -60,6 +65,22 @@ rscTbl.signifRsc(idx) = -1*ones(numel(idx,1));
 %         i. Split nc connections by area: nc_fef and nc_sc
 %         ii. update columns FEF_1 = FEF_1 + nc_fef/2, FEF_2 = FEF_2 + nc_fef/2
 %         ii. update columns SC_1 = SC_1 + nc_sc/2, SC_2 = SC_2 + nc_sc/2
+%   
+%   Case2: Whole connection count:
+%      Example: current SEF unit is Vis then
+%      a. number of significant connections nc == 1
+%         i. if connection is to FEF then 
+%                update FEF_grp1 = FEF_grp1 + nc
+%         ii. if connection is to SC then 
+%                update SC_grp1 = SC_grp1 + nc
+%      b. number of significant connections nc > 1
+%         i. Split nc connections by area: nc_fef and nc_sc
+%         ii. update columns if nc_fef > 0 then 
+%                             FEF_Grp1 = FEF_Grp1 + 1,
+%                             FEF_Grp2 = if (nc_fef - 1) > 0, then FEF_Grp2 +  (nc_fef - 1)
+%         ii. update columns if nc_sc > 0 then
+%                             SC_Grp1 = SC_Grp1 + 1,
+%                             SC_Grp2 = if (nc_sc - 1) > 0, then SC_Grp2 +  (nc_sc - 1)
 %
 outcomes = {'Correct','ErrorChoice','ErrorTiming'};
 epochs = {'PostSaccade'};
@@ -67,7 +88,8 @@ satConds = {'Fast','Accurate'};
 rscSigns = {'all','positive','negative'};
 sefConnTypes = {'single','multiple'};
 SEFVisMovType = {'Vis','VisMov','Mov','Other'};
-colNames = {'satCondition','rscSign','sefConnType','SEFvisMoveType','nPairs','nSignif','FEF_1','FEF_2','SC_1','SC_2'};
+colValsStr = {'satCondition','rscSign','sefConnType','SEFvisMoveType'};
+colValsNum = {'nPairs','nSignif','FEF_Grp1','FEF_Grp2','SC_Grp1','SC_Grp2','FEF_1','FEF_2','SC_1','SC_2'};
 % Create an empty connection table 
 % for initiatizing tables in the loop below
 emptyConnTbl = table();
@@ -80,7 +102,7 @@ for rscSign = rscSigns
             temp.rscSign = repmat(rscSign,nr,1);
             temp.sefConnType = repmat(connType,nr,1);
             temp.SEFvisMoveType = SEFVisMovType';
-            for cn = {'nPairs','nSignif','FEF_1','FEF_2','SC_1','SC_2'}
+            for cn = colValsNum
                 temp.(cn{1}) = zeros(nr,1);
             end
             emptyConnTbl = [emptyConnTbl;temp]; %#ok<*AGROW>
@@ -100,23 +122,23 @@ for oc = 1:numel(outcomes)
        outConn = emptyConnTbl;
        for sc = 1:numel(satConds)
            satCond = satConds{sc};
-           rscs = rscs(ismember(rscs.satCondition,satCond),:);
+           fastAccuPairs = rscs(ismember(rscs.satCondition,satCond),:);
            % Process connections for each unit
            sefUnits = unique(rscs.X_unitNum);
            for u = 1:numel(sefUnits)
                unitNum = sefUnits(u);
-               currPairs = rscs(rscs.X_unitNum == unitNum,:);
-               visMovType = char(unique(currPairs.X_visMovType));
+               currUnitPairs = fastAccuPairs(fastAccuPairs.X_unitNum == unitNum,:);
+               visMovType = char(unique(currUnitPairs.X_visMovType));
                    % process for all Rsc do not take sign into account
                    for rsig = 1:numel(rscSigns)
                        rscSign = rscSigns{rsig};                       
                        switch rscSign
                            case 'positive'
-                               tempPairs = currPairs(currPairs.rscSign == 1,:);                              
+                               tempPairs = currUnitPairs(currUnitPairs.rscSign == 1,:);                              
                            case 'negative'
-                               tempPairs = currPairs(currPairs.rscSign == -1,:);                                                       
+                               tempPairs = currUnitPairs(currUnitPairs.rscSign == -1,:);                                                       
                            case 'all'
-                               tempPairs = currPairs(abs(currPairs.rscSign) == 1,:);
+                               tempPairs = currUnitPairs(abs(currUnitPairs.rscSign) == 1,:);
                        end
                        
                        if isempty(tempPairs)
@@ -153,13 +175,30 @@ for oc = 1:numel(outcomes)
                        outConn.nSignif(idx) = outConn.nSignif(idx) + nSignif;
                        % update FEF_1 and FEF_2 values
                        nc = numel(find(ismember(tempPairs.Y_area,'FEF')));
+                       % case1:
                        outConn.FEF_1(idx) = outConn.FEF_1(idx) + nc/2;
                        outConn.FEF_2(idx) = outConn.FEF_2(idx) + nc/2;
+                       if nc > 0
+                           % case2:
+                           outConn.FEF_Grp1(idx) = outConn.FEF_Grp1(idx) + 1;
+                           nc = nc - 1;
+                           nc = (abs(nc) + nc)/2; % nc is 0 or positive
+                           outConn.FEF_Grp2(idx) = outConn.FEF_Grp2(idx) + nc;
+                       end
                        % update SC_1 and SC_2 values
+                       % case1:
                        nc = numel(find(ismember(tempPairs.Y_area,'SC')));
                        outConn.SC_1(idx) = outConn.SC_1(idx) + nc/2;
                        outConn.SC_2(idx) = outConn.SC_2(idx) + nc/2;
-                   end
+                       % case2:
+                       if nc > 0
+                           outConn.SC_Grp1(idx) = outConn.SC_Grp1(idx) + 1;
+                           nc = nc - 1;
+                           nc = (abs(nc) + nc)/2; % nc is 0 or positive
+                           outConn.SC_Grp2(idx) = outConn.SC_Grp2(idx) + nc;
+                       end
+                       
+                  end
  
                % next unit num
            end
