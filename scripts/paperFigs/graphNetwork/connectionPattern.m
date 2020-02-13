@@ -223,7 +223,6 @@ fx_dat_filter = @(t,satCond,sefConnType,rscSign) t(ismember(t.sefConnType,sefCon
                                      & ismember(t.rscSign,rscSign)...
                                      & ismember(t.satCondition,satCond)...
                                     ,:);
-
                                 
 % find min/max values for color...
 tempVals = [];
@@ -234,13 +233,12 @@ tempVals = tempVals(:);
 cLims = [min(tempVals),max(tempVals)];
 
 for oe = 1:numel(fns)
-    figure
-    pltNo = 0;
     outcomeEpoch = fns{oe};
     tempTbl = outConnMat.(outcomeEpoch)(:,plotCols);
     % plot single connection FAST/ACCU for all, positive, negative Rsc
-    % subplot 1
-   
+    f = newFigure();
+    annotation('textbox','Position',[0.05 0.95,0.9,0.05],'String',outcomeEpoch,'FontSize',14,'FitBoxToText','off','EdgeColor','none')
+    pltNo = 0;
     for ro = 1:3
         rscSign = rscSigns{ro};
         for colGrp = 1:2
@@ -254,10 +252,9 @@ for oe = 1:numel(fns)
                 title([satCond '-' rscSign '-' sefConnType])
             end
         end
-    end
-    
-
-            
+    end  
+    saveFigPdf([outcomeEpoch '.pdf']);
+    delete(f)
 end
 
 
