@@ -209,6 +209,65 @@ for oc = 1:numel(outcomes)
 end
 
 
+%% Create heatmaps? for single and multiple connections
+% redifine stuff for creating heat maps
+fns = fieldnames(outConnMat); % CorrectPostSaccade, ErrorChoicePostSaccade, ErrorTimingPostSaccade
+sefConnTypes = {'single','multiple'};
+satCons = {'Fast','Accurate'};
+rscSigns = {'all','positive','negative'};
+heatmapXCols = {'FEF_Grp1','FEF_Grp2','SC_Grp1','SC_Grp2'};
+heatmapYCols = {'SEFvisMoveType'};
+filterCols = {'satCondition','rscSign','sefConnType'};
+plotCols = [filterCols heatmapYCols heatmapXCols];
+fx_dat_filter = @(t,satCond,sefConnType,rscSign) t(ismember(t.sefConnType,sefConnType) ...
+                                     & ismember(t.rscSign,rscSign)...
+                                     & ismember(t.satCondition,satCond)...
+                                    ,:);
+
+                                
+% find min/max values for color...
+tempVals = [];
+for oe =1 :numel(fns)
+    tempVals = [tempVals;outConnMat.(fns{oe}){:,heatmapXCols}];
+end
+tempVals = tempVals(:);
+cLims = [min(tempVals),max(tempVals)];
+
+for oe = 1:numel(fns)
+    figure
+    pltNo = 0;
+    outcomeEpoch = fns{oe};
+    tempTbl = outConnMat.(outcomeEpoch)(:,plotCols);
+    % plot single connection FAST/ACCU for all, positive, negative Rsc
+    % subplot 1
+   
+    for ro = 1:3
+        rscSign = rscSigns{ro};
+        for colGrp = 1:2
+            sefConnType = sefConnTypes{colGrp};
+            for fa = 1:2
+                satCond = satConds{fa};
+                dat = fx_dat_filter(tempTbl,satCond,sefConnType,rscSign);
+                pltNo = pltNo + 1;
+                h_axes(pltNo) = subplot(3,4,pltNo);
+                h_heatmaps(pltNo) = fx_plotHeatmap(h_axes(pltNo),dat,heatmapXCols,cLims);
+                title([satCond '-' rscSign '-' sefConnType])
+            end
+        end
+    end
+    
+
+            
+end
 
 
+%%
+function [h_heatmap] = fx_plotHeatmap(h_axis,dat,heatmapXCols,cLims) 
+    cData = dat{:,heatmapXCols};
+    xLabel = regexprep(heatmapXCols','_Grp','');
+    yLabel = dat.SEFvisMoveType;
+    axes(h_axis)
+    h_heatmap = heatmap(xLabel,yLabel,cData,'ColorLimits',cLims);
+    colormap('cool')
+end
 
