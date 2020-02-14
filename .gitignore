@@ -8,3 +8,4 @@ sdfsHeatmapByArea-OnMac.zip
 .Rhistory
 plotSpkCorrHebBySession.R
 connectHeatmapData_All.mat
+*.mat
