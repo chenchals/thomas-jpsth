@@ -145,6 +145,7 @@ for ii = 1:numel(tbls)
         if ~isempty(patternSummTbl)
         idx = find(ismember(patternSummTbl.dataSrc,dataSrc) & patternSummTbl.nPerms == nPerms...
             & ismember(patternSummTbl.outcome,outcome) & ismember(patternSummTbl.epoch,epoch)...
+            & ismember(patternSummTbl.satCondition,satCondition)...
             & ismember(patternSummTbl.sefVisMovType,sefVisMovType));
         end
         if idx > 0
@@ -157,7 +158,7 @@ for ii = 1:numel(tbls)
             p.epoch = epoch;
             p.satCondition = satCondition;
             p.sefVisMovType = sefVisMovType;
-            p = [p array2table(repmat(0,1,numel(patColNames)),'VariableNames',patColNames)];
+            p = [p array2table(zeros(1,numel(patColNames)),'VariableNames',patColNames)];
             p.(pattern4colName) = groupCount;
             patternSummTbl = [patternSummTbl; p];
         end
