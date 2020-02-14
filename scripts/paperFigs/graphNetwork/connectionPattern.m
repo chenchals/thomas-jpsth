@@ -96,60 +96,75 @@ for rscSign = rscSigns
         end
     end
 end
-%% Get Connection matrix by parsing functional types
-
-[outConnMatFunc] = getConnMatForFunctionalTypes(rscTbl,emptyConnTbl,outcomes,epochs);
-
-%% Create heatmaps? for single and multiple connections
-% redifine stuff for creating heat maps
-outConnMat = outConnMatFunc;
-fns = fieldnames(outConnMat); % CorrectPostSaccade, ErrorChoicePostSaccade, ErrorTimingPostSaccade
-sefConnTypes = {'single','multiple'};
-satConds = {'Fast','Accurate'};
-rscSigns = {'all','positive','negative'};
-heatmapXCols = {'FEF_Grp1','FEF_Grp2','SC_Grp1','SC_Grp2'};
-heatmapYCols = {'sefVisMovType'};
-filterCols = {'satCondition','rscSign','sefConnType'};
-plotCols = [filterCols heatmapYCols heatmapXCols];
-fx_dat_filter = @(t,satCond,sefConnType,rscSign) t(ismember(t.sefConnType,sefConnType) ...
-                                     & ismember(t.rscSign,rscSign)...
-                                     & ismember(t.satCondition,satCond)...
-                                    ,:);
-                                
-% find min/max values for color...
-tempVals = [];
-for oe =1 :numel(fns)
-    tempVals = [tempVals;outConnMat.(fns{oe}){:,heatmapXCols}];
-end
-tempVals = tempVals(:);
-cLims = [1,max(tempVals)];
-
-for oe = 1:numel(fns)
-    outcomeEpoch = fns{oe};
-    tempTbl = outConnMat.(outcomeEpoch)(:,plotCols);
-    % plot single connection FAST/ACCU for all, positive, negative Rsc
-    f = newFigure();
-    annotation('textbox','Position',[0.05 0.95,0.9,0.05],'String',outcomeEpoch,'FontSize',14,'FitBoxToText','off','EdgeColor','none')
-    pltNo = 0;
-    for ro = 1:3
-        rscSign = rscSigns{ro};
-        for colGrp = 1:2
-            sefConnType = sefConnTypes{colGrp};
-            for fa = 1:2
-                satCond = satConds{fa};
-                dat = fx_dat_filter(tempTbl,satCond,sefConnType,rscSign);
-                pltNo = pltNo + 1;
-                h_axes(pltNo) = subplot(3,4,pltNo);
-                h_heatmaps(pltNo) = fx_plotHeatmap(h_axes(pltNo),dat,heatmapXCols,cLims);
-                title([satCond '-' rscSign '-' sefConnType])
+%% Get Connection matrix by parsing functional types and plot
+allSess = unique(rscTbl.sess,'stable');
+allSess = ['All'; allSess];
+for se = 1:numel(allSess)
+    sess = allSess{se};
+    if strcmp(sess,'All')
+        rscTblFiltered = rscTbl;
+    else
+        rscTblFiltered = rscTbl(ismember(rscTbl.sess,sess),:);
+    end
+    
+    [outConnMatFunc] = getConnMatForFunctionalTypes(rscTblFiltered,emptyConnTbl,outcomes,epochs);
+    save(['connectionHeatmapData_' sess '.mat'],'-struct','outConnMatFunc');
+    % Create heatmaps? for single and multiple connections
+    % redifine stuff for creating heat maps
+    outConnMat = outConnMatFunc;
+    fns = fieldnames(outConnMat); % CorrectPostSaccade, ErrorChoicePostSaccade, ErrorTimingPostSaccade
+    sefConnTypes = {'single','multiple'};
+    satConds = {'Fast','Accurate'};
+    rscSigns = {'all','positive','negative'};
+    heatmapXCols = {'FEF_Grp1','FEF_Grp2','SC_Grp1','SC_Grp2'};
+    heatmapYCols = {'sefVisMovType'};
+    filterCols = {'satCondition','rscSign','sefConnType'};
+    plotCols = [filterCols heatmapYCols heatmapXCols];
+    fx_dat_filter = @(t,satCond,sefConnType,rscSign) t(ismember(t.sefConnType,sefConnType) ...
+        & ismember(t.rscSign,rscSign)...
+        & ismember(t.satCondition,satCond)...
+        ,:);
+    
+    % find min/max values for color...
+    tempVals = [];
+    for oe =1 :numel(fns)
+        tempVals = [tempVals;outConnMat.(fns{oe}){:,heatmapXCols}];
+    end
+    tempVals = tempVals(:);
+    cLims = [1,max(tempVals)];
+    % fix cLims for session when no connections 
+    if cLims(2) < cLims(1) || cLims(2) == cLims(1)
+        cLims(2) = cLims(1) + 1;
+    end
+    
+    for oe = 1:numel(fns)
+        outcomeEpoch = fns{oe};
+        outPdfFile = [outcomeEpoch '_' sess '.pdf'];      
+        tempTbl = outConnMat.(outcomeEpoch)(:,plotCols);
+        % plot single connection FAST/ACCU for all, positive, negative Rsc
+        f = newFigure();
+        annotation('textbox','Position',[0.05 0.95,0.9,0.05],'String',sess,'FontSize',16,'FitBoxToText','off','EdgeColor','none','FontWeight','bold')
+        annotation('textbox','Position',[0.20 0.95,0.8,0.05],'String',outcomeEpoch,'FontSize',14,'FitBoxToText','off','EdgeColor','none','FontWeight','bold')
+        pltNo = 0;
+        for ro = 1:3
+            rscSign = rscSigns{ro};
+            for colGrp = 1:2
+                sefConnType = sefConnTypes{colGrp};
+                for fa = 1:2
+                    satCond = satConds{fa};
+                    dat = fx_dat_filter(tempTbl,satCond,sefConnType,rscSign);
+                    pltNo = pltNo + 1;
+                    h_axes(pltNo) = subplot(3,4,pltNo);
+                    h_heatmaps(pltNo) = fx_plotHeatmap(h_axes(pltNo),dat,heatmapXCols,cLims);
+                    title([satCond '-' rscSign '-' sefConnType])
+                end
             end
         end
-    end  
-   saveFigPdf([outcomeEpoch '.pdf']);
-   delete(f)
+        saveFigPdf(outPdfFile);
+        delete(f)
+    end
+    
 end
-
-
 %%
 function [h_heatmap] = fx_plotHeatmap(h_axis,dat,heatmapXCols,cLims) 
     cData = dat{:,heatmapXCols};
@@ -164,7 +179,11 @@ function [h_heatmap] = fx_plotHeatmap(h_axis,dat,heatmapXCols,cLims)
     yLabel = strcat(yLabel,newline,num2str(rowSum,' (%d)'));
     
     axes(h_axis)
-    h_heatmap = heatmap(xLabel,yLabel,cData,'ColorLimits',cLims);
+%     if sum(isnan(cData(:))) == numel(cData)
+%         h_heatmap = heatmap(xLabel,yLabel,cData);
+%     else
+        h_heatmap = heatmap(xLabel,yLabel,cData,'ColorLimits',cLims);
+%    end
     colormap('cool')
     h_heatmap.MissingDataColor = [0.95 0.95 0.95];
     h_heatmap.MissingDataLabel = 'No Conn.';
