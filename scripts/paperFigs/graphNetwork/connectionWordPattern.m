@@ -210,13 +210,25 @@ for ds = 1:numel(dataSrcs)
                 getHeatmapDat(dat(idxAcc,:),funcLabelsAll,datColnames);
             pltNo = pltNo + 1;
             h_axis = subplot(1,6,pltNo);
-            fx_plotHeatmap(h_axis,heatmapDat,funcLabels,patLabels,cLims) 
+            fx_plotHeatmap(h_axis,heatmapDat,funcLabels,patLabels,cLims);
             title(['Accurate-' outcomeEpoch])
                        
         end
     end
     saveFigPdf(['connectionPattern-' dataSrc '.pdf'])
 end
+
+%% Create graph and subgraphs from the patternSummTbl
+% Extract fromUnitGrp and toUnitGrp tags:
+% 1. code fromUnitGrp
+temp = patternSummTbl;
+nR = size(temp,1);
+preFixCols = {'dataSrc','outcome','epoch','satCondition','sefVisMovType'};
+grpPreFix = arrayfun(@(x) sprintf('%s-%s-%s%s',char(join(temp{x,preFixCols},'-')),...
+                          regexprep(temp{1,'sefVisMovType'},'[a-z]',''),num2str(x,'-%02d')),...
+                          (1:nR)','UniformOutput',false);
+
+% 2. 
       
 
 %%
@@ -230,6 +242,7 @@ function [heatmapDat,funcLabels,patLabels] = getHeatmapDat(inDatTbl,funcLabelsAl
         idx = ismember(inDatTbl.sefVisMovType,funcLabelsAll{ft});
         inDatTbl.sortOrder(idx) = ft;
     end
+    inDatTbl = sortrows(inDatTbl,'sortOrder');
     heatmapDat = inDatTbl{:,datColnames};
     funcLabels = inDatTbl.sefVisMovType;
     patLabels = regexprep(datColnames,'pat_\d+_','');
