@@ -170,6 +170,88 @@ patternSummTbl.nAllPatterns = sum(patternSummTbl{:,patColNames},2);
 
 %clearvars -except funcWordPattern randFuncWordPattern sefUnitType uniqPatternTbl patternSummTbl
 
+%% show a heatmap of patterns
+% {'actual',0,'ErrorTiming','PostSaccade','Accurate'}
+dataSrcs = {'actual','randPerm'};
+outcomes = {'Correct','ErrorChoice','ErrorTiming'};
+epochs = {'PostSaccade'};
+satConds = {'Accurate','Fast'};
+allDat = patternSummTbl;
+colNames = allDat.Properties.VariableNames;
+funcLabelsAll = {'Vis','VisMov','Mov','Other'};
+datColnames = colNames(~cellfun(@isempty, regexp(colNames,'pat_.*','match')));
+cLims = [1 max(max(allDat{:,datColnames}))];
+for ds = 1:numel(dataSrcs)
+    h_fig = newFigure();
+    pltNo = 0;
+    dataSrc = dataSrcs{ds};
+    annotation('textbox','Position',[0.05 0.95,0.9,0.05],'String',dataSrc,'FontSize',16,'FitBoxToText','off','EdgeColor','none','FontWeight','bold')
+    idxDs = ismember(allDat.dataSrc,dataSrc);
+    for ep = 1:numel(epochs)
+        epoch = epochs{ep};
+        idxEpoch = ismember(allDat.epoch,epoch);
+        for oc = 1:numel(outcomes)
+            outcome = outcomes{oc};
+            outcomeEpoch =  [outcome '-' epoch];
+            %annotation('textbox','Position',[0.15 0.95,0.8,0.05],'String',outcomeEpoch,'FontSize',14,'FitBoxToText','off','EdgeColor','none','FontWeight','bold')
+            idxOutcome = ismember(allDat.outcome,outcome);
+            dat = allDat(idxDs & idxEpoch & idxOutcome,:);
+            idxFast = ismember(dat.satCondition,'Fast');
+            idxAcc = ismember(dat.satCondition,'Accurate');
+            % for Fast
+            [heatmapDat,funcLabels,patLabels] = ...
+                getHeatmapDat(dat(idxFast,:),funcLabelsAll,datColnames);
+            pltNo = pltNo + 1;
+            h_axis = subplot(1,6,pltNo);
+            fx_plotHeatmap(h_axis,heatmapDat,funcLabels,patLabels,cLims) 
+            title(['Fast-' outcomeEpoch])
+            % for Accurate
+            [heatmapDat,funcLabels,patLabels] = ...
+                getHeatmapDat(dat(idxAcc,:),funcLabelsAll,datColnames);
+            pltNo = pltNo + 1;
+            h_axis = subplot(1,6,pltNo);
+            fx_plotHeatmap(h_axis,heatmapDat,funcLabels,patLabels,cLims) 
+            title(['Accurate-' outcomeEpoch])
+                       
+        end
+    end
+    saveFigPdf(['connectionPattern-' dataSrc '.pdf'])
+end
+      
+
+%%
+function [heatmapDat,funcLabels,patLabels] = getHeatmapDat(inDatTbl,funcLabelsAll,datColnames)
+    missingFuncs = setdiff(funcLabelsAll,inDatTbl.sefVisMovType);
+    for mf = 1:numel(missingFuncs)
+        inDatTbl.sefVisMovType{size(inDatTbl,1)+1} = missingFuncs{mf};
+    end
+    % sort funcs
+    for ft = 1:numel(funcLabelsAll)
+        idx = ismember(inDatTbl.sefVisMovType,funcLabelsAll{ft});
+        inDatTbl.sortOrder(idx) = ft;
+    end
+    heatmapDat = inDatTbl{:,datColnames};
+    funcLabels = inDatTbl.sefVisMovType;
+    patLabels = regexprep(datColnames,'pat_\d+_','');
+    
+end
+
+function [h_heatmap] = fx_plotHeatmap(h_axis,dat,fxLabels,patLabels,cLims)  
+    cData = dat;
+    cData(cData == 0) = NaN;
+    rowSum = nansum(cData,2);
+    
+    pLabels = patLabels;   
+    funcLabels = strcat(fxLabels,num2str(rowSum,' (%d)'));    
+    
+    axes(h_axis)
+    h_heatmap = heatmap(funcLabels,pLabels,cData','ColorLimits',cLims);
+
+    colormap('cool')
+    h_heatmap.MissingDataColor = [0.95 0.95 0.95];
+    h_heatmap.MissingDataLabel = 'No Conn.';
+    h_heatmap.ColorbarVisible = 'off';
+end
 
 
 
