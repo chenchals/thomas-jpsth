@@ -231,6 +231,8 @@ grpPreFix = arrayfun(@(x) sprintf('%s-%s-%s%s',char(join(temp{x,preFixCols},'-')
 % 2. 
       
 
+% 3. 
+
 %%
 function [heatmapDat,funcLabels,patLabels] = getHeatmapDat(inDatTbl,funcLabelsAll,datColnames)
     missingFuncs = setdiff(funcLabelsAll,inDatTbl.sefVisMovType);
