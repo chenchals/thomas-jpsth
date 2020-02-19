@@ -274,9 +274,12 @@ for ds = 1:numel(dataSrcs)
             funcSum.([dataSrc '_' fn]) = sum(heatmapDat,2);
         end
     end
-    %saveFigPdf(['connectionPattern-' dataSrc '.pdf'])
+    saveFigPdf(['connectionPattern-' dataSrc '.pdf'])
 end
 writetable(patternSum,'patternSum.csv')
+writetable(funcSum,'funcSum.csv')
+
+
 %% Create graph and subgraphs from the patternSummTbl
 % Extract fromUnitGrp and toUnitGrp tags:
 % 1. code fromUnitGrp
