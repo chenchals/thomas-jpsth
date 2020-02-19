@@ -10,3 +10,4 @@ plotSpkCorrHebBySession.R
 connectHeatmapData_All.mat
 *.mat
 crossAreaTable.csv
+patternSum.csv

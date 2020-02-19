@@ -224,14 +224,16 @@ colNames = allDat.Properties.VariableNames;
 funcLabelsAll = {'Vis','VisMov','Mov','Other'};
 datColnames = colNames(~cellfun(@isempty, regexp(colNames,'pat_.*','match')));
 cLims = [1 max(max(allDat{:,datColnames}))];
+
+patternSum = table();
+funcSum = table();
+
 for ds = 1:numel(dataSrcs)
     h_fig = newFigure();
     pltNo = 0;
     dataSrc = dataSrcs{ds};
     annotation('textbox','Position',[0.05 0.95,0.9,0.05],'String',dataSrc,'FontSize',16,'FitBoxToText','off','EdgeColor','none','FontWeight','bold')
     idxDs = ismember(allDat.dataSrc,dataSrc);
-    rowSum = {};
-    colSum = {};
     for ep = 1:numel(epochs)
         epoch = epochs{ep};
         idxEpoch = ismember(allDat.epoch,epoch);
@@ -248,21 +250,33 @@ for ds = 1:numel(dataSrcs)
                 getHeatmapDat(dat(idxFast,:),funcLabelsAll,datColnames);
             pltNo = pltNo + 1;
             h_axis = subplot(1,6,pltNo);
-            fx_plotHeatmap(h_axis,heatmapDat,funcLabels,patLabels,cLims) 
-            title(['Fast-' outcomeEpoch])
+            fx_plotHeatmap(h_axis,heatmapDat,funcLabels,patLabels,cLims)
+            fn = ['Fast-' outcomeEpoch];
+            title(fn)
+            fn = regexprep([dataSrc '-' fn],'-','_');
+            if isempty(patternSum)
+                patternSum.pattern = patLabels';
+            end
+            patternSum.(fn) = sum(heatmapDat,1)';
+
             % for Accurate
             [heatmapDat,funcLabels,patLabels] = ...
                 getHeatmapDat(dat(idxAcc,:),funcLabelsAll,datColnames);
             pltNo = pltNo + 1;
             h_axis = subplot(1,6,pltNo);
             fx_plotHeatmap(h_axis,heatmapDat,funcLabels,patLabels,cLims);
-            title(['Accurate-' outcomeEpoch])
-                       
+            fn = ['Accurate-' outcomeEpoch];
+            title(fn)
+            fn = regexprep([dataSrc '-' fn],'-','_');
+            if isempty(funcSum)
+                funcSum.sefFuncType = funcLabels;
+            end
+            funcSum.([dataSrc '_' fn]) = sum(heatmapDat,2);
         end
     end
     %saveFigPdf(['connectionPattern-' dataSrc '.pdf'])
 end
-
+writetable(patternSum,'patternSum.csv')
 %% Create graph and subgraphs from the patternSummTbl
 % Extract fromUnitGrp and toUnitGrp tags:
 % 1. code fromUnitGrp
