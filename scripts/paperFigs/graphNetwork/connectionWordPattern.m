@@ -209,6 +209,10 @@ patternSummTbl.nAllPatterns = sum(patternSummTbl{:,patColNames},2);
 
 %clearvars -except funcWordPattern randFuncWordPattern sefUnitType uniqPatternTbl patternSummTbl
 
+fastCorrectPostScacc = patternSummTbl.dataSrc
+
+
+
 %% show a heatmap of patterns
 % {'actual',0,'ErrorTiming','PostSaccade','Accurate'}
 dataSrcs = {'actual','randPerm'};
@@ -226,6 +230,8 @@ for ds = 1:numel(dataSrcs)
     dataSrc = dataSrcs{ds};
     annotation('textbox','Position',[0.05 0.95,0.9,0.05],'String',dataSrc,'FontSize',16,'FitBoxToText','off','EdgeColor','none','FontWeight','bold')
     idxDs = ismember(allDat.dataSrc,dataSrc);
+    rowSum = {};
+    colSum = {};
     for ep = 1:numel(epochs)
         epoch = epochs{ep};
         idxEpoch = ismember(allDat.epoch,epoch);
@@ -290,12 +296,12 @@ function [heatmapDat,funcLabels,patLabels] = getHeatmapDat(inDatTbl,funcLabelsAl
     
 end
 
-function [h_heatmap] = fx_plotHeatmap(h_axis,dat,fxLabels,patLabels,cLims)  
+function [h_heatmap,rowSum,colSum] = fx_plotHeatmap(h_axis,dat,fxLabels,patLabels,cLims)  
     cData = dat;
     cData(cData == 0) = NaN;
     rowSum = nansum(cData,2);
-    
-    pLabels = patLabels;   
+    colSum = nansum(cData,1)';
+    pLabels = strcat(patLabels',num2str(colSum,'(%d)'));   
     funcLabels = strcat(fxLabels,num2str(rowSum,' (%d)'));    
     
     axes(h_axis)

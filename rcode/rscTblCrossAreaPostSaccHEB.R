@@ -196,4 +196,46 @@ plt<-ggraph(mygraph, layout = 'dendrogram', circular = TRUE) +
   coord_equal() +
   theme_void()
 plt
-
+# plot_for_all_sessions-----------------------
+outcomes <- c("Correct", "ErrorChoice", "ErrorTiming")
+sessNames <- c("All")
+oPath = "."
+filt <- list()
+for (sess in sessNames)
+{
+  filt$sess <- sess
+  for (outcome in outcomes)
+  {
+    filt$outcome <- outcome
+    filt$epoch <- "PostSaccade"
+    outFilename <- paste(filt$outcome, filt$epoch, filt$sess, sep = "_")
+    outFilename <- paste(outFilename, ".pdf", sep = "")
+    
+    # get plots for Fast
+    filt$satCond <- "Fast"
+    pltFast <-
+      fx_plotIt(fx_filter(spkCorr, filt), filt, plt, vertices)
+    # get plots for Accurate
+    filt$satCond <- "Accurate"
+    pltAccu <-
+      fx_plotIt(fx_filter(spkCorr, filt), filt, plt, vertices)
+    
+    # return a grob...
+    ZZ <- arrangeGrob(
+      grobs = c(pltFast, pltAccu),
+      nrow = 2,
+      ncol = 1
+    )
+    # to view on console
+    # grid.arrange(ZZ)
+    # save to pdf file
+    # ggsave(
+    #   outFilename,
+    #   path = oPath,
+    #   ZZ,
+    #   width = 8,
+    #   height = 10,
+    #   units = "in"
+    # )
+  }
+}
