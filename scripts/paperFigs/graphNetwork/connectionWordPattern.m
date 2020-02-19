@@ -250,7 +250,7 @@ for ds = 1:numel(dataSrcs)
                 getHeatmapDat(dat(idxFast,:),funcLabelsAll,datColnames);
             pltNo = pltNo + 1;
             h_axis = subplot(1,6,pltNo);
-            fx_plotHeatmap(h_axis,heatmapDat,funcLabels,patLabels,cLims)
+            fx_plotHeatmap(h_axis,heatmapDat,funcLabels,patLabels,cLims);
             fn = ['Fast-' outcomeEpoch];
             title(fn)
             fn = regexprep([dataSrc '-' fn],'-','_');
@@ -258,6 +258,10 @@ for ds = 1:numel(dataSrcs)
                 patternSum.pattern = patLabels';
             end
             patternSum.(fn) = sum(heatmapDat,1)';
+            if isempty(funcSum)
+                funcSum.sefFuncType = funcLabels;
+            end
+            funcSum.(fn) = sum(heatmapDat,2);
 
             % for Accurate
             [heatmapDat,funcLabels,patLabels] = ...
@@ -268,13 +272,11 @@ for ds = 1:numel(dataSrcs)
             fn = ['Accurate-' outcomeEpoch];
             title(fn)
             fn = regexprep([dataSrc '-' fn],'-','_');
-            if isempty(funcSum)
-                funcSum.sefFuncType = funcLabels;
-            end
-            funcSum.([dataSrc '_' fn]) = sum(heatmapDat,2);
-        end
+             patternSum.(fn) = sum(heatmapDat,1)';
+            funcSum.(fn) = sum(heatmapDat,2);
+       end
     end
-    saveFigPdf(['connectionPattern-' dataSrc '.pdf'])
+    %saveFigPdf(['connectionPattern-' dataSrc '.pdf'])
 end
 writetable(patternSum,'patternSum.csv')
 writetable(funcSum,'funcSum.csv')
