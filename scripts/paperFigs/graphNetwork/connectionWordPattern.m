@@ -21,18 +21,18 @@ rscTbl = getPairRscTableForHeb();
 rscTbl(isnan(rscTbl.rhoRaw_150ms),:) = [];
 
 
-% filter rsc table for for SEF to FEF/SC connections only
-rscTbl(~ismember(rscTbl.X_area,{'SEF'}),:) = [];
-rscTbl(ismember(rscTbl.Y_area,{'SEF'}),:) = [];
-
 % code functional types for X
 rscTbl.X_visMovType = repmat({'Other'},size(rscTbl,1),1);
+rscTbl.visMovTypeOrder = repmat(4,size(rscTbl,1),1);
 idx = find(abs(rscTbl.X_visGrade) >=2);
 rscTbl.X_visMovType(idx) = repmat({'Vis'},numel(idx),1);
+rscTbl.visMovTypeOrder(idx) = ones(numel(idx),1);
 idx = find(abs(rscTbl.X_moveGrade) >=2);
 rscTbl.X_visMovType(idx) = repmat({'Mov'},numel(idx),1);
+rscTbl.visMovTypeOrder(idx) = 2 + ones(numel(idx),1);
 idx = find(abs(rscTbl.X_visGrade) >=2 & abs(rscTbl.X_moveGrade) >=2);
 rscTbl.X_visMovType(idx) = repmat({'VisMov'},numel(idx),1);
+rscTbl.visMovTypeOrder(idx) = 1 + ones(numel(idx),1);
 % code: rsc sign
 rscTbl.rscSign = sign(rscTbl.rhoRaw_150ms);
 % code rsc significance : 
@@ -42,36 +42,75 @@ idx = find(rscTbl.rhoRaw_150ms > 0 & rscTbl.pvalRaw_150ms <= 0.01);
 rscTbl.signifRsc(idx) = ones(numel(idx,1));
 idx = find(rscTbl.rhoRaw_150ms < 0 & rscTbl.pvalRaw_150ms <= 0.01);
 rscTbl.signifRsc(idx) = ones(numel(idx,1));
-% sessions, sef,fef,sc units
-sessAll = unique(rscTbl.sess);
-sefAll = unique(rscTbl.X_unitNum);
-fefAll = unique(rscTbl.Y_unitNum(ismember(rscTbl.Y_area,'FEF')));
-scAll = unique(rscTbl.Y_unitNum(ismember(rscTbl.Y_area,'SC')));
+sigRscTbl = rscTbl(rscTbl.signifRsc == 1,:);
+
+% filter rsc table for for SEF to FEF/SC connections only
+rscTbl(~ismember(rscTbl.X_area,{'SEF'}),:) = [];
+rscTbl(ismember(rscTbl.Y_area,{'SEF'}),:) = [];
+sigRscTbl(~ismember(sigRscTbl.X_area,{'SEF'}),:) = [];
+sigRscTbl(ismember(sigRscTbl.Y_area,{'SEF'}),:) = [];
+
+
+
+%% get counts and distributions for paper only SEF to FEF/SC connections
+r = rscTbl(ismember(rscTbl.epoch,'PostSaccade'),:);
+s = sigRscTbl(ismember(sigRscTbl.epoch,'PostSaccade'),:);
+crossAreaTblPs = table();
+crossAreaTblPs.sefType = {'Vis','VisMov','Mov','Other'}';
+crossAreaTblPs.X_visMovType = {'Vis','VisMov','Mov','Other'}';
+
+t = unique(r(:,{'X_visMovType','X_unitNum'}));
+temp = grpstats(t,'X_visMovType');
+temp = join(crossAreaTblPs,temp,'Keys','X_visMovType');
+crossAreaTblPs.sefCount = temp.GroupCount;
+t = unique(s(:,{'X_visMovType','X_unitNum'}));
+temp = grpstats(t,'X_visMovType');
+temp = join(crossAreaTblPs,temp,'Keys','X_visMovType');
+crossAreaTblPs.sefCountSig = temp.GroupCount;
+
+%% pair counts for FEF/SC by sef type
+for z = {'FEF','SC'}
+    a = z{1};
+    f = unique(r(ismember(r.Y_area,a),{'X_visMovType','X_unitNum','Y_unitNum'}));
+    fs = unique(s(ismember(s.Y_area,a),{'X_visMovType','X_unitNum','Y_unitNum'}));
+    temp = grpstats(f,'X_visMovType');
+    tempSum = sum(temp.GroupCount);
+    vn = sprintf('%sPairs_%d_%d',a,numel(unique(f.Y_unitNum)),tempSum);
+    temp.(vn) = temp.GroupCount;
+    crossAreaTblPs = join(crossAreaTblPs,temp,'Keys','X_visMovType','RightVariables',vn);
+    temp = grpstats(fs,'X_visMovType');
+    tempSum = sum(temp.GroupCount);
+    vn = sprintf('%sPairsSig_%d_%d',a,numel(unique(f.Y_unitNum)),tempSum);
+    temp.(vn) = temp.GroupCount;
+    crossAreaTblPs = join(crossAreaTblPs,temp,'Keys','X_visMovType','RightVariables',vn);
+end
+crossAreaTblPs.sefType{5} = 'All';
+crossAreaTblPs.X_visMovType{5} = 'All';
+crossAreaTblPs{5,3:end} = sum(crossAreaTblPs{:,3:end},1);
+crossAreaTblPs.X_visMovType = [];
+writetable(crossAreaTblPs,'crossAreaTable.csv')
 
 %% build the word pattern table for significant connections
-sigRscTbl = rscTbl(rscTbl.signifRsc == 1,:);
-sefSig = unique(sigRscTbl.X_unitNum);
-fefSig = unique(sigRscTbl.Y_unitNum(ismember(sigRscTbl.Y_area,'FEF')));
-scSig = unique(sigRscTbl.Y_unitNum(ismember(sigRscTbl.Y_area,'SC')));
+
 connPatternTbl = getConnWordPattern(sigRscTbl);
 % uniqDecToBinPattern = unique(wordPattern(:,{'connWord6bitDec', 'connWord4bitDec','connWord6bit','connWord4bit'}));
 funcWordPattern = getFuncWordPattern(connPatternTbl);
 
 %% permute functional type labels on the connPatternTbl to simulate random functional type associations
 sefUnitType = unique(sigRscTbl(:,{'X_unitNum','X_visMovType'}));
-sefUnits = sefUnitType.X_unitNum;
+temp = sefUnitType.X_unitNum;
 nPerms = 10;
 randFuncWordPatternPerms = cell(nPerms,1);
 for np = 1:nPerms
     fprintf('premutation #%d\n',np);
     % permute unit labels
-    randSefType = sefUnitType.X_visMovType(randperm(numel(sefUnits)));
+    randSefType = sefUnitType.X_visMovType(randperm(numel(temp)));
     fn = ['rand_' num2str(np,'%d')];
     sefUnitType.(fn) = randSefType;
     % assign this random func type to table variable
     rndRscTbl = sigRscTbl;
-    for u = 1:numel(sefUnits)
-        uNum = sefUnits(u);
+    for u = 1:numel(temp)
+        uNum = temp(u);
         nType = sefUnitType.(fn)(sefUnitType.X_unitNum == uNum);
         idx = rndRscTbl.X_unitNum == uNum;
         rndRscTbl.X_visMovType(idx) = repmat(nType,sum(idx),1);
@@ -215,7 +254,7 @@ for ds = 1:numel(dataSrcs)
                        
         end
     end
-    saveFigPdf(['connectionPattern-' dataSrc '.pdf'])
+    %saveFigPdf(['connectionPattern-' dataSrc '.pdf'])
 end
 
 %% Create graph and subgraphs from the patternSummTbl
