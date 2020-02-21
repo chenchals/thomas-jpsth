@@ -1,5 +1,5 @@
 
-
+# setwd("~/Projects/NEIWork/SATCorrelations/git/thomas-jpsth/rcode")
 # Use igraph library to analyze network graphs
 # see kateto.net/sunbelt2019 for details
 # Install_required_pkgs_and_load-----------------------------------------------
@@ -109,7 +109,17 @@ dropCols <-
 
 rscTbl <- rscTbl[, !(names(rscTbl) %in% dropCols)]
 # process_units_for_outcomeEpochSAT--------------------------------------------
-outDf <- data.frame(unitNum = character())
+outDf <- data.frame(patternDec = integer(0),
+                    patternBits = integer(0),
+                    patternTxt = character(""),
+                    unitNum = character(""),
+                    visMovType = character(""),
+                    fefPlus = list(c("")),
+                    fefMinus = list(),
+                    scPlus = list(),
+                    scMinus = list()
+                    )
+
 outcomes <- c("Correct", "ErrorChoice", "ErrorTiming")
 satConditions <- c("Fast", "Accurate")
 epochs <- c("PostSaccade")
