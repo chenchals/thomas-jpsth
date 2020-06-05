@@ -12,7 +12,7 @@ function [f_h] = saveFigPdf(fn)
         'PaperSize',screenposition(3:4),...
         'PaperOrientation',orient);
     fprintf('Saving figure to: %s...',fn);
-    print(fn,'-dpdf','-opengl')
+    print(fn,'-dpdf','-painters')
     drawnow
     fprintf('Done\n');
 end

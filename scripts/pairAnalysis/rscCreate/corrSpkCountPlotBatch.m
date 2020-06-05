@@ -21,12 +21,12 @@ for p = 1:numel(plotDirs)
 end
 %%
 tic
-for d = 1:numel(corrDirs)
+for d = 3:numel(corrDirs)
     scFiles = dir([corrDirs{d},'/spkCorr*.mat']);
     scFiles = strcat({scFiles.folder}',filesep,{scFiles.name}');
     pdfDir = plotDirs{d};
     savePdfFlag = 1;
-    for f = 1:numel(scFiles)      
+    for f = 36:36 %1:numel(scFiles)    % pair 580 = index 36 for SEF_SC  
         corrSpkCountPlot(scFiles{f},pdfDir,savePdfFlag);       
     end
 end
